@@ -13,8 +13,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SD Event. - 受夠了用 Google Form 來辦活動?",
-  description: "從建立活動、收集表單、對帳查帳、到最後的 QR-Code 入場我們全都幫你做好了",
+  title: "SD Event",
+  description: "建立社教活動網站的好幫手",
 };
 
 export default function RootLayout({
