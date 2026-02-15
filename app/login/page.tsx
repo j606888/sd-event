@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -14,9 +15,11 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -27,11 +30,18 @@ const LoginPage = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    console.log("提交的資料：", data);
-    
-    // 這裡模擬 API 請求
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    alert("登入成功！（目前僅為模擬）");
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError("root", { message: json.error || "登入失敗" });
+      return;
+    }
+    router.push("/events");
+    router.refresh();
   };
 
   return (
@@ -55,6 +65,9 @@ const LoginPage = () => {
           </div>
         </div>
         <div className="flex flex-col gap-2 w-full items-center mb-8">
+          {errors.root && (
+            <p className="text-sm text-red-500">{errors.root.message}</p>
+          )}
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             登入帳號
           </Button>
