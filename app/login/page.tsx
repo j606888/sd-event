@@ -40,7 +40,7 @@ const LoginPage = () => {
       setError("root", { message: json.error || "登入失敗" });
       return;
     }
-    router.push("/events");
+    router.push("/setup-team");
     router.refresh();
   };
 

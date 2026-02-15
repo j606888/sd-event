@@ -42,7 +42,7 @@ const RegisterPage = () => {
       setError("root", { message: json.error || "註冊失敗" });
       return;
     }
-    router.push("/events");
+    router.push("/setup-team");
     router.refresh();
   };
 

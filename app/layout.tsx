@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Nunito, Inter } from "next/font/google";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/app/api/uploadthing/core";
 import "./globals.css";
+import "@uploadthing/react/styles.css";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -27,6 +31,7 @@ export default function RootLayout({
       <body
         className={`${nunito.variable} ${inter.variable} antialiased`}
       >
+        <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         {children}
       </body>
     </html>
