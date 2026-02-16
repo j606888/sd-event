@@ -146,3 +146,41 @@ export const eventNoticeItems = pgTable("event_notice_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// ============ Event Registrations (報名記錄) ============
+export const eventRegistrations = pgTable("event_registrations", {
+  id: serial("id").primaryKey(),
+  /** 公開金鑰：用於不需登入的查看/付款回報網址 */
+  registrationKey: text("registration_key").notNull().unique(),
+  eventId: integer("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  purchaseItemId: integer("purchase_item_id")
+    .references(() => eventPurchaseItems.id, { onDelete: "set null" }),
+  /** 聯絡人資訊 */
+  contactName: text("contact_name").notNull(),
+  contactPhone: text("contact_phone").notNull(),
+  contactEmail: text("contact_email").notNull(),
+  /** 付款資訊 */
+  paymentMethod: text("payment_method"), // "Line Pay", "Bank Transfer", "Other"
+  totalAmount: integer("total_amount").notNull(),
+  /** 付款狀態 */
+  paymentStatus: text("payment_status").notNull().default("pending"), // "pending", "reported", "confirmed", "rejected"
+  /** 付款回報資訊 */
+  paymentScreenshotUrl: text("payment_screenshot_url"),
+  paymentNote: text("payment_note"), // 銀行末五碼或其他訊息
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ============ Event Attendees (參加者) ============
+export const eventAttendees = pgTable("event_attendees", {
+  id: serial("id").primaryKey(),
+  registrationId: integer("registration_id")
+    .notNull()
+    .references(() => eventRegistrations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role").notNull(), // "Leader", "Follower", "Not sure"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

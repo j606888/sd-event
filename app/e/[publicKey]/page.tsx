@@ -1,18 +1,42 @@
 "use client";
 
-import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { EventApplicationForm } from "@/components/events/EventApplicationForm";
 
-const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
+type Location = {
+  id: number;
+  name: string;
+  address: string | null;
+  googleMapUrl: string | null;
+};
 
-function formatEventDateRange(startAt: string, endAt: string): string {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  const fmt = (d: Date) =>
-    `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} (${WEEKDAY[d.getDay()]})`;
-  return `${fmt(start)} ~ ${fmt(end)}`;
-}
+type Organizer = {
+  id: number;
+  name: string;
+  photoUrl: string | null;
+  lineId: string | null;
+  instagram: string | null;
+  facebook: string | null;
+};
+
+type BankInfo = {
+  id: number;
+  bankName: string;
+  bankCode: string;
+  account: string | null;
+};
+
+type PurchaseItem = {
+  id: number;
+  name: string;
+  amount: number;
+};
+
+type NoticeItem = {
+  id: number;
+  content: string;
+};
 
 type EventData = {
   id: number;
@@ -23,6 +47,11 @@ type EventData = {
   startAt: string;
   endAt: string;
   status: string;
+  location: Location | null;
+  organizer: Organizer | null;
+  bankInfo: BankInfo | null;
+  purchaseItems: PurchaseItem[];
+  noticeItems: NoticeItem[];
 };
 
 export default function PublicEventPage() {
@@ -68,45 +97,17 @@ export default function PublicEventPage() {
 
   const isPublished = event.status === "published";
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-lg px-4 py-8">
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-          {event.coverUrl && (
-            <div className="relative h-48 w-full bg-gray-100">
-              <Image
-                src={event.coverUrl}
-                alt=""
-                fill
-                className="object-cover"
-                unoptimized
-                sizes="(max-width: 512px) 100vw, 512px"
-              />
-            </div>
-          )}
-          <div className="p-4">
-            <h1 className="text-xl font-semibold text-gray-900">{event.title}</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              {formatEventDateRange(event.startAt, event.endAt)}
-            </p>
-            {event.description && (
-              <p className="mt-4 text-gray-700 whitespace-pre-wrap text-sm">
-                {event.description}
-              </p>
-            )}
-            {!isPublished && (
-              <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                此活動尚未開放報名，主辦方仍在準備中。
-              </p>
-            )}
-            {isPublished && (
-              <div className="mt-6 rounded-md border border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
-                報名表單即將開放，敬請期待。
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // if (!isPublished) {
+  //   return (
+  //     <div className="min-h-screen p-6 flex items-center justify-center">
+  //       <div className="max-w-lg w-full rounded-lg border border-gray-200 bg-white shadow-sm p-6">
+  //         <p className="text-center text-gray-500">
+  //           此活動尚未開放報名，主辦方仍在準備中。
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  return <EventApplicationForm event={event} />;
 }

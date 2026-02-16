@@ -1,0 +1,281 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { ChevronLeft, Copy, Check, Upload, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { UploadDropzone } from "@/lib/uploadthing";
+
+type BankInfo = {
+  id: number;
+  bankName: string;
+  bankCode: string;
+  account: string | null;
+};
+
+type Organizer = {
+  id: number;
+  name: string;
+  lineId: string | null;
+};
+
+type ReportPaymentPageProps = {
+  registrationKey: string;
+  bankInfo: BankInfo | null;
+  organizer: Organizer | null;
+};
+
+export function ReportPaymentPage({
+  registrationKey,
+  bankInfo,
+  organizer,
+}: ReportPaymentPageProps) {
+  const router = useRouter();
+  const [paymentScreenshotUrl, setPaymentScreenshotUrl] = useState<string | null>(null);
+  const [paymentNote, setPaymentNote] = useState("");
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleCopy = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedText(type);
+      setTimeout(() => setCopiedText(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!paymentScreenshotUrl && !paymentNote.trim()) {
+      setError("請至少提供轉帳截圖或銀行末五碼");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/registrations/${registrationKey}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentScreenshotUrl: paymentScreenshotUrl || null,
+          paymentNote: paymentNote.trim() || null,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setError(data.error || "送出失敗，請稍後再試");
+        setSubmitting(false);
+        return;
+      }
+
+      setSuccess(true);
+      // Redirect to success page after 2 seconds
+      setTimeout(() => {
+        router.push(`/report-payment-success/${registrationKey}`);
+      }, 2000);
+    } catch (error) {
+      console.error("Submit error:", error);
+      setError("網路錯誤，請稍後再試");
+      setSubmitting(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <Check className="w-10 h-10 text-green-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">回報成功!</h1>
+          <p className="text-gray-600 mb-4">
+            我們已收到您回報的付款資訊
+            <br />
+            主辦方將盡快為您確認
+          </p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 rounded-full text-sm text-yellow-800 mb-6">
+            <span>待主辦方確認</span>
+          </div>
+          <p className="text-sm text-gray-500">正在跳轉...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h1 className="flex-1 text-lg font-semibold text-gray-900">回報付款資訊</h1>
+      </div>
+
+      <div className="px-4 py-6 space-y-6">
+        {/* Bank Account Information */}
+        {bankInfo && (
+          <div className="space-y-3">
+            <h2 className="font-semibold text-gray-900">匯款帳號</h2>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-gray-500">銀行</span>
+                  <span className="ml-2 text-gray-900">
+                    {bankInfo.bankName} {bankInfo.bankCode}
+                  </span>
+                </div>
+              </div>
+              {bankInfo.account && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-gray-500">帳號</span>
+                    <span className="ml-2 text-gray-900">{bankInfo.account}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(bankInfo.account!, "bank")}
+                    className="h-8 text-[#5295BC] border-[#5295BC] hover:bg-[#5295BC]/10"
+                  >
+                    {copiedText === "bank" ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        已複製
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        複製帳號
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* LINE Friend Information */}
+        {organizer?.lineId && (
+          <div className="space-y-3">
+            <h2 className="font-semibold text-gray-900">Line 好友</h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm text-gray-500">LINE ID</span>
+                <span className="ml-2 text-sm text-gray-900">{organizer.lineId}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy(organizer.lineId!, "line")}
+                className="h-8 text-[#5295BC] border-[#5295BC] hover:bg-[#5295BC]/10"
+              >
+                {copiedText === "line" ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    已複製
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    複製 ID
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Transfer Screenshot Upload */}
+        <div className="space-y-3">
+          <Label>轉帳截圖</Label>
+          {paymentScreenshotUrl ? (
+            <div className="relative">
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                <Image
+                  src={paymentScreenshotUrl}
+                  alt="轉帳截圖"
+                  fill
+                  className="object-contain"
+                  unoptimized
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaymentScreenshotUrl(null)}
+                className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+                aria-label="移除截圖"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <UploadDropzone
+              endpoint="paymentScreenshot"
+              onClientUploadComplete={(res) => {
+                const first = res?.[0];
+                const url =
+                  first &&
+                  ("url" in first
+                    ? first.url
+                    : (first as { ufsUrl?: string }).ufsUrl);
+                if (url) setPaymentScreenshotUrl(url);
+              }}
+              onUploadError={(err) => {
+                console.error(err);
+                setError("上傳失敗，請重試");
+              }}
+              appearance={{
+                container:
+                  "rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 ut-ready:border-[#5295BC]",
+                label: "text-gray-500",
+                button:
+                  "ut-uploading:bg-[#5295BC] ut-ready:bg-[#5295BC] ut-uploading:after:bg-[#4285A5]",
+              }}
+            />
+          )}
+        </div>
+
+        {/* Additional Message */}
+        <div className="space-y-3">
+          <Label htmlFor="paymentNote">銀行末五碼或其他訊息</Label>
+          <textarea
+            id="paymentNote"
+            placeholder="輸入訊息"
+            rows={4}
+            value={paymentNote}
+            onChange={(e) => setPaymentNote(e.target.value)}
+            className="w-full min-w-0 rounded-md border-0 bg-[#F3F5F7] px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 md:text-sm resize-none"
+          />
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="text-sm text-red-500 text-center">{error}</div>
+        )}
+
+        {/* Submit Button */}
+        <Button
+          onClick={handleSubmit}
+          disabled={submitting || (!paymentScreenshotUrl && !paymentNote.trim())}
+          className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+        >
+          {submitting ? "送出中…" : "送出"}
+        </Button>
+      </div>
+    </div>
+  );
+}
