@@ -117,7 +117,7 @@ export const events = pgTable("events", {
     onDelete: "set null",
   }),
   allowMultiplePurchase: boolean("allow_multiple_purchase").default(false),
-  status: eventStatusEnum("status").notNull().default("draft"),
+  status: eventStatusEnum("status").notNull().default("published"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

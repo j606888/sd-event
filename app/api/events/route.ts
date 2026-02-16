@@ -124,6 +124,7 @@ export async function POST(request: Request) {
       organizerId: Number.isInteger(organizerId) ? organizerId : null,
       bankInfoId: Number.isInteger(bankInfoId) ? bankInfoId : null,
       allowMultiplePurchase,
+      status: "published",
     })
     .returning({
       id: events.id,

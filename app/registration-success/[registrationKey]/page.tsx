@@ -53,7 +53,7 @@ type RegistrationData = {
   participants: Array<{ name: string; role: string }>;
   totalAmount: string;
   paymentMethod: string | null;
-  attendees?: Attendee[];
+  attendees: Attendee[];
   paymentStatus?: string;
 };
 
@@ -132,9 +132,9 @@ export default function RegistrationSuccessPageRoute() {
               name: a.name,
               role: a.role,
               checkedIn: a.checkedIn || false,
-            })),
+            })) as Attendee[],
             paymentStatus: data.registration.paymentStatus,
-          },
+          } as RegistrationData,
           paymentStatus: data.registration.paymentStatus,
         });
       } else {
