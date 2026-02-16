@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, teams, teamMembers } from "@/db/schema";
 import { hashPassword, createToken, setAuthCookie } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 
@@ -50,6 +50,19 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "註冊失敗" }, { status: 500 });
+    }
+
+    // 建立預設團隊並將使用者設為 owner
+    const [team] = await db
+      .insert(teams)
+      .values({ name: "我的團隊" })
+      .returning({ id: teams.id });
+    if (team) {
+      await db.insert(teamMembers).values({
+        teamId: team.id,
+        userId: user.id,
+        role: "owner",
+      });
     }
 
     const token = await createToken({ userId: user.id, email: user.email });
