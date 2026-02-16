@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { RegistrationSuccessPage } from "@/components/events/RegistrationSuccessPage";
 import { ConfirmedPage } from "@/components/events/ConfirmedPage";
 
@@ -63,85 +63,106 @@ export default function RegistrationSuccessPageRoute() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // For now, we'll use sessionStorage to get the registration data
-  // In a real app, this would fetch from an API using the registrationKey
   const [registrationData, setRegistrationData] = useState<{
     event: EventData;
     registration: RegistrationData;
+    paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
   } | null>(null);
 
-  useEffect(() => {
+  const fetchRegistrationData = useCallback(async () => {
     if (!registrationKey) {
       setError("無效的報名編號");
       setLoading(false);
       return;
     }
 
-    // Fetch registration data from API
-    fetch(`/api/registrations/${encodeURIComponent(registrationKey)}`)
-      .then((res) => {
-        if (res.status === 404) {
-          setError("找不到報名資料");
-          return null;
-        }
-        if (!res.ok) throw new Error("無法載入");
-        return res.json();
-      })
-      .then((data) => {
-        if (data?.registration && data?.event && data?.attendees) {
-          // Transform API response to match component props
-          setRegistrationData({
-            event: {
-              id: data.event.id,
-              title: data.event.title,
-              coverUrl: data.event.coverUrl,
-              startAt: data.event.startAt,
-              endAt: data.event.endAt,
-              location: data.event.location,
-              organizer: data.event.organizer,
-              purchaseItems: data.purchaseItem
-                ? [
-                    {
-                      id: data.purchaseItem.id,
-                      name: data.purchaseItem.name,
-                      amount: data.purchaseItem.amount,
-                    },
-                  ]
-                : [],
-            },
-            registration: {
-              selectedPlan: data.purchaseItem
-                ? {
+    try {
+      const res = await fetch(`/api/registrations/${encodeURIComponent(registrationKey)}`);
+      
+      if (res.status === 404) {
+        setError("找不到報名資料");
+        setLoading(false);
+        return;
+      }
+      
+      if (!res.ok) throw new Error("無法載入");
+      
+      const data = await res.json();
+      
+      if (data?.registration && data?.event && data?.attendees) {
+        // Transform API response to match component props
+        setRegistrationData({
+          event: {
+            id: data.event.id,
+            title: data.event.title,
+            coverUrl: data.event.coverUrl,
+            startAt: data.event.startAt,
+            endAt: data.event.endAt,
+            location: data.event.location,
+            organizer: data.event.organizer,
+            purchaseItems: data.purchaseItem
+              ? [
+                  {
                     id: data.purchaseItem.id,
                     name: data.purchaseItem.name,
                     amount: data.purchaseItem.amount,
-                  }
-                : null,
-              contactName: data.registration.contactName,
-              contactPhone: data.registration.contactPhone,
-              contactEmail: data.registration.contactEmail,
-              participants: data.attendees.map((a: any) => ({
-                name: a.name,
-                role: a.role,
-              })),
-              totalAmount: String(data.registration.totalAmount),
-              paymentMethod: data.registration.paymentMethod,
-              attendees: data.attendees.map((a: any) => ({
-                id: a.id,
-                name: a.name,
-                role: a.role,
-                checkedIn: a.checkedIn || false,
-              })),
-              paymentStatus: data.registration.paymentStatus,
-            },
-          });
-        } else {
-          setError("找不到報名資料");
-        }
-      })
-      .catch(() => setError("無法載入報名資料"))
-      .finally(() => setLoading(false));
+                  },
+                ]
+              : [],
+          },
+          registration: {
+            selectedPlan: data.purchaseItem
+              ? {
+                  id: data.purchaseItem.id,
+                  name: data.purchaseItem.name,
+                  amount: data.purchaseItem.amount,
+                }
+              : null,
+            contactName: data.registration.contactName,
+            contactPhone: data.registration.contactPhone,
+            contactEmail: data.registration.contactEmail,
+            participants: data.attendees.map((a: any) => ({
+              name: a.name,
+              role: a.role,
+            })),
+            totalAmount: String(data.registration.totalAmount),
+            paymentMethod: data.registration.paymentMethod,
+            attendees: data.attendees.map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              role: a.role,
+              checkedIn: a.checkedIn || false,
+            })),
+            paymentStatus: data.registration.paymentStatus,
+          },
+          paymentStatus: data.registration.paymentStatus,
+        });
+      } else {
+        setError("找不到報名資料");
+      }
+    } catch (err) {
+      setError("無法載入報名資料");
+    } finally {
+      setLoading(false);
+    }
   }, [registrationKey]);
+
+  useEffect(() => {
+    fetchRegistrationData();
+  }, [fetchRegistrationData]);
+
+  // Auto-refresh every 10 seconds if status is "reported" (waiting for confirmation)
+  useEffect(() => {
+    if (!registrationData || registrationData.paymentStatus !== "reported") {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      fetchRegistrationData();
+    }, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [registrationData?.paymentStatus, fetchRegistrationData]);
 
   if (loading) {
     return (
@@ -161,7 +182,7 @@ export default function RegistrationSuccessPageRoute() {
   }
 
   // Show confirmed page if payment status is confirmed
-  if (registrationData.registration.paymentStatus === "confirmed") {
+  if (registrationData.paymentStatus === "confirmed") {
     return (
       <ConfirmedPage
         event={registrationData.event}
@@ -176,6 +197,7 @@ export default function RegistrationSuccessPageRoute() {
       event={registrationData.event}
       registration={registrationData.registration}
       registrationKey={registrationKey}
+      paymentStatus={registrationData.paymentStatus}
     />
   );
 }

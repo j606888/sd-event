@@ -78,9 +78,9 @@ export function ReportPaymentPage({
       }
 
       setSuccess(true);
-      // Redirect to success page after 2 seconds
+      // Redirect to registration success page after 2 seconds
       setTimeout(() => {
-        router.push(`/report-payment-success/${registrationKey}`);
+        router.push(`/registration-success/${registrationKey}`);
       }, 2000);
     } catch (error) {
       console.error("Submit error:", error);

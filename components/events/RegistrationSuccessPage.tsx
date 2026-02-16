@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Clock, MapPin, Wallet, Users, DollarSign, Cloud } from "lucide-react";
+import { CheckCircle2, Clock, MapPin, Wallet, Users, DollarSign, Cloud, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
@@ -64,35 +64,87 @@ type RegistrationSuccessPageProps = {
   event: EventData;
   registration: RegistrationData;
   registrationKey: string;
+  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
 };
 
 export function RegistrationSuccessPage({
   event,
   registration,
   registrationKey,
+  paymentStatus,
 }: RegistrationSuccessPageProps) {
   const participantsText = registration.participants.map((p) => p.name).join("、");
+
+  // Render different header based on payment status
+  const renderHeader = () => {
+    if (paymentStatus === "reported") {
+      return (
+        <div className="bg-yellow-50 px-4 py-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center">
+              <Clock className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">付款資訊已回報</h1>
+          <p className="text-sm text-gray-600 mb-1">我們已收到您回報的付款資訊</p>
+          <p className="text-sm text-gray-600 mb-4">
+            主辦方將盡快為您確認，請稍候
+          </p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 rounded-full text-sm text-yellow-800">
+            <Clock className="w-4 h-4" />
+            <span>待主辦方確認</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (paymentStatus === "rejected") {
+      return (
+        <div className="bg-red-50 px-4 py-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
+              <AlertCircle className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">付款確認失敗</h1>
+          <p className="text-sm text-gray-600 mb-1">主辦方無法確認您的付款資訊</p>
+          <p className="text-sm text-gray-600 mb-4">
+            請重新回報付款資訊或聯繫主辦單位
+          </p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 rounded-full text-sm text-red-800">
+            <AlertCircle className="w-4 h-4" />
+            <span>付款確認失敗</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: pending
+    return (
+      <div className="bg-blue-50 px-4 py-8 text-center">
+        <div className="flex justify-center mb-4">
+          <div className="w-16 h-16 rounded-full bg-[#5295BC] flex items-center justify-center">
+            <CheckCircle2 className="w-10 h-10 text-white" />
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">報名成功!</h1>
+        <p className="text-sm text-gray-600 mb-1">目前尚未完成付款</p>
+        <p className="text-sm text-gray-600 mb-4">
+          請於期限內完成付款以保留名額
+        </p>
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
+          <Cloud className="w-4 h-4" />
+          <span>尚未付款</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-lg">
         {/* Success Header */}
-        <div className="bg-blue-50 px-4 py-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-[#5295BC] flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10 text-white" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">報名成功!</h1>
-          <p className="text-sm text-gray-600 mb-1">目前尚未完成付款</p>
-          <p className="text-sm text-gray-600 mb-4">
-            請於期限內完成付款以保留名額
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
-            <Cloud className="w-4 h-4" />
-            <span>尚未付款</span>
-          </div>
-        </div>
+        {renderHeader()}
 
         {/* Event Details */}
         <div className="px-4 py-6 space-y-4 bg-white">
@@ -171,14 +223,21 @@ export function RegistrationSuccessPage({
               NT {registration.totalAmount}
             </span>
           </div>
-          <Button
-            asChild
-            className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
-          >
-            <Link href={`/report-payment/${registrationKey}`}>
-              回報付款資訊
-            </Link>
-          </Button>
+          {(paymentStatus === "pending" || paymentStatus === "rejected") && (
+            <Button
+              asChild
+              className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+            >
+              <Link href={`/report-payment/${registrationKey}`}>
+                {paymentStatus === "rejected" ? "重新回報付款資訊" : "回報付款資訊"}
+              </Link>
+            </Button>
+          )}
+          {paymentStatus === "reported" && (
+            <div className="text-center text-sm text-gray-600">
+              付款資訊已送出，請等待主辦方確認
+            </div>
+          )}
         </div>
 
         {/* Organizer Section */}
