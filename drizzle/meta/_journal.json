@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1770977917022,
+      "tag": "0000_peaceful_darwin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771156529263,
+      "tag": "0001_nasty_selene",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771240000000,
+      "tag": "0002_add_events_public_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771252526092,
+      "tag": "0003_lively_jetstream",
+      "breakpoints": true
+    }
+  ]
+}

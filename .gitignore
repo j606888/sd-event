@@ -35,7 +35,10 @@ yarn-error.log*
 !.env.example
 
 # drizzle
-/drizzle
+/drizzle/*
+!/drizzle/**/*.sql
+!/drizzle/meta
+!/drizzle/meta/**
 
 # vercel
 .vercel
