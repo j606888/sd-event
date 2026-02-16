@@ -1,41 +1,40 @@
 # Vercel Deployment Guide - Database Migrations
 
-## Option 1: Using Migrations (Recommended for Production)
+## Current Setup: Using Push (Recommended)
 
-### Step 1: Generate Migrations Locally
+The build script is configured to use `drizzle-kit push`, which directly syncs your schema to the database. This is simpler and handles existing schema better.
 
-Before deploying, generate migration files locally:
-
-```bash
-npm run db:generate
-```
-
-This will create migration files in the `./drizzle` folder. **Commit these files to git** - they will be used during deployment.
-
-### Step 2: Set Environment Variables in Vercel
+### Step 1: Set Environment Variables in Vercel
 
 1. Go to your Vercel project settings
 2. Navigate to "Environment Variables"
 3. Add `DATABASE_URL` with your production database connection string
 
-### Step 3: Deploy
+### Step 2: Deploy
 
-The migrations will run automatically during the build process because the `build` script includes `db:migrate:deploy`.
+The schema will be synced automatically during the build process because the `build` script includes `db:push:deploy`.
 
-## Option 2: Using Push (Simpler, but less control)
+**Note**: `db:push` directly syncs your schema to the database without creating migration files. This is simpler and works well for most use cases.
 
-If you prefer to use `drizzle-kit push` instead of migrations:
+## Alternative: Using Migrations (More Control)
+
+If you prefer to use migrations instead:
 
 1. Update `package.json` build script to:
    ```json
-   "build": "npm run db:push && next build"
+   "build": "npm run db:migrate:deploy && next build"
    ```
 
-2. Make sure `DATABASE_URL` is set in Vercel environment variables
+2. Generate migrations locally:
+   ```bash
+   npm run db:generate
+   ```
 
-3. Deploy
+3. Commit the `drizzle` folder to git
 
-**Note**: `db:push` directly syncs your schema to the database without creating migration files. This is simpler but gives you less control over schema changes.
+4. Deploy
+
+**Note**: Migrations give you more control over schema changes but require managing migration files.
 
 ## Troubleshooting
 
