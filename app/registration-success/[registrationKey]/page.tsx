@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RegistrationSuccessPage } from "@/components/events/RegistrationSuccessPage";
+import { ConfirmedPage } from "@/components/events/ConfirmedPage";
 
 type Location = {
   id: number;
@@ -37,6 +38,13 @@ type EventData = {
   purchaseItems: PurchaseItem[];
 };
 
+type Attendee = {
+  id: number;
+  name: string;
+  role: string;
+  checkedIn: boolean;
+};
+
 type RegistrationData = {
   selectedPlan: PurchaseItem | null;
   contactName: string;
@@ -45,6 +53,8 @@ type RegistrationData = {
   participants: Array<{ name: string; role: string }>;
   totalAmount: string;
   paymentMethod: string | null;
+  attendees?: Attendee[];
+  paymentStatus?: string;
 };
 
 export default function RegistrationSuccessPageRoute() {
@@ -116,6 +126,13 @@ export default function RegistrationSuccessPageRoute() {
               })),
               totalAmount: String(data.registration.totalAmount),
               paymentMethod: data.registration.paymentMethod,
+              attendees: data.attendees.map((a: any) => ({
+                id: a.id,
+                name: a.name,
+                role: a.role,
+                checkedIn: a.checkedIn || false,
+              })),
+              paymentStatus: data.registration.paymentStatus,
             },
           });
         } else {
@@ -140,6 +157,17 @@ export default function RegistrationSuccessPageRoute() {
         <p className="text-red-500">{error ?? "找不到報名資料"}</p>
         <p className="text-sm text-gray-500">連結可能已失效</p>
       </div>
+    );
+  }
+
+  // Show confirmed page if payment status is confirmed
+  if (registrationData.registration.paymentStatus === "confirmed") {
+    return (
+      <ConfirmedPage
+        event={registrationData.event}
+        registration={registrationData.registration}
+        registrationKey={registrationKey}
+      />
     );
   }
 

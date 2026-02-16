@@ -181,6 +181,8 @@ export const eventAttendees = pgTable("event_attendees", {
     .references(() => eventRegistrations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   role: text("role").notNull(), // "Leader", "Follower", "Not sure"
+  checkedIn: boolean("checked_in").default(false).notNull(),
+  checkedInAt: timestamp("checked_in_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

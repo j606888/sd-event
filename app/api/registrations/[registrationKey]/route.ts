@@ -122,6 +122,8 @@ export async function GET(_request: Request, { params }: Params) {
         id: a.id,
         name: a.name,
         role: a.role,
+        checkedIn: a.checkedIn || false,
+        checkedInAt: a.checkedInAt,
       })),
     });
   } catch (e) {

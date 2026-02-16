@@ -59,7 +59,7 @@ type RegistrationDetailData = {
   paymentScreenshotUrl: string | null;
   paymentNote: string | null;
   createdAt: string;
-  attendees: Array<{ id: number; name: string; role: "Leader" | "Follower" | "Not sure" | string }>;
+  attendees: Array<{ id: number; name: string; role: "Leader" | "Follower" | "Not sure" | string; checkedIn?: boolean; checkedInAt?: string | null }>;
   purchaseItem: { id: number; name: string; amount: number } | null;
 };
 
@@ -136,12 +136,37 @@ export default function EventDetailPage() {
       if (res.ok) {
         // Refresh registrations and detail
         await fetchRegistrations(searchQuery);
-        await fetchRegistrationDetail(registrationId);
+        if (selectedRegistrationId === registrationId) {
+          await fetchRegistrationDetail(registrationId);
+        }
       }
     } catch (err) {
       console.error("Failed to update registration status:", err);
     }
-  }, [eventId, searchQuery, fetchRegistrations, fetchRegistrationDetail]);
+  }, [eventId, searchQuery, selectedRegistrationId, fetchRegistrations, fetchRegistrationDetail]);
+
+  const handleCheckIn = useCallback(async (attendeeId: number) => {
+    try {
+      const res = await fetch(`/api/attendees/${attendeeId}/check-in`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "檢查入場失敗");
+      }
+
+      // Refresh registration detail after check-in
+      if (selectedRegistrationId) {
+        await fetchRegistrationDetail(selectedRegistrationId);
+      }
+    } catch (err) {
+      console.error("Check-in error:", err);
+      throw err;
+    }
+  }, [selectedRegistrationId, fetchRegistrationDetail]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -287,6 +312,7 @@ export default function EventDetailPage() {
                     await updateRegistrationStatus(selectedRegistrationId, status);
                   }
                 }}
+                onCheckIn={handleCheckIn}
               />
             ) : (
               <RegistrationsList
@@ -307,8 +333,20 @@ export default function EventDetailPage() {
           </div>
         )}
         {activeTab === "verify" && (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
-            驗票 — 尚未有資料
+          <div className="space-y-4">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
+              <p className="text-sm text-gray-600 mb-4">
+                掃描參加者的 QR code 來確認入場
+              </p>
+              <Button
+                onClick={() => {
+                  window.location.href = `/events/${eventId}/scan`;
+                }}
+                className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+              >
+                開啟掃描器
+              </Button>
+            </div>
           </div>
         )}
       </div>

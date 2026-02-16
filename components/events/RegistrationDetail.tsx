@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, CheckCircle2, Cloud } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Cloud, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
 
 type Attendee = {
   id: number;
   name: string;
   role: "Leader" | "Follower" | "Not sure" | string;
+  checkedIn?: boolean;
+  checkedInAt?: string | null;
 };
 
 type PurchaseItem = {
@@ -29,7 +32,7 @@ type Registration = {
   paymentScreenshotUrl: string | null;
   paymentNote: string | null;
   createdAt: string;
-  attendees: Array<{ id: number; name: string; role: string }>;
+  attendees: Array<{ id: number; name: string; role: string; checkedIn?: boolean; checkedInAt?: string | null }>;
   purchaseItem: PurchaseItem | null;
 };
 
@@ -41,6 +44,7 @@ type RegistrationDetailProps = {
   onPrevious: () => void;
   onNext: () => void;
   onStatusUpdate: (status: "confirmed") => Promise<void>;
+  onCheckIn: (attendeeId: number) => Promise<void>;
 };
 
 function formatDate(dateString: string): string {
@@ -73,8 +77,10 @@ export function RegistrationDetail({
   onPrevious,
   onNext,
   onStatusUpdate,
+  onCheckIn,
 }: RegistrationDetailProps) {
   const [updating, setUpdating] = useState(false);
+  const [showCheckInDialog, setShowCheckInDialog] = useState(false);
 
   const handleConfirm = async () => {
     setUpdating(true);
@@ -168,19 +174,40 @@ export function RegistrationDetail({
 
       {/* Participants */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">參與者</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900">參與者</h3>
+          <Button
+            onClick={() => setShowCheckInDialog(true)}
+            size="sm"
+            variant="outline"
+            className="gap-2"
+          >
+            <QrCode className="w-4 h-4" />
+            手動入場
+          </Button>
+        </div>
         <div className="space-y-2">
           {registration.attendees.map((attendee) => (
             <div
               key={attendee.id}
               className="flex items-center justify-between p-2 rounded bg-gray-50"
             >
-              <span className="text-sm text-gray-900">{attendee.name}</span>
-              <span
-                className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadge(attendee.role)}`}
-              >
-                {attendee.role}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-900">{attendee.name}</span>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadge(attendee.role)}`}
+                >
+                  {attendee.role}
+                </span>
+              </div>
+              {attendee.checkedIn ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>已入場</span>
+                </div>
+              ) : (
+                <span className="text-xs text-gray-500">未入場</span>
+              )}
             </div>
           ))}
         </div>
@@ -249,6 +276,52 @@ export function RegistrationDetail({
         >
           {updating ? "處理中…" : "標記為已完成"}
         </Button>
+      )}
+
+      {/* Check-in Dialog */}
+      {showCheckInDialog && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white">
+              <h2 className="text-lg font-semibold text-gray-900">手動入場</h2>
+              <button
+                onClick={() => setShowCheckInDialog(false)}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Registration Detail */}
+            <div className="p-4">
+              <ScannedRegistrationDetail
+                registration={{
+                  id: registration.id,
+                  registrationKey: registration.registrationKey,
+                  contactName: registration.contactName,
+                  totalAmount: registration.totalAmount,
+                  paymentStatus: registration.paymentStatus,
+                  purchaseItem: registration.purchaseItem,
+                  attendees: registration.attendees.map((a) => ({
+                    id: a.id,
+                    name: a.name,
+                    role: a.role,
+                    checkedIn: a.checkedIn || false,
+                    checkedInAt: a.checkedInAt || null,
+                  })),
+                }}
+                onBack={() => setShowCheckInDialog(false)}
+                onCheckIn={async (attendeeId) => {
+                  await onCheckIn(attendeeId);
+                  // Refresh registration detail after check-in
+                  // The parent component should handle this
+                }}
+                backLabel="返回"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
