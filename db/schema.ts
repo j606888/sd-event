@@ -94,6 +94,8 @@ export const bankInfos = pgTable("bank_infos", {
 // ============ Events ============
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
+  /** 公開金鑰：用於不需登入的分享/報名網址，避免暴露數字 ID */
+  publicKey: text("public_key").notNull().unique(),
   teamId: integer("team_id")
     .notNull()
     .references(() => teams.id, { onDelete: "cascade" }),

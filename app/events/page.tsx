@@ -1,21 +1,11 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { EventCard } from "@/components/events/EventCard";
 import { useCurrentTeam } from "@/hooks/use-current-team";
-
-const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
-
-function formatEventDateRange(startAt: string, endAt: string): string {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  const fmt = (d: Date) =>
-    `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} (${WEEKDAY[d.getDay()]})`;
-  return `${fmt(start)} ~ ${fmt(end)}`;
-}
 
 type EventItem = {
   id: number;
@@ -84,7 +74,7 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="relative flex-1 p-6 max-w-2xl">
+    <div className="relative flex-1 p-4 max-w-2xl">
       <h2 className="mb-6 text-[17px] font-semibold text-gray-900">所有活動</h2>
 
       {events.length === 0 ? (
@@ -95,50 +85,7 @@ export default function EventsPage() {
         <ul className="flex flex-col gap-4">
           {events.map((event) => (
             <li key={event.id}>
-              <Link
-                href={`/events/${event.id}`}
-                className="flex gap-4 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-gray-100">
-                  {event.coverUrl ? (
-                    <Image
-                      src={event.coverUrl}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      unoptimized
-                      sizes="80px"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-gray-400">
-                      <span className="text-xs">無封面</span>
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 truncate">{event.title}</p>
-                  <p className="mt-0.5 text-sm text-gray-500">
-                    {formatEventDateRange(event.startAt, event.endAt)}
-                  </p>
-                  <p className="mt-0.5 text-sm text-gray-500">
-                    0 人報名
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span
-                    className={`inline-flex items-center gap-1.5 text-sm font-medium ${
-                      event.status === "published" ? "text-[#5295BC]" : "text-gray-500"
-                    }`}
-                  >
-                    <span
-                      className={`size-2 rounded-full ${
-                        event.status === "published" ? "bg-[#5295BC]" : "bg-gray-400"
-                      }`}
-                    />
-                    {event.status === "published" ? "進行中" : "草稿"}
-                  </span>
-                </div>
-              </Link>
+              <EventCard event={event} />
             </li>
           ))}
         </ul>

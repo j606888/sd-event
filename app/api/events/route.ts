@@ -1,9 +1,15 @@
+import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { events, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { eq, inArray, desc } from "drizzle-orm";
+
+/** 產生 URL 安全的公開金鑰（約 16 字元） */
+function generatePublicKey(): string {
+  return randomBytes(12).toString("base64url");
+}
 
 /** 取得活動列表（可選 ?teamId= 篩選，否則回傳當前使用者所屬團隊的活動） */
 export async function GET(request: Request) {
@@ -26,6 +32,7 @@ export async function GET(request: Request) {
     const list = await db
       .select({
         id: events.id,
+        publicKey: events.publicKey,
         teamId: events.teamId,
         userId: events.userId,
         title: events.title,
@@ -53,6 +60,7 @@ export async function GET(request: Request) {
   const list = await db
     .select({
       id: events.id,
+      publicKey: events.publicKey,
       teamId: events.teamId,
       userId: events.userId,
       title: events.title,
@@ -99,10 +107,12 @@ export async function POST(request: Request) {
   const organizerId = body.organizerId != null ? Number(body.organizerId) : null;
   const bankInfoId = body.bankInfoId != null ? Number(body.bankInfoId) : null;
   const allowMultiplePurchase = Boolean(body.allowMultiplePurchase);
+  const publicKey = generatePublicKey();
 
   const [event] = await db
     .insert(events)
     .values({
+      publicKey,
       teamId,
       userId: session.userId,
       title,
@@ -117,6 +127,7 @@ export async function POST(request: Request) {
     })
     .returning({
       id: events.id,
+      publicKey: events.publicKey,
       teamId: events.teamId,
       userId: events.userId,
       title: events.title,
