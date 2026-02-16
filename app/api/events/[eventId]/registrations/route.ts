@@ -6,14 +6,114 @@ import {
   eventRegistrations,
   eventAttendees,
   eventPurchaseItems,
+  teamMembers,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
+import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { eq, desc, count, or, like, and } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
 /** 產生 URL 安全的註冊金鑰（約 16 字元） */
 function generateRegistrationKey(): string {
   return randomBytes(12).toString("base64url");
+}
+
+/**
+ * 取得活動的報名列表（需為該團隊成員）
+ */
+export async function GET(request: Request, { params }: Params) {
+  const authError = await requireAuth();
+  if (authError) return authError;
+
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+
+  const eventId = Number((await params).eventId);
+  if (!Number.isInteger(eventId)) {
+    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+  }
+
+  // 檢查活動是否存在且使用者為團隊成員
+  const [event] = await db
+    .select()
+    .from(events)
+    .where(eq(events.id, eventId))
+    .limit(1);
+
+  if (!event) {
+    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+  }
+
+  const forbidden = await requireTeamMember(event.teamId, session.userId);
+  if (forbidden) return forbidden;
+
+  // 取得搜尋參數
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search")?.trim() || "";
+
+  // 建立查詢條件
+  const whereConditions = [eq(eventRegistrations.eventId, eventId)];
+
+  // 如果有搜尋條件，加入搜尋
+  if (search) {
+    whereConditions.push(
+      or(
+        like(eventRegistrations.contactName, `%${search}%`),
+        like(eventRegistrations.paymentNote, `%${search}%`),
+        like(eventRegistrations.contactPhone, `%${search}%`)
+      )!
+    );
+  }
+
+  const registrations = await db
+    .select({
+      id: eventRegistrations.id,
+      registrationKey: eventRegistrations.registrationKey,
+      eventId: eventRegistrations.eventId,
+      purchaseItemId: eventRegistrations.purchaseItemId,
+      contactName: eventRegistrations.contactName,
+      contactPhone: eventRegistrations.contactPhone,
+      contactEmail: eventRegistrations.contactEmail,
+      paymentMethod: eventRegistrations.paymentMethod,
+      totalAmount: eventRegistrations.totalAmount,
+      paymentStatus: eventRegistrations.paymentStatus,
+      paymentScreenshotUrl: eventRegistrations.paymentScreenshotUrl,
+      paymentNote: eventRegistrations.paymentNote,
+      createdAt: eventRegistrations.createdAt,
+      updatedAt: eventRegistrations.updatedAt,
+    })
+    .from(eventRegistrations)
+    .where(and(...whereConditions))
+    .orderBy(desc(eventRegistrations.createdAt));
+
+  // 取得每個報名的參加者數量
+  const registrationIds = registrations.map((r) => r.id);
+  const attendeesCounts =
+    registrationIds.length > 0
+      ? await db
+          .select({
+            registrationId: eventAttendees.registrationId,
+            count: count(),
+          })
+          .from(eventAttendees)
+          .where(
+            or(...registrationIds.map((id) => eq(eventAttendees.registrationId, id)))
+          )
+          .groupBy(eventAttendees.registrationId)
+      : [];
+
+  const countMap = new Map(
+    attendeesCounts.map((a) => [a.registrationId, Number(a.count)])
+  );
+
+  // 組合結果
+  const result = registrations.map((reg) => ({
+    ...reg,
+    attendeeCount: countMap.get(reg.id) || 0,
+  }));
+
+  return NextResponse.json({ registrations: result });
 }
 
 /**

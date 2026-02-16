@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { EventForm } from "@/components/events/EventForm";
+import { RegistrationsList } from "@/components/events/RegistrationsList";
+import { RegistrationDetail } from "@/components/events/RegistrationDetail";
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
 
@@ -28,10 +30,38 @@ type EventData = {
 
 const TABS = [
   { id: "form" as const, label: "表單" },
-  { id: "replies" as const, label: "回復", badge: 0 },
+  { id: "replies" as const, label: "回復" },
   { id: "stats" as const, label: "統計" },
   { id: "verify" as const, label: "驗票" },
 ];
+
+type Registration = {
+  id: number;
+  registrationKey: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  totalAmount: number;
+  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
+  attendeeCount: number;
+  createdAt: string;
+};
+
+type RegistrationDetailData = {
+  id: number;
+  registrationKey: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  paymentMethod: string | null;
+  totalAmount: number;
+  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
+  paymentScreenshotUrl: string | null;
+  paymentNote: string | null;
+  createdAt: string;
+  attendees: Array<{ id: number; name: string; role: "Leader" | "Follower" | "Not sure" | string }>;
+  purchaseItem: { id: number; name: string; amount: number } | null;
+};
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -41,6 +71,13 @@ export default function EventDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("form");
   const [shareCopied, setShareCopied] = useState(false);
+  
+  // Registrations state
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [selectedRegistrationId, setSelectedRegistrationId] = useState<number | null>(null);
+  const [selectedRegistration, setSelectedRegistration] = useState<RegistrationDetailData | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
 
   const fetchEvent = useCallback(async () => {
     if (!eventId) return;
@@ -55,6 +92,57 @@ export default function EventDetailPage() {
     return data?.event;
   }, [eventId]);
 
+  const fetchRegistrations = useCallback(async (search?: string) => {
+    if (!eventId) return;
+    setLoadingRegistrations(true);
+    try {
+      const url = `/api/events/${eventId}/registrations${search ? `?search=${encodeURIComponent(search)}` : ""}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setRegistrations(data.registrations || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch registrations:", err);
+    } finally {
+      setLoadingRegistrations(false);
+    }
+  }, [eventId]);
+
+  const fetchRegistrationDetail = useCallback(async (registrationId: number) => {
+    if (!eventId) return;
+    try {
+      const res = await fetch(`/api/events/${eventId}/registrations/${registrationId}`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedRegistration(data.registration);
+      }
+    } catch (err) {
+      console.error("Failed to fetch registration detail:", err);
+    }
+  }, [eventId]);
+
+  const updateRegistrationStatus = useCallback(async (registrationId: number, status: "confirmed") => {
+    if (!eventId) return;
+    try {
+      const res = await fetch(`/api/events/${eventId}/registrations/${registrationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ paymentStatus: status }),
+      });
+      if (res.ok) {
+        // Refresh registrations and detail
+        await fetchRegistrations(searchQuery);
+        await fetchRegistrationDetail(registrationId);
+      }
+    } catch (err) {
+      console.error("Failed to update registration status:", err);
+    }
+  }, [eventId, searchQuery, fetchRegistrations, fetchRegistrationDetail]);
+
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
@@ -62,6 +150,18 @@ export default function EventDetailPage() {
       .catch(() => setError("無法載入活動"))
       .finally(() => setLoading(false));
   }, [eventId, fetchEvent]);
+
+  useEffect(() => {
+    if (activeTab === "replies" && eventId) {
+      fetchRegistrations(searchQuery);
+    }
+  }, [activeTab, eventId, searchQuery, fetchRegistrations]);
+
+  useEffect(() => {
+    if (selectedRegistrationId) {
+      fetchRegistrationDetail(selectedRegistrationId);
+    }
+  }, [selectedRegistrationId, fetchRegistrationDetail]);
 
   if (loading) {
     return (
@@ -112,9 +212,9 @@ export default function EventDetailPage() {
             }`}
           >
             {tab.label}
-            {"badge" in tab && tab.badge !== undefined && tab.badge > 0 && (
+            {tab.id === "replies" && registrations.length > 0 && (
               <span className="rounded-full bg-[#5295BC] px-1.5 py-0.5 text-xs font-medium text-white">
-                {tab.badge}
+                {registrations.length}
               </span>
             )}
             {activeTab === tab.id && (
@@ -158,9 +258,48 @@ export default function EventDetailPage() {
           />
         )}
         {activeTab === "replies" && (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
-            回復 — 尚未有資料
-          </div>
+          <>
+            {selectedRegistration ? (
+              <RegistrationDetail
+                registration={selectedRegistration}
+                currentIndex={registrations.findIndex((r) => r.id === selectedRegistrationId) || 0}
+                totalCount={registrations.length}
+                onBack={() => {
+                  setSelectedRegistration(null);
+                  setSelectedRegistrationId(null);
+                }}
+                onPrevious={() => {
+                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId) || 0;
+                  if (currentIdx > 0) {
+                    const prevId = registrations[currentIdx - 1].id;
+                    setSelectedRegistrationId(prevId);
+                  }
+                }}
+                onNext={() => {
+                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId) || 0;
+                  if (currentIdx < registrations.length - 1) {
+                    const nextId = registrations[currentIdx + 1].id;
+                    setSelectedRegistrationId(nextId);
+                  }
+                }}
+                onStatusUpdate={async (status) => {
+                  if (selectedRegistrationId) {
+                    await updateRegistrationStatus(selectedRegistrationId, status);
+                  }
+                }}
+              />
+            ) : (
+              <RegistrationsList
+                registrations={registrations}
+                onSelect={(id) => setSelectedRegistrationId(id)}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
+            )}
+            {loadingRegistrations && (
+              <div className="text-center text-sm text-gray-500 py-4">載入中…</div>
+            )}
+          </>
         )}
         {activeTab === "stats" && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
