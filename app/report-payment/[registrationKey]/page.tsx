@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ReportPaymentPage } from "@/components/events/ReportPaymentPage";
+import { ReportPaymentPage } from "@/components/events/registration/ReportPaymentPage";
 
 type BankInfo = {
   id: number;

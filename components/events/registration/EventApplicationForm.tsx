@@ -7,6 +7,7 @@ import { ChevronLeft, Trash2, Plus, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { PublicEventData } from "@/types/event";
 
 const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -35,54 +36,6 @@ function formatEventDateShort(startAt: string, endAt: string): string {
   return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
 }
 
-type PurchaseItem = {
-  id: number;
-  name: string;
-  amount: number;
-};
-
-type NoticeItem = {
-  id: number;
-  content: string;
-};
-
-type Location = {
-  id: number;
-  name: string;
-  address: string | null;
-  googleMapUrl: string | null;
-};
-
-type Organizer = {
-  id: number;
-  name: string;
-  photoUrl: string | null;
-  lineId: string | null;
-  instagram: string | null;
-  facebook: string | null;
-};
-
-type BankInfo = {
-  id: number;
-  bankName: string;
-  bankCode: string;
-  account: string | null;
-};
-
-type EventData = {
-  id: number;
-  title: string;
-  description: string | null;
-  coverUrl: string | null;
-  startAt: string;
-  endAt: string;
-  location: Location | null;
-  organizer: Organizer | null;
-  bankInfo: BankInfo | null;
-  purchaseItems: PurchaseItem[];
-  noticeItems: NoticeItem[];
-};
-
 type Participant = {
   id: string;
   name: string;
@@ -100,7 +53,7 @@ type FormData = {
 };
 
 type EventApplicationFormProps = {
-  event: EventData;
+  event: PublicEventData;
 };
 
 export function EventApplicationForm({ event }: EventApplicationFormProps) {

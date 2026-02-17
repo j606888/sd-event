@@ -2,8 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { RegistrationSuccessPage } from "@/components/events/RegistrationSuccessPage";
-import { ConfirmedPage } from "@/components/events/ConfirmedPage";
+import { RegistrationSuccessPage } from "@/components/events/registration/RegistrationSuccessPage";
+import { ConfirmedPage } from "@/components/events/registration/ConfirmedPage";
 
 type Location = {
   id: number;

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { EventForm } from "@/components/events/EventForm";
-import { RegistrationsList } from "@/components/events/RegistrationsList";
-import { RegistrationDetail } from "@/components/events/RegistrationDetail";
+import { EventForm } from "@/components/events/management/EventForm";
+import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
+import { RegistrationDetail } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
 
@@ -208,7 +208,7 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col max-w-2xl">
+    <div className="flex flex-1 flex-col max-w-2xl mx-auto">
       {/* Header: back + title */}
       <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3">
         <Link

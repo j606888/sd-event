@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { QRScanner } from "@/components/events/QRScanner";
+import { QRScanner } from "@/components/events/registration/QRScanner";
 
 export default function ScanPage() {
   const params = useParams();

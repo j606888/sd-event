@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { EventCard } from "@/components/events/EventCard";
+import { EventCard } from "@/components/events/management/EventCard";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 
 type EventItem = {
