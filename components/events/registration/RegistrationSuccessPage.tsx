@@ -2,62 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Clock, MapPin, Wallet, Users, DollarSign, Cloud, AlertCircle, Rat } from "lucide-react";
+import { Clock, MapPin, Wallet, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
-import { useEffect } from "react";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
 import { siInstagram, siLine, siFacebook } from "simple-icons";
-
-type Location = {
-  id: number;
-  name: string;
-  address: string | null;
-  googleMapUrl: string | null;
-};
-
-type Organizer = {
-  id: number;
-  name: string;
-  photoUrl: string | null;
-  lineId: string | null;
-  instagram: string | null;
-  facebook: string | null;
-};
-
-type PurchaseItem = {
-  id: number;
-  name: string;
-  amount: number;
-};
-
-type EventData = {
-  id: number;
-  title: string;
-  coverUrl: string | null;
-  startAt: string;
-  endAt: string;
-  location: Location | null;
-  organizer: Organizer | null;
-  purchaseItems: PurchaseItem[];
-};
-
-type RegistrationData = {
-  selectedPlan: PurchaseItem | null;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  participants: Array<{ name: string; role: string }>;
-  totalAmount: string;
-  paymentMethod: string | null;
-};
-
-type RegistrationSuccessPageProps = {
-  event: EventData;
-  registration: RegistrationData;
-  registrationKey: string;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-};
+import { PendingPaymentHeader } from "./headers/PendingPaymentHeader";
+import { ReportedPaymentHeader } from "./headers/ReportedPaymentHeader";
+import { ConfirmedPaymentHeader } from "./headers/ConfirmedPaymentHeader";
+import { RejectedPaymentHeader } from "./headers/RejectedPaymentHeader";
+import type { RegistrationSuccessPageProps } from "@/types/registration";
 
 export function RegistrationSuccessPage({
   event,
@@ -67,83 +21,17 @@ export function RegistrationSuccessPage({
 }: RegistrationSuccessPageProps) {
   const participantsText = registration.participants.map((p) => p.name).join("、");
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  // Render different header based on payment status
   const renderHeader = () => {
-    if (paymentStatus === "reported") {
-      return (
-        <div className="bg-yellow-50 px-4 py-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center">
-              <Clock className="w-10 h-10 text-white" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">付款資訊已回報</h1>
-          <p className="text-sm text-gray-600 mb-1">我們已收到您回報的付款資訊</p>
-          <p className="text-sm text-gray-600 mb-4">
-            主辦方將盡快為您確認，請稍候
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 rounded-full text-sm text-yellow-800">
-            <Clock className="w-4 h-4" />
-            <span>待主辦方確認</span>
-          </div>
-        </div>
-      );
+    switch (paymentStatus) {
+      case "confirmed":
+        return <ConfirmedPaymentHeader />;
+      case "reported":
+        return <ReportedPaymentHeader />;
+      case "rejected":
+        return <RejectedPaymentHeader />;
+      default:
+        return <PendingPaymentHeader />;
     }
-
-    if (paymentStatus === "rejected") {
-      return (
-        <div className="bg-red-50 px-4 py-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
-              <AlertCircle className="w-10 h-10 text-white" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">付款確認失敗</h1>
-          <p className="text-sm text-gray-600 mb-1">主辦方無法確認您的付款資訊</p>
-          <p className="text-sm text-gray-600 mb-4">
-            請重新回報付款資訊或聯繫主辦單位
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 rounded-full text-sm text-red-800">
-            <AlertCircle className="w-4 h-4" />
-            <span>付款確認失敗</span>
-          </div>
-        </div>
-      );
-    }
-
-    // Default: pending
-    return (
-      <div className="text-center p-4">
-        <div
-          className="px-4 py-4 rounded-lg"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(82, 149, 188, 0.5) 0%, rgba(82, 149, 188, 0.1) 100%)",
-          }}
-        >
-          <div className="flex justify-center mb-3">
-            <div className="w-20 h-20 rounded-full bg-[#5295BC]/30 flex items-center justify-center">
-              <div className="w-15 h-15 rounded-full bg-[#5295BC] flex items-center justify-center">
-                <Check className="w-10 h-10 text-white" strokeWidth={3} />
-              </div>
-            </div>
-          </div>
-          <h1 className="text-[20px] font-bold text-gray-900 mb-1">報名成功!</h1>
-          <p className="text-[15px] text-gray-600">目前尚未完成付款</p>
-          <p className="text-[15px] text-gray-600 mb-3">
-            請於期限內完成付款以保留名額
-          </p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 rounded-full text-sm text-white">
-            <Rat className="w-4 h-4" />
-            <span>尚未付款</span>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -180,15 +68,15 @@ export function RegistrationSuccessPage({
                   )}
                 </div>
                 {event.location.googleMapUrl && (
-                    <a
-                      href={event.location.googleMapUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-[#5295BC] mt-1 inline-block"
-                    >
-                      導航&gt;
-                    </a>
-                  )}
+                  <a
+                    href={event.location.googleMapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[#5295BC] mt-1 inline-block"
+                  >
+                    導航&gt;
+                  </a>
+                )}
               </div>
             )}
 
@@ -218,33 +106,46 @@ export function RegistrationSuccessPage({
           </div>
         </div>
 
-        {/* Payment Section */}
-        <div className="px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-6 h-6 text-gray-500" />
-              <span className="text-gray-900">應付金額</span>
-            </div>
-            <span className="text-lg font-semibold text-gray-900">
-              NT {registration.totalAmount}
-            </span>
-          </div>
-          {(paymentStatus === "pending" || paymentStatus === "rejected") && (
+        {/* Payment Section or Entry Voucher Button */}
+        {paymentStatus === "confirmed" ? (
+          <div className="px-4 py-6 bg-white border-t border-gray-200">
             <Button
               asChild
               className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
             >
-              <Link href={`/report-payment/${registrationKey}`}>
-                {paymentStatus === "rejected" ? "重新回報付款資訊" : "回報付款資訊"}
+              <Link href={`/entry-voucher/${registrationKey}`}>
+                開啟入場憑證
               </Link>
             </Button>
-          )}
-          {paymentStatus === "reported" && (
-            <div className="text-center text-sm text-gray-600">
-              付款資訊已送出，請等待主辦方確認
+          </div>
+        ) : (
+          <div className="px-4 py-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-6 h-6 text-gray-500" />
+                <span className="text-gray-900">應付金額</span>
+              </div>
+              <span className="text-lg font-semibold text-gray-900">
+                NT {registration.totalAmount}
+              </span>
             </div>
-          )}
-        </div>
+            {(paymentStatus === "pending" || paymentStatus === "rejected") && (
+              <Button
+                asChild
+                className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+              >
+                <Link href={`/report-payment/${registrationKey}`}>
+                  {paymentStatus === "rejected" ? "重新回報付款資訊" : "回報付款資訊"}
+                </Link>
+              </Button>
+            )}
+            {paymentStatus === "reported" && (
+              <div className="text-center text-sm text-gray-600">
+                付款資訊已送出，請等待主辦方確認
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Organizer Section */}
         {event.organizer && (
