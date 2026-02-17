@@ -8,6 +8,7 @@ import {
   eventPurchaseItems,
   teamMembers,
 } from "@/db/schema";
+import { sendRegistrationSuccessEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { eq, desc, count, or, like, and } from "drizzle-orm";
@@ -248,6 +249,13 @@ export async function POST(request: Request, { params }: Params) {
     }));
 
     await db.insert(eventAttendees).values(attendeeValues);
+
+    // Send confirmation email to contact (non-blocking)
+    sendRegistrationSuccessEmail(
+      contactEmail,
+      registration.registrationKey,
+      event.title ?? undefined
+    ).catch((err) => console.error("Registration success email error:", err));
 
     return NextResponse.json({
       registration: {

@@ -9,6 +9,7 @@ import {
   bankInfos,
   eventPurchaseItems,
 } from "@/db/schema";
+import { sendPaymentConfirmedEmail } from "@/lib/email";
 import { eq, asc } from "drizzle-orm";
 
 type Params = { params: Promise<{ registrationKey: string }> };
@@ -207,6 +208,22 @@ export async function PATCH(request: Request, { params }: Params) {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(eventRegistrations.registrationKey, registrationKey))
       .returning();
+
+    // When creator confirms payment, send notification email to contact
+    if (updated && updates.paymentStatus === "confirmed") {
+      const [event] = await db
+        .select({ title: events.title })
+        .from(events)
+        .where(eq(events.id, updated.eventId))
+        .limit(1);
+      sendPaymentConfirmedEmail(
+        updated.contactEmail,
+        registrationKey,
+        event?.title ?? undefined
+      ).catch((err) =>
+        console.error("Payment confirmed email error:", err)
+      );
+    }
 
     return NextResponse.json({ registration: updated });
   } catch (e) {
