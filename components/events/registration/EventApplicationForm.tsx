@@ -77,11 +77,6 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
     (item) => item.id === formData.selectedPlanId
   );
 
-  const calculateTotal = () => {
-    if (!selectedPlan) return 0;
-    return selectedPlan.amount * formData.participants.length;
-  };
-
   const handleCopy = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text);

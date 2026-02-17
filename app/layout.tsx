@@ -3,6 +3,7 @@ import { Nunito, Inter } from "next/font/google";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
+import { QueryProvider } from "@/providers/QueryProvider";
 import "./globals.css";
 import "@uploadthing/react/styles.css";
 
@@ -32,7 +33,7 @@ export default function RootLayout({
         className={`${nunito.variable} ${inter.variable} antialiased`}
       >
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
