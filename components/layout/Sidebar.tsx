@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   X,
   ChevronsUpDown,
@@ -24,8 +24,17 @@ type SidebarProps = {
 
 export function Sidebar({ open, onClose, team }: SidebarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const teamLabel = team?.name ?? "選擇團隊";
   const teamInitial = team?.name?.charAt(0)?.toUpperCase() ?? "?";
+
+  const isActive = (href: string) => {
+    if (href === "/events") {
+      // Active for /events and /events/[eventId], but not /events/locations, /events/organizers, /events/bank
+      return pathname === "/events" || (pathname.startsWith("/events/") && !pathname.startsWith("/events/locations") && !pathname.startsWith("/events/organizers") && !pathname.startsWith("/events/bank"));
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
@@ -107,15 +116,23 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
             <Link
               href="/events"
               onClick={onClose}
-              className="flex items-center gap-3 rounded-lg bg-[#5295BC]/10 px-3 py-2.5 text-[#5295BC]"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+                isActive("/events")
+                  ? "bg-[#5295BC]/10 text-[#5295BC]"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
             >
               <Calendar className="size-5" />
               <span className="font-medium">所有活動</span>
             </Link>
             <Link
-              href="/events/team"
+              href="/teams"
               onClick={onClose}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-700 hover:bg-gray-100"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+                isActive("/teams")
+                  ? "bg-[#5295BC]/10 text-[#5295BC]"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
             >
               <Users className="size-5" />
               <span className="font-medium">團隊管理</span>
@@ -130,7 +147,11 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
             <Link
               href="/events/locations"
               onClick={onClose}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-700 hover:bg-gray-100"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+                isActive("/events/locations")
+                  ? "bg-[#5295BC]/10 text-[#5295BC]"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
             >
               <MapPin className="size-5" />
               <span className="font-medium">活動地點</span>
@@ -138,7 +159,11 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
             <Link
               href="/events/organizers"
               onClick={onClose}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-700 hover:bg-gray-100"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+                isActive("/events/organizers")
+                  ? "bg-[#5295BC]/10 text-[#5295BC]"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
             >
               <Building2 className="size-5" />
               <span className="font-medium">主辦單位</span>
@@ -146,7 +171,11 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
             <Link
               href="/events/bank"
               onClick={onClose}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-700 hover:bg-gray-100"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+                isActive("/events/bank")
+                  ? "bg-[#5295BC]/10 text-[#5295BC]"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
             >
               <Landmark className="size-5" />
               <span className="font-medium">銀行資訊</span>
