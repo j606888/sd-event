@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, teams, teamMembers } from "@/db/schema";
+import { users, teams, teamMembers, teamInvitations } from "@/db/schema";
 import { hashPassword, createToken, setAuthCookie } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 
 const registerSchema = {
   name: (v: unknown) => typeof v === "string" && v.length >= 2,
@@ -52,17 +52,62 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "註冊失敗" }, { status: 500 });
     }
 
-    // 建立預設團隊並將使用者設為 owner
-    const [team] = await db
-      .insert(teams)
-      .values({ name: "我的團隊" })
-      .returning({ id: teams.id });
-    if (team) {
-      await db.insert(teamMembers).values({
-        teamId: team.id,
-        userId: user.id,
-        role: "owner",
-      });
+    // 檢查是否有待處理的團隊邀請
+    const pendingInvitations = await db
+      .select()
+      .from(teamInvitations)
+      .where(
+        and(
+          eq(teamInvitations.email, user.email),
+          isNull(teamInvitations.acceptedAt)
+        )
+      );
+
+    // 處理所有待處理的邀請
+    if (pendingInvitations.length > 0) {
+      for (const invitation of pendingInvitations) {
+        // 檢查是否已經是團隊成員（避免重複）
+        const [existingMember] = await db
+          .select()
+          .from(teamMembers)
+          .where(
+            and(
+              eq(teamMembers.teamId, invitation.teamId),
+              eq(teamMembers.userId, user.id)
+            )
+          )
+          .limit(1);
+
+        if (!existingMember) {
+          // 加入團隊
+          await db.insert(teamMembers).values({
+            teamId: invitation.teamId,
+            userId: user.id,
+            role: invitation.role,
+          });
+        }
+
+        // 標記邀請為已接受
+        await db
+          .update(teamInvitations)
+          .set({ acceptedAt: new Date() })
+          .where(eq(teamInvitations.id, invitation.id));
+      }
+    }
+
+    // 如果沒有待處理的邀請，建立預設團隊並將使用者設為 owner
+    if (pendingInvitations.length === 0) {
+      const [team] = await db
+        .insert(teams)
+        .values({ name: "我的團隊" })
+        .returning({ id: teams.id });
+      if (team) {
+        await db.insert(teamMembers).values({
+          teamId: team.id,
+          userId: user.id,
+          role: "owner",
+        });
+      }
     }
 
     const token = await createToken({ userId: user.id, email: user.email });
