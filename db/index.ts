@@ -1,14 +1,12 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as dotenv from "dotenv";
 
-dotenv.config();
+// 防止開發模式下重複建立連線
+const globalForDb = global as unknown as { conn: postgres.Sql | undefined };
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set");
-}
+const connectionString = process.env.DATABASE_URL!;
+const client = globalForDb.conn ?? postgres(connectionString);
 
-// 禁用 prepared statements 以避免 Next.js 的 edge runtime 问题
-const client = postgres(process.env.DATABASE_URL, { prepare: false });
+if (process.env.NODE_ENV !== "production") globalForDb.conn = client;
 
 export const db = drizzle(client);
