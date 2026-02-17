@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Building2, CloudUpload } from "lucide-react";
+import { Plus, Building2, X } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
+import { UploadDropzone } from "@/lib/uploadthing";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 
 type Organizer = {
@@ -25,7 +27,9 @@ export default function EventOrganizersPage() {
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingOrganizerId, setEditingOrganizerId] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [formPhotoUrl, setFormPhotoUrl] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formLineId, setFormLineId] = useState("");
   const [formInstagram, setFormInstagram] = useState("");
@@ -54,11 +58,24 @@ export default function EventOrganizersPage() {
   }, [fetchOrganizers]);
 
   const openDrawer = () => {
+    setEditingOrganizerId(null);
     setSubmitError(null);
+    setFormPhotoUrl(null);
     setFormName("");
     setFormLineId("");
     setFormInstagram("");
     setFormFacebook("");
+    setDrawerOpen(true);
+  };
+
+  const openEditDrawer = (organizer: Organizer) => {
+    setEditingOrganizerId(organizer.id);
+    setSubmitError(null);
+    setFormPhotoUrl(organizer.photoUrl);
+    setFormName(organizer.name);
+    setFormLineId(organizer.lineId || "");
+    setFormInstagram(organizer.instagram || "");
+    setFormFacebook(organizer.facebook || "");
     setDrawerOpen(true);
   };
 
@@ -71,13 +88,21 @@ export default function EventOrganizersPage() {
       setSubmitError("請輸入名稱");
       return;
     }
+
+    const isEditing = editingOrganizerId !== null;
+    const url = isEditing
+      ? `/api/teams/${teamId}/organizers/${editingOrganizerId}`
+      : `/api/teams/${teamId}/organizers`;
+    const method = isEditing ? "PATCH" : "POST";
+
     try {
-      const res = await fetch(`/api/teams/${teamId}/organizers`, {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           name,
+          photoUrl: formPhotoUrl || undefined,
           lineId: formLineId.trim() || undefined,
           instagram: formInstagram.trim() || undefined,
           facebook: formFacebook.trim() || undefined,
@@ -85,13 +110,13 @@ export default function EventOrganizersPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || "新增失敗");
+        setSubmitError(data.error || (isEditing ? "更新失敗" : "新增失敗"));
         return;
       }
       setDrawerOpen(false);
       fetchOrganizers();
     } catch {
-      setSubmitError("新增失敗");
+      setSubmitError(isEditing ? "更新失敗" : "新增失敗");
     }
   };
 
@@ -132,9 +157,22 @@ export default function EventOrganizersPage() {
           {organizers.map((org) => (
             <li
               key={org.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4"
+              onClick={() => openEditDrawer(org)}
+              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              <Building2 className="size-5 shrink-0 text-[#5295BC]" />
+              {org.photoUrl ? (
+                <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-gray-100">
+                  <Image
+                    src={org.photoUrl}
+                    alt={org.name}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <Building2 className="size-5 shrink-0 text-[#5295BC]" />
+              )}
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{org.name}</p>
                 {(org.lineId || org.instagram || org.facebook) && (
@@ -151,8 +189,8 @@ export default function EventOrganizersPage() {
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        subtitle="New Organizer"
-        title="新增主辦單位"
+        subtitle={editingOrganizerId ? "Edit Organizer" : "New Organizer"}
+        title={editingOrganizerId ? "編輯主辦單位" : "新增主辦單位"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {submitError && (
@@ -160,10 +198,51 @@ export default function EventOrganizersPage() {
           )}
           <div className="flex flex-col gap-2">
             <Label>主辦方照片</Label>
-            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8">
-              <CloudUpload className="size-8 text-gray-400" />
-              <span className="text-sm text-gray-500">上傳照片</span>
-            </div>
+            {formPhotoUrl ? (
+              <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="relative aspect-square w-full max-w-[200px] mx-auto overflow-hidden rounded-lg bg-gray-100">
+                  <Image
+                    src={formPhotoUrl}
+                    alt="主辦方照片"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormPhotoUrl(null)}
+                  className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  aria-label="移除照片"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <UploadDropzone
+                endpoint="organizerPhoto"
+                onClientUploadComplete={(res) => {
+                  const first = res?.[0];
+                  const url =
+                    first &&
+                    ("url" in first
+                      ? first.url
+                      : (first as { ufsUrl?: string }).ufsUrl);
+                  if (url) setFormPhotoUrl(url);
+                }}
+                onUploadError={(err) => {
+                  console.error(err);
+                  setSubmitError("上傳失敗，請重試");
+                }}
+                appearance={{
+                  container:
+                    "rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8 ut-ready:border-[#5295BC]",
+                  label: "text-gray-500",
+                  button:
+                    "ut-uploading:bg-[#5295BC] ut-ready:bg-[#5295BC] ut-uploading:after:bg-[#4285A5]",
+                }}
+              />
+            )}
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="org-name">名稱 *</Label>
@@ -206,7 +285,7 @@ export default function EventOrganizersPage() {
               取消
             </Button>
             <Button type="submit" className="bg-gray-900 text-white hover:bg-gray-800">
-              新增
+              {editingOrganizerId ? "更新" : "新增"}
             </Button>
           </div>
         </form>

@@ -51,7 +51,30 @@ export type EventFormInitialData = {
 function toDateTimeLocal(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toISOString().slice(0, 16);
+  // Convert to local time for datetime-local input
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+/**
+ * Convert datetime-local string (YYYY-MM-DDTHH:mm) to ISO string
+ * Preserves the local time as the intended time, converting to UTC properly
+ */
+function datetimeLocalToISO(datetimeLocal: string): string {
+  if (!datetimeLocal) return new Date().toISOString();
+  // datetime-local format: "YYYY-MM-DDTHH:mm"
+  // Create a Date object treating it as local time
+  const localDate = new Date(datetimeLocal);
+  // Check if the date is valid
+  if (isNaN(localDate.getTime())) {
+    return new Date().toISOString();
+  }
+  // Return ISO string which will be in UTC
+  return localDate.toISOString();
 }
 
 type EventFormProps = {
@@ -85,6 +108,29 @@ export function EventForm({
   const [description, setDescription] = useState("");
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
+
+  // Auto-update end time when start time changes
+  const handleStartAtChange = (value: string) => {
+    setStartAt(value);
+    if (value) {
+      const startDate = new Date(value);
+      if (!isNaN(startDate.getTime())) {
+        // Add 1 hour to start time
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+        // Check if current end time is before or equal to new start time
+        const currentEndDate = endAt ? new Date(endAt) : null;
+        if (!currentEndDate || currentEndDate <= startDate) {
+          // Format as datetime-local: YYYY-MM-DDTHH:mm
+          const year = endDate.getFullYear();
+          const month = String(endDate.getMonth() + 1).padStart(2, "0");
+          const day = String(endDate.getDate()).padStart(2, "0");
+          const hours = String(endDate.getHours()).padStart(2, "0");
+          const minutes = String(endDate.getMinutes()).padStart(2, "0");
+          setEndAt(`${year}-${month}-${day}T${hours}:${minutes}`);
+        }
+      }
+    }
+  };
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -252,8 +298,8 @@ export function EventForm({
             title: trimmedTitle,
             description: description.trim() || null,
             coverUrl: coverUrl || null,
-            startAt: startAt || new Date().toISOString(),
-            endAt: endAt || new Date().toISOString(),
+            startAt: datetimeLocalToISO(startAt),
+            endAt: datetimeLocalToISO(endAt),
             locationId: Number(locationId),
             organizerId: Number(organizerId),
             bankInfoId: Number(bankInfoId),
@@ -277,8 +323,8 @@ export function EventForm({
             title: trimmedTitle,
             description: description.trim() || undefined,
             coverUrl: coverUrl || undefined,
-            startAt: startAt || new Date().toISOString(),
-            endAt: endAt || new Date().toISOString(),
+            startAt: datetimeLocalToISO(startAt),
+            endAt: datetimeLocalToISO(endAt),
             locationId: Number(locationId),
             organizerId: Number(organizerId),
             bankInfoId: Number(bankInfoId),
@@ -395,7 +441,7 @@ export function EventForm({
               type="datetime-local"
               className="bg-[#F3F5F7]"
               value={startAt}
-              onChange={(e) => setStartAt(e.target.value)}
+              onChange={(e) => handleStartAtChange(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-2">

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, Clock, MapPin, Wallet, Users, DollarSign, Cloud, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -74,6 +75,10 @@ export function RegistrationSuccessPage({
   paymentStatus,
 }: RegistrationSuccessPageProps) {
   const participantsText = registration.participants.map((p) => p.name).join("、");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   // Render different header based on payment status
   const renderHeader = () => {
