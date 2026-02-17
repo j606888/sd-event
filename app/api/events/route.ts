@@ -1,14 +1,15 @@
-import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { customAlphabet } from "nanoid";
 import { db } from "@/db";
 import { events, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { eq, inArray, desc } from "drizzle-orm";
 
-/** 產生 URL 安全的公開金鑰（約 16 字元） */
 function generatePublicKey(): string {
-  return randomBytes(12).toString("base64url");
+  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
+  const generateRandomKey = customAlphabet(alphabet, 8);
+  return generateRandomKey()
 }
 
 /** 取得活動列表（可選 ?teamId= 篩選，否則回傳當前使用者所屬團隊的活動） */

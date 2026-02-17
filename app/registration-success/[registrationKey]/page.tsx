@@ -2,60 +2,12 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { RegistrationSuccessPage } from "@/components/events/RegistrationSuccessPage";
-import { ConfirmedPage } from "@/components/events/ConfirmedPage";
-
-type Location = {
-  id: number;
-  name: string;
-  address: string | null;
-  googleMapUrl: string | null;
-};
-
-type Organizer = {
-  id: number;
-  name: string;
-  photoUrl: string | null;
-  lineId: string | null;
-  instagram: string | null;
-  facebook: string | null;
-};
-
-type PurchaseItem = {
-  id: number;
-  name: string;
-  amount: number;
-};
-
-type EventData = {
-  id: number;
-  title: string;
-  coverUrl: string | null;
-  startAt: string;
-  endAt: string;
-  location: Location | null;
-  organizer: Organizer | null;
-  purchaseItems: PurchaseItem[];
-};
-
-type Attendee = {
-  id: number;
-  name: string;
-  role: string;
-  checkedIn: boolean;
-};
-
-type RegistrationData = {
-  selectedPlan: PurchaseItem | null;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  participants: Array<{ name: string; role: string }>;
-  totalAmount: string;
-  paymentMethod: string | null;
-  attendees: Attendee[];
-  paymentStatus?: string;
-};
+import { RegistrationSuccessPage } from "@/components/events/registration/RegistrationSuccessPage";
+import type {
+  RegistrationSuccessPageRouteData,
+  RegistrationSuccessEventData,
+  RegistrationSuccessRegistrationData,
+} from "@/types/registration";
 
 export default function RegistrationSuccessPageRoute() {
   const params = useParams();
@@ -63,11 +15,7 @@ export default function RegistrationSuccessPageRoute() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [registrationData, setRegistrationData] = useState<{
-    event: EventData;
-    registration: RegistrationData;
-    paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-  } | null>(null);
+  const [registrationData, setRegistrationData] = useState<RegistrationSuccessPageRouteData | null>(null);
 
   const fetchRegistrationData = useCallback(async () => {
     if (!registrationKey) {
@@ -132,9 +80,12 @@ export default function RegistrationSuccessPageRoute() {
               name: a.name,
               role: a.role,
               checkedIn: a.checkedIn || false,
-            })) as Attendee[],
+            })),
             paymentStatus: data.registration.paymentStatus,
-          } as RegistrationData,
+          } as RegistrationSuccessRegistrationData & {
+            attendees: Array<{ id: number; name: string; role: string; checkedIn: boolean }>;
+            paymentStatus?: string;
+          },
           paymentStatus: data.registration.paymentStatus,
         });
       } else {
@@ -181,21 +132,18 @@ export default function RegistrationSuccessPageRoute() {
     );
   }
 
-  // Show confirmed page if payment status is confirmed
-  if (registrationData.paymentStatus === "confirmed") {
-    return (
-      <ConfirmedPage
-        event={registrationData.event}
-        registration={registrationData.registration}
-        registrationKey={registrationKey}
-      />
-    );
-  }
-
   return (
     <RegistrationSuccessPage
       event={registrationData.event}
-      registration={registrationData.registration}
+      registration={{
+        selectedPlan: registrationData.registration.selectedPlan,
+        contactName: registrationData.registration.contactName,
+        contactPhone: registrationData.registration.contactPhone,
+        contactEmail: registrationData.registration.contactEmail,
+        participants: registrationData.registration.participants,
+        totalAmount: registrationData.registration.totalAmount,
+        paymentMethod: registrationData.registration.paymentMethod,
+      }}
       registrationKey={registrationKey}
       paymentStatus={registrationData.paymentStatus}
     />

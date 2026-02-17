@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ChevronLeft, Copy, Check, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { UploadDropzone } from "@/lib/uploadthing";
+import { useUploadThing } from "@/lib/uploadthing";
 
 type BankInfo = {
   id: number;
@@ -33,12 +33,44 @@ export function ReportPaymentPage({
   organizer,
 }: ReportPaymentPageProps) {
   const router = useRouter();
+  const { startUpload, isUploading } = useUploadThing("paymentScreenshot", {
+    onClientUploadComplete: (res) => {
+      const first = res?.[0];
+      const url =
+        first &&
+        ("url" in first
+          ? first.url
+          : (first as { ufsUrl?: string }).ufsUrl);
+      if (url) {
+        setPaymentScreenshotUrl(url);
+        setUploading(false);
+      }
+    },
+    onUploadError: (err) => {
+      console.error("Upload error:", err);
+      setError("上傳失敗，請重試");
+      setUploading(false);
+      setSubmitting(false);
+    },
+  });
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [paymentScreenshotUrl, setPaymentScreenshotUrl] = useState<string | null>(null);
   const [paymentNote, setPaymentNote] = useState("");
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleCopy = async (text: string, type: string) => {
     try {
@@ -50,8 +82,53 @@ export function ReportPaymentPage({
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("請選擇圖片檔案");
+      return;
+    }
+
+    // Validate file size (4MB)
+    if (file.size > 4 * 1024 * 1024) {
+      setError("圖片大小不能超過 4MB");
+      return;
+    }
+
+    setError(null);
+
+    // Clean up previous preview URL
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    setSelectedFile(file);
+
+    // Create preview URL
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+
+  const handleRemoveFile = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setPaymentScreenshotUrl(null);
+    // Reset file input
+    const fileInput = document.getElementById("screenshot-input") as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
+
+
   const handleSubmit = async () => {
-    if (!paymentScreenshotUrl && !paymentNote.trim()) {
+    if (!selectedFile && !paymentScreenshotUrl && !paymentNote.trim()) {
       setError("請至少提供轉帳截圖或銀行末五碼");
       return;
     }
@@ -60,11 +137,42 @@ export function ReportPaymentPage({
     setError(null);
 
     try {
+      let finalScreenshotUrl = paymentScreenshotUrl;
+
+      // Upload file if a new file is selected
+      if (selectedFile && !paymentScreenshotUrl) {
+        setUploading(true);
+        try {
+          const uploadResult = await startUpload([selectedFile]);
+          if (!uploadResult || uploadResult.length === 0) {
+            throw new Error("上傳失敗");
+          }
+          const first = uploadResult[0];
+          finalScreenshotUrl =
+            first &&
+            ("url" in first
+              ? first.url
+              : (first as { ufsUrl?: string }).ufsUrl) ||
+            null;
+          if (!finalScreenshotUrl) {
+            throw new Error("無法取得上傳後的圖片網址");
+          }
+          setPaymentScreenshotUrl(finalScreenshotUrl);
+        } catch (uploadError) {
+          console.error("Upload error:", uploadError);
+          setError(uploadError instanceof Error ? uploadError.message : "上傳失敗，請重試");
+          setSubmitting(false);
+          setUploading(false);
+          return;
+        }
+        setUploading(false);
+      }
+
       const response = await fetch(`/api/registrations/${registrationKey}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          paymentScreenshotUrl: paymentScreenshotUrl || null,
+          paymentScreenshotUrl: finalScreenshotUrl || null,
           paymentNote: paymentNote.trim() || null,
         }),
       });
@@ -77,39 +185,20 @@ export function ReportPaymentPage({
         return;
       }
 
-      setSuccess(true);
-      // Redirect to registration success page after 2 seconds
-      setTimeout(() => {
-        router.push(`/registration-success/${registrationKey}`);
-      }, 2000);
+      // Clean up preview URL
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      // Redirect to registration success page immediately
+      router.push(`/registration-success/${registrationKey}`);
     } catch (error) {
       console.error("Submit error:", error);
       setError("網路錯誤，請稍後再試");
       setSubmitting(false);
+      setUploading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-            <Check className="w-10 h-10 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">回報成功!</h1>
-          <p className="text-gray-600 mb-4">
-            我們已收到您回報的付款資訊
-            <br />
-            主辦方將盡快為您確認
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 rounded-full text-sm text-yellow-800 mb-6">
-            <span>待主辦方確認</span>
-          </div>
-          <p className="text-sm text-gray-500">正在跳轉...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -202,11 +291,11 @@ export function ReportPaymentPage({
         {/* Transfer Screenshot Upload */}
         <div className="space-y-3">
           <Label>轉帳截圖</Label>
-          {paymentScreenshotUrl ? (
+          {previewUrl || paymentScreenshotUrl ? (
             <div className="relative">
               <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                 <Image
-                  src={paymentScreenshotUrl}
+                  src={previewUrl || paymentScreenshotUrl || ""}
                   alt="轉帳截圖"
                   fill
                   className="object-contain"
@@ -215,7 +304,7 @@ export function ReportPaymentPage({
               </div>
               <button
                 type="button"
-                onClick={() => setPaymentScreenshotUrl(null)}
+                onClick={handleRemoveFile}
                 className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
                 aria-label="移除截圖"
               >
@@ -223,29 +312,17 @@ export function ReportPaymentPage({
               </button>
             </div>
           ) : (
-            <UploadDropzone
-              endpoint="paymentScreenshot"
-              onClientUploadComplete={(res) => {
-                const first = res?.[0];
-                const url =
-                  first &&
-                  ("url" in first
-                    ? first.url
-                    : (first as { ufsUrl?: string }).ufsUrl);
-                if (url) setPaymentScreenshotUrl(url);
-              }}
-              onUploadError={(err) => {
-                console.error(err);
-                setError("上傳失敗，請重試");
-              }}
-              appearance={{
-                container:
-                  "rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 ut-ready:border-[#5295BC]",
-                label: "text-gray-500",
-                button:
-                  "ut-uploading:bg-[#5295BC] ut-ready:bg-[#5295BC] ut-uploading:after:bg-[#4285A5]",
-              }}
-            />
+            <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 cursor-pointer hover:border-[#5295BC] transition-colors">
+              <Upload className="w-8 h-8 text-gray-400" />
+              <span className="text-sm text-gray-500">點擊選擇圖片或拖放圖片到此處</span>
+              <input
+                id="screenshot-input"
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </label>
           )}
         </div>
 
@@ -270,10 +347,19 @@ export function ReportPaymentPage({
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
-          disabled={submitting || (!paymentScreenshotUrl && !paymentNote.trim())}
+          disabled={
+            submitting ||
+            uploading ||
+            isUploading ||
+            (!selectedFile && !paymentScreenshotUrl && !paymentNote.trim())
+          }
           className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
         >
-          {submitting ? "送出中…" : "送出"}
+          {uploading || isUploading
+            ? "上傳中…"
+            : submitting
+              ? "送出中…"
+              : "送出"}
         </Button>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { EventForm } from "@/components/events/EventForm";
+import { EventForm } from "@/components/events/management/EventForm";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 
 export default function NewEventPage() {

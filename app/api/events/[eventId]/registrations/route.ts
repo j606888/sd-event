@@ -1,5 +1,5 @@
-import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { customAlphabet } from "nanoid";
 import { db } from "@/db";
 import {
   events,
@@ -15,9 +15,10 @@ import { eq, desc, count, or, like, and } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
-/** 產生 URL 安全的註冊金鑰（約 16 字元） */
 function generateRegistrationKey(): string {
-  return randomBytes(12).toString("base64url");
+  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
+  const generateRandomKey = customAlphabet(alphabet, 12);
+  return generateRandomKey()
 }
 
 /**
