@@ -119,35 +119,55 @@ export function RegistrationSuccessPage({
             </Button>
           </div>
         ) : (
-          <div className="px-4 py-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-6 h-6 text-gray-500" />
-                <span className="text-gray-900">應付金額</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">
-                NT {registration.totalAmount}
-              </span>
-            </div>
-            {(paymentStatus === "pending" || paymentStatus === "rejected") && (
-              <Button
-                asChild
-                className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
-              >
-                <Link href={`/report-payment/${registrationKey}`}>
-                  {paymentStatus === "rejected" ? "重新回報付款資訊" : "回報付款資訊"}
-                </Link>
-              </Button>
-            )}
+          <div className="">
             {paymentStatus === "reported" && (
-              <div className="text-center text-sm text-gray-600">
-                付款資訊已送出，請等待主辦方確認
+              <div className="px-4 py-6 bg-white border-t border-gray-200">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <DollarSign className="w-5 h-5" />
+                      <span>應付金額</span>
+                    </div>
+                    <span className="text-xl font-bold text-slate-900">
+                      NT {registration.totalAmount}
+                    </span>
+                  </div>
+                  <div className="text-center py-3 px-4 bg-slate-50 rounded-xl text-sm text-slate-500 border border-slate-100">
+                    付款資訊已送出，請等待主辦方確認
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(paymentStatus === "pending" || paymentStatus === "rejected") && (
+              <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 pb-safe">
+                <div className="max-w-md mx-auto px-6 py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    {/* 左側：金額資訊 */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-slate-400 font-medium">應付總額</span>
+                      <span className="text-xl font-black text-slate-900">
+                        <span className="text-sm mr-1 font-bold">NT$</span>
+                        {registration.totalAmount}
+                      </span>
+                    </div>
+
+                    {/* 右側：動作按鈕 */}
+                    <Button
+                      asChild
+                      className="flex-1 bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 rounded-xl text-base font-bold transition-all active:scale-[0.97]"
+                    >
+                      <Link href={`/report-payment/${registrationKey}`}>
+                        {paymentStatus === "rejected" ? "重新回報" : "回報付款"}
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Organizer Section */}
         {event.organizer && (
           <div className="px-4 py-6 bg-white border-t border-gray-200">
             <h3 className="font-semibold text-gray-900 mb-3">主辦單位</h3>
@@ -201,6 +221,7 @@ export function RegistrationSuccessPage({
             </div>
           </div>
         )}
+          <div className="h-24" ></div>
       </div>
     </div>
   );

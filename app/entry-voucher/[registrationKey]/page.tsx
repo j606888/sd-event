@@ -1,11 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, Clock, MapPin, Wallet, Users, DollarSign, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Clock, MapPin, Wallet, DollarSign, CheckCircle2 } from "lucide-react";
 import QRCode from "qrcode";
+import { getRegistrationByKey } from "@/lib/api/registration";
+import type { EntryVoucherPageData } from "@/types/registration";
 
 const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -28,40 +30,6 @@ function getRoleBadge(role: string) {
   return styles[role] || styles["Not sure"];
 }
 
-type Location = {
-  id: number;
-  name: string;
-  address: string | null;
-  googleMapUrl: string | null;
-};
-
-type PurchaseItem = {
-  id: number;
-  name: string;
-  amount: number;
-};
-
-type Attendee = {
-  id: number;
-  name: string;
-  role: string;
-  checkedIn: boolean;
-};
-
-type EventData = {
-  id: number;
-  title: string;
-  startAt: string;
-  endAt: string;
-  location: Location | null;
-};
-
-type RegistrationData = {
-  selectedPlan: PurchaseItem | null;
-  totalAmount: string;
-  attendees: Attendee[];
-};
-
 export default function EntryVoucherPage() {
   const params = useParams();
   const router = useRouter();
@@ -69,10 +37,8 @@ export default function EntryVoucherPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [data, setData] = useState<{
-    event: EventData;
-    registration: RegistrationData;
-  } | null>(null);
+  const [data, setData] = useState<EntryVoucherPageData | null>(null);
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
     if (!registrationKey) {
@@ -81,78 +47,114 @@ export default function EntryVoucherPage() {
       return;
     }
 
-    const fetchData = () => {
-      setLoading(true);
-      // Fetch registration data
-      fetch(`/api/registrations/${encodeURIComponent(registrationKey)}`)
-        .then((res) => {
-          if (res.status === 404) {
+    const transformApiData = (responseData: Awaited<ReturnType<typeof getRegistrationByKey>>) => {
+      if (!responseData?.registration || !responseData?.event || !responseData?.attendees) {
+        return null;
+      }
+
+      return {
+        event: {
+          id: responseData.event.id,
+          title: responseData.event.title,
+          startAt: responseData.event.startAt,
+          endAt: responseData.event.endAt,
+          location: responseData.event.location,
+        },
+        registration: {
+          selectedPlan: responseData.purchaseItem
+            ? {
+                id: responseData.purchaseItem.id,
+                name: responseData.purchaseItem.name,
+                amount: responseData.purchaseItem.amount,
+              }
+            : null,
+          totalAmount: String(responseData.registration.totalAmount),
+          attendees: responseData.attendees.map((a) => ({
+            id: a.id,
+            name: a.name,
+            role: a.role,
+            checkedIn: a.checkedIn || false,
+          })),
+        },
+      };
+    };
+
+    const fetchData = async (isPolling = false) => {
+      try {
+        // Only set loading on initial load
+        if (!isPolling) {
+          setLoading(true);
+        }
+
+        const responseData = await getRegistrationByKey(registrationKey);
+
+        if (!responseData) {
+          if (!isPolling) {
             setError("找不到報名資料");
-            return null;
+            setLoading(false);
           }
-          if (!res.ok) throw new Error("無法載入");
-          return res.json();
-        })
-        .then((responseData) => {
-          if (responseData?.registration && responseData?.event && responseData?.attendees) {
-            const registrationData = {
-              event: {
-                id: responseData.event.id,
-                title: responseData.event.title,
-                startAt: responseData.event.startAt,
-                endAt: responseData.event.endAt,
-                location: responseData.event.location,
-              },
-              registration: {
-                selectedPlan: responseData.purchaseItem
-                  ? {
-                      id: responseData.purchaseItem.id,
-                      name: responseData.purchaseItem.name,
-                      amount: responseData.purchaseItem.amount,
-                    }
-                  : null,
-                totalAmount: String(responseData.registration.totalAmount),
-                attendees: responseData.attendees.map((a: any) => ({
-                  id: a.id,
-                  name: a.name,
-                  role: a.role,
-                  checkedIn: a.checkedIn || false,
-                })),
-              },
-            };
-            setData(registrationData);
+          return;
+        }
 
-            // Generate QR code with registration key and attendee IDs
-            // The QR code contains all attendee IDs so creator can check in any of them
-            const qrData = JSON.stringify({
-              registrationKey,
-              attendeeIds: responseData.attendees.map((a: any) => a.id),
-            });
+        const transformedData = transformApiData(responseData);
+        if (!transformedData) {
+          if (!isPolling) {
+            setError("找不到報名資料");
+            setLoading(false);
+          }
+          return;
+        }
 
-            QRCode.toDataURL(qrData, {
+        // Generate QR code only on initial load
+        if (isInitialLoad.current) {
+          const qrData = JSON.stringify({
+            registrationKey,
+            attendeeIds: responseData.attendees.map((a) => a.id),
+          });
+
+          try {
+            const url = await QRCode.toDataURL(qrData, {
               width: 300,
               margin: 2,
               color: {
                 dark: "#000000",
                 light: "#FFFFFF",
               },
-            })
-              .then((url) => setQrCodeUrl(url))
-              .catch((err) => {
-                console.error("QR code generation error:", err);
-                setError("無法產生 QR code");
-              });
-          } else {
-            setError("找不到報名資料");
+            });
+            setQrCodeUrl(url);
+          } catch (err) {
+            console.error("QR code generation error:", err);
+            if (!isPolling) {
+              setError("無法產生 QR code");
+            }
           }
-        })
-        .catch(() => setError("無法載入報名資料"))
-        .finally(() => setLoading(false));
+        }
+
+        // Update data state (this will trigger re-render without full page refresh)
+        setData(transformedData);
+
+        if (!isPolling) {
+          setLoading(false);
+          isInitialLoad.current = false;
+        }
+      } catch (err) {
+        console.error("Failed to fetch registration:", err);
+        if (!isPolling) {
+          setError("無法載入報名資料");
+          setLoading(false);
+        }
+      }
     };
 
-    fetchData();
-    // Refresh data every 5 seconds to update check-in status
-    const interval = setInterval(fetchData, 5000);
+    // Initial load
+    fetchData(false);
+
+    // Polling: refresh data every 5 seconds to update check-in status
+    // Only updates data state, doesn't reset loading/error states
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 5000);
+
     return () => clearInterval(interval);
   }, [registrationKey]);
 

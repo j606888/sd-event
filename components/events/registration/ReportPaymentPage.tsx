@@ -62,7 +62,6 @@ export function ReportPaymentPage({
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   // Cleanup preview URL on unmount
   useEffect(() => {
@@ -191,11 +190,8 @@ export function ReportPaymentPage({
         URL.revokeObjectURL(previewUrl);
       }
 
-      setSuccess(true);
-      // Redirect to registration success page after 2 seconds
-      setTimeout(() => {
-        router.push(`/registration-success/${registrationKey}`);
-      }, 2000);
+      // Redirect to registration success page immediately
+      router.push(`/registration-success/${registrationKey}`);
     } catch (error) {
       console.error("Submit error:", error);
       setError("網路錯誤，請稍後再試");
@@ -203,28 +199,6 @@ export function ReportPaymentPage({
       setUploading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-            <Check className="w-10 h-10 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">回報成功!</h1>
-          <p className="text-gray-600 mb-4">
-            我們已收到您回報的付款資訊
-            <br />
-            主辦方將盡快為您確認
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 rounded-full text-sm text-yellow-800 mb-6">
-            <span>待主辦方確認</span>
-          </div>
-          <p className="text-sm text-gray-500">正在跳轉...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

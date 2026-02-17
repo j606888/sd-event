@@ -53,3 +53,25 @@ export type RegistrationSuccessPageRouteData = {
   };
   paymentStatus: PaymentStatus;
 };
+
+/**
+ * Entry voucher page specific types
+ */
+export type EntryVoucherEventData = {
+  id: number;
+  title: string;
+  startAt: string;
+  endAt: string;
+  location: EventLocation | null;
+};
+
+export type EntryVoucherRegistrationData = {
+  selectedPlan: EventPurchaseItem | null;
+  totalAmount: string;
+  attendees: Attendee[];
+};
+
+export type EntryVoucherPageData = {
+  event: EntryVoucherEventData;
+  registration: EntryVoucherRegistrationData;
+};
