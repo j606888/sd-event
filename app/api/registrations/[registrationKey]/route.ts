@@ -9,7 +9,6 @@ import {
   bankInfos,
   eventPurchaseItems,
 } from "@/db/schema";
-import { sendPaymentConfirmedEmail } from "@/lib/email";
 import { eq, asc } from "drizzle-orm";
 
 type Params = { params: Promise<{ registrationKey: string }> };
@@ -208,41 +207,6 @@ export async function PATCH(request: Request, { params }: Params) {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(eventRegistrations.registrationKey, registrationKey))
       .returning();
-
-    // When creator confirms payment, send notification email to contact
-    if (updated && updates.paymentStatus === "confirmed") {
-      const [event] = await db
-        .select({
-          title: events.title,
-          startAt: events.startAt,
-          endAt: events.endAt,
-          locationId: events.locationId,
-        })
-        .from(events)
-        .where(eq(events.id, updated.eventId))
-        .limit(1);
-
-      let locationName: string | null = null;
-      if (event?.locationId) {
-        const [location] = await db
-          .select({ name: eventLocations.name })
-          .from(eventLocations)
-          .where(eq(eventLocations.id, event.locationId))
-          .limit(1);
-        locationName = location?.name ?? null;
-      }
-
-      sendPaymentConfirmedEmail(
-        updated.contactEmail,
-        registrationKey,
-        event?.title ?? undefined,
-        event?.startAt ? new Date(event.startAt).toISOString() : undefined,
-        event?.endAt ? new Date(event.endAt).toISOString() : undefined,
-        locationName
-      ).catch((err) =>
-        console.error("Payment confirmed email error:", err)
-      );
-    }
 
     return NextResponse.json({ registration: updated });
   } catch (e) {
