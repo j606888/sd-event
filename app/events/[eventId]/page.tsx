@@ -208,7 +208,7 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col max-w-2xl mx-auto">
+    <div className="flex flex-1 flex-col max-w-2xl mx-auto w-full">
       {/* Header: back + title */}
       <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3">
         <Link

@@ -49,6 +49,18 @@ export const teamMembers = pgTable(
   (t) => ({ pk: primaryKey({ columns: [t.teamId, t.userId] }) })
 );
 
+// ============ Team Invitations (團隊邀請，用於邀請未註冊使用者) ============
+export const teamInvitations = pgTable("team_invitations", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: teamMemberRoleEnum("role").notNull().default("member"),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ============ Event Locations (活動地點，依團隊) ============
 export const eventLocations = pgTable("event_locations", {
   id: serial("id").primaryKey(),

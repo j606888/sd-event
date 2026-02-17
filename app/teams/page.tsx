@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,19 +98,21 @@ export default function TeamsPage() {
       ) : (
         <ul className="space-y-2">
           {teams.map((team) => (
-            <li
-              key={team.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4"
-            >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#5295BC]/15 text-sm font-semibold text-[#5295BC]">
-                {team.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-gray-900">{team.name}</p>
-                <p className="text-sm text-gray-500">
-                  建立於 {new Date(team.createdAt).toLocaleDateString("zh-TW")}
-                </p>
-              </div>
+            <li key={team.id}>
+              <Link
+                href={`/teams/${team.id}`}
+                className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#5295BC]/15 text-sm font-semibold text-[#5295BC]">
+                  {team.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-gray-900">{team.name}</p>
+                  <p className="text-sm text-gray-500">
+                    建立於 {new Date(team.createdAt).toLocaleDateString("zh-TW")}
+                  </p>
+                </div>
+              </Link>
             </li>
           ))}
         </ul>
