@@ -17,6 +17,7 @@ type EventItem = {
   startAt: string;
   endAt: string;
   createdAt: string;
+  registrationCount?: number;
 };
 
 export default function EventsPage() {
@@ -74,30 +75,48 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="relative flex-1 p-4 max-w-2xl">
-      <h2 className="mb-6 text-[17px] font-semibold text-gray-900">所有活動</h2>
+    <div className="relative flex-1 p-4 md:p-6 max-w-2xl md:max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 className="text-[17px] md:text-xl font-semibold text-gray-900">
+          所有活動
+        </h2>
+        <Link
+          href="/events/new"
+          className="order-first sm:order-0 flex items-center justify-center gap-2 w-full sm:w-auto sm:inline-flex px-4 py-2.5 rounded-lg bg-[#5295BC] text-white text-sm font-medium hover:opacity-90 shadow-sm md:shadow"
+          aria-label="建立新活動"
+        >
+          <Plus className="size-5" />
+          <span>建立新活動</span>
+        </Link>
+      </div>
 
       {events.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 py-12 text-center text-gray-500">
-          尚無活動，點擊右下角按鈕建立新活動
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-16 md:py-20 text-center text-gray-500">
+          尚無活動，點擊「建立新活動」開始
         </div>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {events.map((event) => (
             <li key={event.id}>
-              <EventCard event={event} />
+              <EventCard
+                event={event}
+                registrationCount={event.registrationCount ?? 0}
+              />
             </li>
           ))}
         </ul>
       )}
 
-      <Link
-        href="/events/new"
-        className="absolute bottom-6 right-6 flex size-16 items-center justify-center rounded-full bg-[#5295BC] text-white shadow-lg hover:opacity-90"
-        aria-label="建立新活動"
-      >
-        <Plus className="size-10" />
-      </Link>
+      {/* Mobile FAB: only show when there are events (desktop uses header button) */}
+      {events.length > 0 && (
+        <Link
+          href="/events/new"
+          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-[#5295BC] text-white shadow-lg hover:opacity-90 z-10"
+          aria-label="建立新活動"
+        >
+          <Plus className="size-8" />
+        </Link>
+      )}
     </div>
   );
 }

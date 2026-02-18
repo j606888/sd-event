@@ -31,9 +31,9 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="flex gap-4 rounded-lg bg-white items-start"
+      className="flex gap-3 sm:flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-[#5295BC]/30 hover:shadow-md transition-all duration-200"
     >
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md bg-gray-100">
+      <div className="relative h-20 w-20 sm:h-40 sm:w-full sm:aspect-video shrink-0 overflow-hidden rounded-lg bg-gray-100 -mt-0.5 sm:mt-0">
         {event.coverUrl ? (
           <Image
             src={event.coverUrl}
@@ -41,36 +41,38 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
             fill
             className="object-cover"
             unoptimized
-            sizes="80px"
+            sizes="(max-width: 640px) 80px, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-gray-400">
-            <span className="text-xs">無封面</span>
+            <span className="text-xs sm:text-sm">無封面</span>
           </div>
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-gray-900 truncate">{event.title}</p>
-        <p className="mt-0.5 text-sm text-gray-500">
+      <div className="min-w-0 flex-1 flex flex-col">
+        <p className="font-medium text-gray-900 truncate text-[15px] sm:text-base">
+          {event.title}
+        </p>
+        <p className="mt-1 text-sm text-gray-500 line-clamp-1">
           {formatEventDateRange(event.startAt, event.endAt)}
         </p>
         <p className="mt-0.5 text-sm text-gray-500">
           {registrationCount} 人報名
         </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <span
-          className={`inline-flex items-center gap-1.5 text-sm font-medium ${
-            event.status === "published" ? "text-[#5295BC]" : "text-gray-500"
-          }`}
-        >
+        <div className="mt-2 flex shrink-0 items-center gap-1.5">
           <span
-            className={`size-2 rounded-full ${
-              event.status === "published" ? "bg-[#5295BC]" : "bg-gray-400"
+            className={`inline-flex items-center gap-1.5 text-sm font-medium ${
+              event.status === "published" ? "text-[#5295BC]" : "text-gray-500"
             }`}
-          />
-          {event.status === "published" ? "進行中" : "草稿"}
-        </span>
+          >
+            <span
+              className={`size-2 rounded-full ${
+                event.status === "published" ? "bg-[#5295BC]" : "bg-gray-400"
+              }`}
+            />
+            {event.status === "published" ? "進行中" : "草稿"}
+          </span>
+        </div>
       </div>
     </Link>
   );

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { customAlphabet } from "nanoid";
 import { db } from "@/db";
-import { events, teamMembers } from "@/db/schema";
+import { events, eventRegistrations, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, inArray, desc } from "drizzle-orm";
+import { eq, inArray, desc, count } from "drizzle-orm";
 
 function generatePublicKey(): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -46,7 +46,27 @@ export async function GET(request: Request) {
       .from(events)
       .where(eq(events.teamId, teamId))
       .orderBy(desc(events.createdAt));
-    return NextResponse.json({ events: list });
+
+    const eventIds = list.map((e) => e.id);
+    const registrationCounts =
+      eventIds.length > 0
+        ? await db
+            .select({
+              eventId: eventRegistrations.eventId,
+              count: count(),
+            })
+            .from(eventRegistrations)
+            .where(inArray(eventRegistrations.eventId, eventIds))
+            .groupBy(eventRegistrations.eventId)
+        : [];
+    const countMap = new Map(
+      registrationCounts.map((r) => [r.eventId, Number(r.count)])
+    );
+    const eventsWithCount = list.map((e) => ({
+      ...e,
+      registrationCount: countMap.get(e.id) ?? 0,
+    }));
+    return NextResponse.json({ events: eventsWithCount });
   }
 
   const myTeams = await db
@@ -75,7 +95,27 @@ export async function GET(request: Request) {
     .where(inArray(events.teamId, teamIds))
     .orderBy(desc(events.createdAt));
 
-  return NextResponse.json({ events: list });
+  const eventIds = list.map((e) => e.id);
+  const registrationCounts =
+    eventIds.length > 0
+      ? await db
+          .select({
+            eventId: eventRegistrations.eventId,
+            count: count(),
+          })
+          .from(eventRegistrations)
+          .where(inArray(eventRegistrations.eventId, eventIds))
+          .groupBy(eventRegistrations.eventId)
+      : [];
+  const countMap = new Map(
+    registrationCounts.map((r) => [r.eventId, Number(r.count)])
+  );
+  const eventsWithCount = list.map((e) => ({
+    ...e,
+    registrationCount: countMap.get(e.id) ?? 0,
+  }));
+
+  return NextResponse.json({ events: eventsWithCount });
 }
 
 /** 建立新活動 */

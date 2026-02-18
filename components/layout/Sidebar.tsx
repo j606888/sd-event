@@ -45,20 +45,20 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
   return (
     <>
       {/* Backdrop：僅在 open 時顯示並可點擊 */}
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label="關閉選單"
-        aria-hidden={!open}
-        onClick={onClose}
-        onKeyDown={(e) => e.key === "Escape" && onClose()}
-        className={`fixed inset-0 z-40 bg-black/20 transition-opacity md:hidden ${
-          open
-            ? "visible opacity-100 pointer-events-auto"
-            : "invisible opacity-0 pointer-events-none"
-        }`}
-        style={open ? undefined : { visibility: "hidden" }}
-      />
+      {open && (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="關閉選單"
+          onClick={onClose}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              onClose();
+            }
+          }}
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200"
+        />
+      )}
 
       {/* Drawer：關閉時移出視窗並不可點擊 */}
       <aside
