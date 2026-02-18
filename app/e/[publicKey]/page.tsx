@@ -65,13 +65,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     "https://sd-event.vercel.app";
 
   const pageUrl = `${siteUrl}/e/${publicKey}`;
-  const title = `${event.title} | SD Event`;
+  const title = `${event.title}`;
 
   // Build description with event period and location
-  const period = `時間: ${getEventDateLabel(event.startAt.toISOString(), event.endAt.toISOString())} ${getEventTimeRange(event.startAt.toISOString(), event.endAt.toISOString())}`;
-  const location = event.location ? `地點: ${event.location.name}` : "";
+  const period = `${getEventDateLabel(event.startAt.toISOString(), event.endAt.toISOString())} ${getEventTimeRange(event.startAt.toISOString(), event.endAt.toISOString())}`;
+  const location = event.location ? `${event.location.name}` : "";
 
-  const description = [period, location].filter(Boolean).join("、");
+  const description = [period, location].filter(Boolean).join(" | ");
 
   const imageUrl = event.coverUrl || `${siteUrl}/og-default.png`;
 
