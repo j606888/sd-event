@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { db } from "@/db";
 import { events, eventLocations, organizers } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
 import { PublicEventPageClient } from "@/app/e/[publicKey]/PublicEventPageClient";
 
 type Props = {
@@ -14,7 +15,7 @@ async function getEventByPublicKey(publicKey: string) {
     .from(events)
     .where(eq(events.publicKey, publicKey))
     .limit(1);
-  
+
   const event = rows[0];
   if (!event) return null;
 
@@ -22,19 +23,19 @@ async function getEventByPublicKey(publicKey: string) {
   const [location, organizer] = await Promise.all([
     event.locationId
       ? db
-          .select()
-          .from(eventLocations)
-          .where(eq(eventLocations.id, event.locationId))
-          .limit(1)
-          .then((rows) => rows[0] || null)
+        .select()
+        .from(eventLocations)
+        .where(eq(eventLocations.id, event.locationId))
+        .limit(1)
+        .then((rows) => rows[0] || null)
       : Promise.resolve(null),
     event.organizerId
       ? db
-          .select()
-          .from(organizers)
-          .where(eq(organizers.id, event.organizerId))
-          .limit(1)
-          .then((rows) => rows[0] || null)
+        .select()
+        .from(organizers)
+        .where(eq(organizers.id, event.organizerId))
+        .limit(1)
+        .then((rows) => rows[0] || null)
       : Promise.resolve(null),
   ]);
 
@@ -51,24 +52,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!event) {
     return {
-      title: "活動不存在 | SD Event",
+      title: "活動不存在",
       description: "連結可能已失效或活動已刪除",
     };
   }
 
   // Get site URL from environment variables
-  const siteUrl = 
-    process.env.SITE_URL || 
-    process.env.NEXT_PUBLIC_SITE_URL || 
+  const siteUrl =
+    process.env.SITE_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
     "https://sd-event.vercel.app";
-  
+
   const pageUrl = `${siteUrl}/e/${publicKey}`;
   const title = `${event.title} | SD Event`;
-  const description = event.description 
-    ? event.description.slice(0, 160) 
-    : `活動時間：${new Date(event.startAt).toLocaleDateString("zh-TW")}${event.location ? ` | 地點：${event.location.name}` : ""}`;
-  
+
+  // Build description with event period and location
+  const period = `時間: ${getEventDateLabel(event.startAt.toISOString(), event.endAt.toISOString())} ${getEventTimeRange(event.startAt.toISOString(), event.endAt.toISOString())}`;
+  const location = event.location ? `地點: ${event.location.name}` : "";
+
+  const description = [period, location].filter(Boolean).join("、");
+
   const imageUrl = event.coverUrl || `${siteUrl}/og-default.png`;
 
   return {
