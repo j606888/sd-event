@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
-import { UploadDropzone } from "@/lib/uploadthing";
+import { useUploadThing } from "@/lib/uploadthing";
 import { LocationSelect } from "./LocationSelect";
 import { OrganizerSelect } from "./OrganizerSelect";
 import { BankInfoSelect } from "./BankInfoSelect";
@@ -132,8 +132,43 @@ export function EventForm({
     }
   };
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const { startUpload: startCoverUpload, isUploading: isUploadingCover } = useUploadThing("eventCover", {
+    onClientUploadComplete: (res) => {
+      const first = res?.[0];
+      const url =
+        first &&
+        ("url" in first
+          ? first.url
+          : (first as { ufsUrl?: string }).ufsUrl);
+      if (url) {
+        setCoverUrl(url);
+        // Clean up preview URL
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          setPreviewUrl(null);
+        }
+        setSelectedCoverFile(null);
+      }
+    },
+    onUploadError: (err) => {
+      console.error("Cover upload error:", err);
+      setSaveError("上傳封面失敗，請重試");
+    },
+  });
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([]);
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
@@ -186,6 +221,8 @@ export function EventForm({
     setTitle(initialData.title);
     setDescription(initialData.description ?? "");
     setCoverUrl(initialData.coverUrl);
+    setSelectedCoverFile(null);
+    setPreviewUrl(null);
     setStartAt(toDateTimeLocal(initialData.startAt));
     setEndAt(toDateTimeLocal(initialData.endAt));
     // Set IDs only if they exist and are valid numbers
@@ -267,6 +304,30 @@ export function EventForm({
     setNoticeItems((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setSaveError("請選擇圖片檔案");
+      return;
+    }
+
+    // Validate file size (4MB)
+    if (file.size > 4 * 1024 * 1024) {
+      setSaveError("圖片大小不能超過 4MB");
+      return;
+    }
+
+    setSelectedCoverFile(file);
+    setSaveError(null);
+
+    // Create preview URL
+    const preview = URL.createObjectURL(file);
+    setPreviewUrl(preview);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
@@ -289,6 +350,31 @@ export function EventForm({
     }
     setSaving(true);
     try {
+      // Upload cover image if a new file is selected
+      let finalCoverUrl = coverUrl;
+      if (selectedCoverFile) {
+        try {
+          const uploadResult = await startCoverUpload([selectedCoverFile]);
+          if (!uploadResult || uploadResult.length === 0) {
+            throw new Error("上傳失敗");
+          }
+          const first = uploadResult[0];
+          finalCoverUrl =
+            first &&
+            ("url" in first
+              ? first.url
+              : (first as { ufsUrl?: string }).ufsUrl) ||
+            null;
+          if (!finalCoverUrl) {
+            throw new Error("無法取得上傳後的圖片網址");
+          }
+        } catch (uploadError) {
+          console.error("Upload error:", uploadError);
+          setSaveError(uploadError instanceof Error ? uploadError.message : "上傳封面失敗，請重試");
+          setSaving(false);
+          return;
+        }
+      }
       if (mode === "edit" && eventId != null) {
         const res = await fetch(`/api/events/${eventId}`, {
           method: "PATCH",
@@ -297,7 +383,7 @@ export function EventForm({
           body: JSON.stringify({
             title: trimmedTitle,
             description: description.trim() || null,
-            coverUrl: coverUrl || null,
+            coverUrl: finalCoverUrl || null,
             startAt: datetimeLocalToISO(startAt),
             endAt: datetimeLocalToISO(endAt),
             locationId: Number(locationId),
@@ -322,7 +408,7 @@ export function EventForm({
             teamId,
             title: trimmedTitle,
             description: description.trim() || undefined,
-            coverUrl: coverUrl || undefined,
+            coverUrl: finalCoverUrl || undefined,
             startAt: datetimeLocalToISO(startAt),
             endAt: datetimeLocalToISO(endAt),
             locationId: Number(locationId),
@@ -393,11 +479,11 @@ export function EventForm({
         </div>
         <div className="flex flex-col gap-2">
           <Label>活動封面</Label>
-          {coverUrl ? (
+          {(coverUrl || previewUrl) ? (
             <div className="relative inline-block">
               <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                 <Image
-                  src={coverUrl}
+                  src={previewUrl || coverUrl || ""}
                   alt="活動封面"
                   fill
                   className="object-cover"
@@ -406,7 +492,17 @@ export function EventForm({
               </div>
               <button
                 type="button"
-                onClick={() => setCoverUrl(null)}
+                onClick={() => {
+                  if (previewUrl) {
+                    // If there's a preview, remove the selected file and preview
+                    URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl(null);
+                    setSelectedCoverFile(null);
+                  } else {
+                    // If no preview, remove the existing cover URL
+                    setCoverUrl(null);
+                  }
+                }}
                 className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
                 aria-label="移除封面"
               >
@@ -414,23 +510,34 @@ export function EventForm({
               </button>
             </div>
           ) : (
-            <UploadDropzone
-              endpoint="eventCover"
-              onClientUploadComplete={(res) => {
-                const first = res?.[0];
-                const url = first && ("url" in first ? first.url : (first as { ufsUrl?: string }).ufsUrl);
-                if (url) setCoverUrl(url);
-              }}
-              onUploadError={(err) => {
-                console.error(err);
-                setSaveError("上傳失敗");
-              }}
-              appearance={{
-                container: "rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8 ut-ready:border-[#5295BC]",
-                label: "text-gray-500",
-                button: "ut-uploading:bg-[#5295BC] ut-ready:bg-[#5295BC] ut-uploading:after:bg-[#4285A]",
-              }}
-            />
+            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8">
+              <label className="flex flex-col items-center justify-center cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2 text-gray-500">
+                  <svg
+                    className="size-10"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium">點擊選擇圖片</span>
+                  <span className="text-xs">或拖放圖片到此處</span>
+                  <span className="text-xs text-gray-400">最大 4MB</span>
+                </div>
+              </label>
+            </div>
           )}
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">

@@ -7,16 +7,26 @@ import { useEffect, useState } from "react";
 import { EventCard } from "@/components/events/management/EventCard";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 
+type EventLocation = {
+  id: number;
+  name: string;
+  address: string | null;
+  googleMapUrl: string | null;
+};
+
 type EventItem = {
   id: number;
   teamId: number;
   userId: number;
   title: string;
+  description: string | null;
   coverUrl: string | null;
   status: string;
   startAt: string;
   endAt: string;
+  location: EventLocation | null;
   createdAt: string;
+  registrationCount?: number;
 };
 
 export default function EventsPage() {
@@ -30,6 +40,7 @@ export default function EventsPage() {
     if (teamId == null && !teamLoading) return;
     if (teamId == null) return;
     setLoading(true);
+    setError(null);
     fetch("/api/events", { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("無法載入");
@@ -39,6 +50,26 @@ export default function EventsPage() {
       .catch(() => setError("無法載入活動"))
       .finally(() => setLoading(false));
   }, [teamId, teamLoading]);
+
+  // Listen for team changes
+  useEffect(() => {
+    const handleTeamChange = () => {
+      if (teamId != null) {
+        setLoading(true);
+        fetch("/api/events", { credentials: "include" })
+          .then((res) => {
+            if (!res.ok) throw new Error("無法載入");
+            return res.json();
+          })
+          .then((data) => setEvents(data.events ?? []))
+          .catch(() => setError("無法載入活動"))
+          .finally(() => setLoading(false));
+      }
+    };
+
+    window.addEventListener("teamChanged", handleTeamChange);
+    return () => window.removeEventListener("teamChanged", handleTeamChange);
+  }, [teamId]);
 
   useEffect(() => {
     if (!loading && !teamLoading && !error && teamId == null) {
@@ -74,30 +105,49 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="relative flex-1 p-4 max-w-2xl">
-      <h2 className="mb-6 text-[17px] font-semibold text-gray-900">所有活動</h2>
+    <div className="flex-1 p-4 md:p-6">
+      {/* Header with title and create button */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+          所有活動
+        </h1>
+        <Link
+          href="/events/new"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#5295BC] text-white text-sm font-medium hover:opacity-90 shadow-sm"
+          aria-label="建立新活動"
+        >
+          <Plus className="size-4" />
+          <span>建立活動</span>
+        </Link>
+      </div>
 
       {events.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 py-12 text-center text-gray-500">
-          尚無活動，點擊右下角按鈕建立新活動
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-16 md:py-20 text-center text-gray-500">
+          尚無活動，點擊「建立活動」開始
         </div>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {events.map((event) => (
             <li key={event.id}>
-              <EventCard event={event} />
+              <EventCard
+                event={event}
+                registrationCount={event.registrationCount ?? 0}
+              />
             </li>
           ))}
         </ul>
       )}
 
-      <Link
-        href="/events/new"
-        className="absolute bottom-6 right-6 flex size-16 items-center justify-center rounded-full bg-[#5295BC] text-white shadow-lg hover:opacity-90"
-        aria-label="建立新活動"
-      >
-        <Plus className="size-10" />
-      </Link>
+      {/* Mobile FAB: only show when there are events */}
+      {events.length > 0 && (
+        <Link
+          href="/events/new"
+          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-[#5295BC] text-white shadow-lg hover:opacity-90 z-10"
+          aria-label="建立新活動"
+        >
+          <Plus className="size-8" />
+        </Link>
+      )}
     </div>
   );
 }

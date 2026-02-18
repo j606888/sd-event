@@ -23,6 +23,7 @@ export default function EventBankPage() {
   const [bankInfos, setBankInfos] = useState<BankInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingBankInfoId, setEditingBankInfoId] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formBankName, setFormBankName] = useState("");
   const [formBankCode, setFormBankCode] = useState("");
@@ -51,10 +52,20 @@ export default function EventBankPage() {
   }, [fetchBankInfos]);
 
   const openDrawer = () => {
+    setEditingBankInfoId(null);
     setSubmitError(null);
     setFormBankName("");
     setFormBankCode("");
     setFormAccount("");
+    setDrawerOpen(true);
+  };
+
+  const openEditDrawer = (bankInfo: BankInfo) => {
+    setEditingBankInfoId(bankInfo.id);
+    setSubmitError(null);
+    setFormBankName(bankInfo.bankName);
+    setFormBankCode(bankInfo.bankCode);
+    setFormAccount(bankInfo.account || "");
     setDrawerOpen(true);
   };
 
@@ -68,9 +79,16 @@ export default function EventBankPage() {
       setSubmitError("請輸入銀行名稱與銀行代碼");
       return;
     }
+
+    const isEditing = editingBankInfoId !== null;
+    const url = isEditing
+      ? `/api/teams/${teamId}/bank-infos/${editingBankInfoId}`
+      : `/api/teams/${teamId}/bank-infos`;
+    const method = isEditing ? "PATCH" : "POST";
+
     try {
-      const res = await fetch(`/api/teams/${teamId}/bank-infos`, {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
@@ -81,13 +99,13 @@ export default function EventBankPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || "新增失敗");
+        setSubmitError(data.error || (isEditing ? "更新失敗" : "新增失敗"));
         return;
       }
       setDrawerOpen(false);
       fetchBankInfos();
     } catch {
-      setSubmitError("新增失敗");
+      setSubmitError(isEditing ? "更新失敗" : "新增失敗");
     }
   };
 
@@ -128,7 +146,8 @@ export default function EventBankPage() {
           {bankInfos.map((bank) => (
             <li
               key={bank.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4"
+              onClick={() => openEditDrawer(bank)}
+              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 cursor-pointer hover:bg-gray-50 transition-colors"
             >
               <Landmark className="size-5 shrink-0 text-[#5295BC]" />
               <div className="min-w-0 flex-1">
@@ -146,8 +165,8 @@ export default function EventBankPage() {
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        subtitle="New Bank Info"
-        title="新增銀行資訊"
+        subtitle={editingBankInfoId ? "Edit Bank Info" : "New Bank Info"}
+        title={editingBankInfoId ? "編輯銀行資訊" : "新增銀行資訊"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {submitError && (
@@ -185,7 +204,7 @@ export default function EventBankPage() {
               取消
             </Button>
             <Button type="submit" className="bg-gray-900 text-white hover:bg-gray-800">
-              新增
+              {editingBankInfoId ? "更新" : "新增"}
             </Button>
           </div>
         </form>

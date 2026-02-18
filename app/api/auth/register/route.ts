@@ -96,18 +96,31 @@ export async function POST(request: Request) {
     }
 
     // 如果沒有待處理的邀請，建立預設團隊並將使用者設為 owner
+    let defaultTeamId: number | null = null;
     if (pendingInvitations.length === 0) {
       const [team] = await db
         .insert(teams)
         .values({ name: "我的團隊" })
         .returning({ id: teams.id });
       if (team) {
+        defaultTeamId = team.id;
         await db.insert(teamMembers).values({
           teamId: team.id,
           userId: user.id,
           role: "owner",
         });
       }
+    } else {
+      // If there are invitations, use the first team they joined
+      defaultTeamId = pendingInvitations[0].teamId;
+    }
+
+    // Set active team
+    if (defaultTeamId != null) {
+      await db
+        .update(users)
+        .set({ activeTeamId: defaultTeamId })
+        .where(eq(users.id, user.id));
     }
 
     const token = await createToken({ userId: user.id, email: user.email });

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, Bell, ChevronsUpDown } from "lucide-react";
+import { Menu } from "lucide-react";
 
 type Team = { id: number; name: string } | null;
 
@@ -14,11 +14,11 @@ export function Header({ onMenuClick, team }: HeaderProps) {
   const teamLabel = team?.name ?? "選擇團隊";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center border-b border-gray-200 bg-white px-2">
+    <header className="sticky top-0 z-30 flex h-14 items-center border-b border-gray-200 bg-white px-2 lg:px-4">
       <button
         type="button"
         onClick={onMenuClick}
-        className="flex size-10 shrink-0 items-center justify-center text-gray-600 hover:text-gray-900"
+        className="flex lg:hidden size-10 shrink-0 items-center justify-center text-gray-600 hover:text-gray-900"
         aria-label="開啟選單"
       >
         <Menu className="size-6" />
@@ -32,20 +32,6 @@ export function Header({ onMenuClick, team }: HeaderProps) {
         >
           SD Event
         </Link>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <span className="text-sm text-gray-500">{teamLabel}</span>
-          <ChevronsUpDown className="size-4 text-gray-400" aria-hidden />
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center justify-end">
-        <button
-          type="button"
-          className="flex size-10 items-center justify-center text-gray-600 hover:text-gray-900"
-          aria-label="通知"
-        >
-          <Bell className="size-6" />
-        </button>
       </div>
     </header>
   );

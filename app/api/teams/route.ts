@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { teams, teamMembers } from "@/db/schema";
+import { teams, teamMembers, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { eq } from "drizzle-orm";
@@ -54,6 +54,12 @@ export async function POST(request: Request) {
     userId: session.userId,
     role: "owner",
   });
+
+  // Set this as the active team (always set newly created team as active)
+  await db
+    .update(users)
+    .set({ activeTeamId: team.id })
+    .where(eq(users.id, session.userId));
 
   return NextResponse.json({ team });
 }

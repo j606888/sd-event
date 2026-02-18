@@ -24,6 +24,7 @@ export default function EventLocationsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formGoogleMap, setFormGoogleMap] = useState("");
@@ -53,11 +54,22 @@ export default function EventLocationsPage() {
   }, [fetchLocations]);
 
   const openDrawer = () => {
+    setEditingLocationId(null);
     setSubmitError(null);
     setFormName("");
     setFormGoogleMap("");
     setFormAddress("");
     setFormRemark("");
+    setDrawerOpen(true);
+  };
+
+  const openEditDrawer = (location: Location) => {
+    setEditingLocationId(location.id);
+    setSubmitError(null);
+    setFormName(location.name);
+    setFormGoogleMap(location.googleMapUrl || "");
+    setFormAddress(location.address || "");
+    setFormRemark(location.remark || "");
     setDrawerOpen(true);
   };
 
@@ -70,9 +82,16 @@ export default function EventLocationsPage() {
       setSubmitError("請輸入名稱");
       return;
     }
+
+    const isEditing = editingLocationId !== null;
+    const url = isEditing
+      ? `/api/teams/${teamId}/locations/${editingLocationId}`
+      : `/api/teams/${teamId}/locations`;
+    const method = isEditing ? "PATCH" : "POST";
+
     try {
-      const res = await fetch(`/api/teams/${teamId}/locations`, {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
@@ -84,13 +103,13 @@ export default function EventLocationsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || "新增失敗");
+        setSubmitError(data.error || (isEditing ? "更新失敗" : "新增失敗"));
         return;
       }
       setDrawerOpen(false);
       fetchLocations();
     } catch {
-      setSubmitError("新增失敗");
+      setSubmitError(isEditing ? "更新失敗" : "新增失敗");
     }
   };
 
@@ -131,7 +150,8 @@ export default function EventLocationsPage() {
           {locations.map((loc) => (
             <li
               key={loc.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4"
+              onClick={() => openEditDrawer(loc)}
+              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 cursor-pointer hover:bg-gray-50 transition-colors"
             >
               <MapPin className="size-5 shrink-0 text-[#5295BC]" />
               <div className="min-w-0 flex-1">
@@ -148,8 +168,8 @@ export default function EventLocationsPage() {
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        subtitle="New Location"
-        title="新增活動地點"
+        subtitle={editingLocationId ? "Edit Location" : "New Location"}
+        title={editingLocationId ? "編輯活動地點" : "新增活動地點"}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {submitError && (
@@ -196,7 +216,7 @@ export default function EventLocationsPage() {
               取消
             </Button>
             <Button type="submit" className="bg-gray-900 text-white hover:bg-gray-800">
-              新增
+              {editingLocationId ? "更新" : "新增"}
             </Button>
           </div>
         </form>

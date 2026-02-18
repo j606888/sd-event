@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   encryptedPassword: text("encrypted_password").notNull(),
   role: userRoleEnum("role").notNull().default("Organizer"),
+  activeTeamId: integer("active_team_id").references(() => teams.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
