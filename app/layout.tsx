@@ -4,8 +4,8 @@ import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { QueryProvider } from "@/providers/QueryProvider";
+// import "@uploadthing/react/styles.css";
 import "./globals.css";
-import "@uploadthing/react/styles.css";
 
 const nunito = Nunito({
   variable: "--font-nunito",

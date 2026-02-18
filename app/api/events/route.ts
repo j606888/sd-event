@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { customAlphabet } from "nanoid";
 import { db } from "@/db";
-import { events, eventRegistrations, teamMembers } from "@/db/schema";
+import { events, eventRegistrations, teamMembers, eventLocations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { eq, inArray, desc, count } from "drizzle-orm";
@@ -37,10 +37,12 @@ export async function GET(request: Request) {
         teamId: events.teamId,
         userId: events.userId,
         title: events.title,
+        description: events.description,
         coverUrl: events.coverUrl,
         status: events.status,
         startAt: events.startAt,
         endAt: events.endAt,
+        locationId: events.locationId,
         createdAt: events.createdAt,
       })
       .from(events)
@@ -62,9 +64,24 @@ export async function GET(request: Request) {
     const countMap = new Map(
       registrationCounts.map((r) => [r.eventId, Number(r.count)])
     );
+
+    // Fetch locations for events
+    const locationIds = list
+      .map((e) => e.locationId)
+      .filter((id): id is number => id !== null);
+    const locations =
+      locationIds.length > 0
+        ? await db
+            .select()
+            .from(eventLocations)
+            .where(inArray(eventLocations.id, locationIds))
+        : [];
+    const locationMap = new Map(locations.map((loc) => [loc.id, loc]));
+
     const eventsWithCount = list.map((e) => ({
       ...e,
       registrationCount: countMap.get(e.id) ?? 0,
+      location: e.locationId ? locationMap.get(e.locationId) || null : null,
     }));
     return NextResponse.json({ events: eventsWithCount });
   }
@@ -85,10 +102,12 @@ export async function GET(request: Request) {
       teamId: events.teamId,
       userId: events.userId,
       title: events.title,
+      description: events.description,
       coverUrl: events.coverUrl,
       status: events.status,
       startAt: events.startAt,
       endAt: events.endAt,
+      locationId: events.locationId,
       createdAt: events.createdAt,
     })
     .from(events)
@@ -110,9 +129,24 @@ export async function GET(request: Request) {
   const countMap = new Map(
     registrationCounts.map((r) => [r.eventId, Number(r.count)])
   );
+
+  // Fetch locations for events
+  const locationIds = list
+    .map((e) => e.locationId)
+    .filter((id): id is number => id !== null);
+  const locations =
+    locationIds.length > 0
+      ? await db
+          .select()
+          .from(eventLocations)
+          .where(inArray(eventLocations.id, locationIds))
+      : [];
+  const locationMap = new Map(locations.map((loc) => [loc.id, loc]));
+
   const eventsWithCount = list.map((e) => ({
     ...e,
     registrationCount: countMap.get(e.id) ?? 0,
+    location: e.locationId ? locationMap.get(e.locationId) || null : null,
   }));
 
   return NextResponse.json({ events: eventsWithCount });

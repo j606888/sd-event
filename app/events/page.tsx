@@ -7,15 +7,24 @@ import { useEffect, useState } from "react";
 import { EventCard } from "@/components/events/management/EventCard";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 
+type EventLocation = {
+  id: number;
+  name: string;
+  address: string | null;
+  googleMapUrl: string | null;
+};
+
 type EventItem = {
   id: number;
   teamId: number;
   userId: number;
   title: string;
+  description: string | null;
   coverUrl: string | null;
   status: string;
   startAt: string;
   endAt: string;
+  location: EventLocation | null;
   createdAt: string;
   registrationCount?: number;
 };
@@ -75,24 +84,25 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="relative flex-1 p-4 md:p-6 max-w-2xl md:max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h2 className="text-[17px] md:text-xl font-semibold text-gray-900">
+    <div className="flex-1 p-4 md:p-6">
+      {/* Header with title and create button */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
           所有活動
-        </h2>
+        </h1>
         <Link
           href="/events/new"
-          className="order-first sm:order-0 flex items-center justify-center gap-2 w-full sm:w-auto sm:inline-flex px-4 py-2.5 rounded-lg bg-[#5295BC] text-white text-sm font-medium hover:opacity-90 shadow-sm md:shadow"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#5295BC] text-white text-sm font-medium hover:opacity-90 shadow-sm"
           aria-label="建立新活動"
         >
-          <Plus className="size-5" />
-          <span>建立新活動</span>
+          <Plus className="size-4" />
+          <span>建立活動</span>
         </Link>
       </div>
 
       {events.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-16 md:py-20 text-center text-gray-500">
-          尚無活動，點擊「建立新活動」開始
+          尚無活動，點擊「建立活動」開始
         </div>
       ) : (
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
@@ -107,7 +117,7 @@ export default function EventsPage() {
         </ul>
       )}
 
-      {/* Mobile FAB: only show when there are events (desktop uses header button) */}
+      {/* Mobile FAB: only show when there are events */}
       {events.length > 0 && (
         <Link
           href="/events/new"
