@@ -130,6 +130,7 @@ export const events = pgTable("events", {
     onDelete: "set null",
   }),
   allowMultiplePurchase: boolean("allow_multiple_purchase").default(false),
+  autoCalcAmount: boolean("auto_calc_amount").default(false),
   status: eventStatusEnum("status").notNull().default("published"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -184,6 +185,19 @@ export const eventRegistrations = pgTable("event_registrations", {
   paymentNote: text("payment_note"), // 銀行末五碼或其他訊息
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ============ Event Registration Purchase Items (報名購買項目，用於多選) ============
+export const eventRegistrationPurchaseItems = pgTable("event_registration_purchase_items", {
+  id: serial("id").primaryKey(),
+  registrationId: integer("registration_id")
+    .notNull()
+    .references(() => eventRegistrations.id, { onDelete: "cascade" }),
+  purchaseItemId: integer("purchase_item_id")
+    .notNull()
+    .references(() => eventPurchaseItems.id, { onDelete: "cascade" }),
+  quantity: integer("quantity").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ============ Event Attendees (參加者) ============

@@ -88,24 +88,49 @@ export function ApplicationFormStep({
           <div className="space-y-3">
             <h2 className="font-semibold text-gray-900">選擇方案</h2>
             <div className="space-y-2">
-              {event.purchaseItems.map((item) => (
-                <label
-                  key={item.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border  cursor-pointer hover:bg-gray-50 ${formData.selectedPlanId === item.id ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"}`}
-                >
-                  <input
-                    type="radio"
-                    name="plan"
-                    checked={formData.selectedPlanId === item.id}
-                    onChange={() => onFormFieldChange("selectedPlanId", item.id)}
-                    className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">{item.name}</div>
-                    <div className="text-sm text-gray-600">${item.amount}</div>
-                  </div>
-                </label>
-              ))}
+              {event.purchaseItems.map((item) => {
+                const isSelected = event.allowMultiplePurchase
+                  ? formData.selectedPlanIds.includes(item.id)
+                  : formData.selectedPlanId === item.id;
+                
+                return (
+                  <label
+                    key={item.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
+                      isSelected ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"
+                    }`}
+                  >
+                    <input
+                      type={event.allowMultiplePurchase ? "checkbox" : "radio"}
+                      name={event.allowMultiplePurchase ? `plan-${item.id}` : "plan"}
+                      checked={isSelected}
+                      onChange={() => {
+                        if (event.allowMultiplePurchase) {
+                          const newIds = isSelected
+                            ? formData.selectedPlanIds.filter((id) => id !== item.id)
+                            : [...formData.selectedPlanIds, item.id];
+                          onFormFieldChange("selectedPlanIds", newIds);
+                          // Clear single selection when using multiple
+                          if (formData.selectedPlanId !== null) {
+                            onFormFieldChange("selectedPlanId", null);
+                          }
+                        } else {
+                          onFormFieldChange("selectedPlanId", item.id);
+                          // Clear multiple selection when using single
+                          if (formData.selectedPlanIds.length > 0) {
+                            onFormFieldChange("selectedPlanIds", []);
+                          }
+                        }
+                      }}
+                      className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{item.name}</div>
+                      <div className="text-sm text-gray-600">${item.amount}</div>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
@@ -180,13 +205,16 @@ export function ApplicationFormStep({
           <div className="space-y-3">
             <h2 className="font-semibold text-gray-900">費用</h2>
             <div>
-              <Label htmlFor="totalAmount">總金額(請自行計算)</Label>
+              <Label htmlFor="totalAmount">
+                {event.autoCalcAmount ? "總金額（自動計算）" : "總金額（請自行計算）"}
+              </Label>
               <Input
                 id="totalAmount"
                 placeholder="請輸入總金額"
                 type="number"
                 value={formData.totalAmount}
                 onChange={(e) => onFormFieldChange("totalAmount", e.target.value)}
+                disabled={event.autoCalcAmount}
                 className="mt-1"
               />
             </div>

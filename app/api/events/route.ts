@@ -133,6 +133,7 @@ export async function POST(request: Request) {
   const organizerId = body.organizerId != null ? Number(body.organizerId) : null;
   const bankInfoId = body.bankInfoId != null ? Number(body.bankInfoId) : null;
   const allowMultiplePurchase = Boolean(body.allowMultiplePurchase);
+  const autoCalcAmount = Boolean(body.autoCalcAmount);
   const publicKey = generatePublicKey();
 
   const [event] = await db
@@ -150,6 +151,7 @@ export async function POST(request: Request) {
       organizerId: Number.isInteger(organizerId) ? organizerId : null,
       bankInfoId: Number.isInteger(bankInfoId) ? bankInfoId : null,
       allowMultiplePurchase,
+      autoCalcAmount,
       status: "published",
     })
     .returning({

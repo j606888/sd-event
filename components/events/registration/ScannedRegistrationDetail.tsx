@@ -24,7 +24,8 @@ type Registration = {
   contactName: string;
   totalAmount: number;
   paymentStatus: string;
-  purchaseItem: PurchaseItem | null;
+  purchaseItem: PurchaseItem | null; // For backward compatibility
+  purchaseItems?: PurchaseItem[]; // Array of purchase items (for multiple selection)
   attendees: Attendee[];
 };
 
@@ -114,14 +115,26 @@ export function ScannedRegistrationDetail({
       </div>
 
       {/* Registration Item */}
-      {registration.purchaseItem && (
+      {(registration.purchaseItems && registration.purchaseItems.length > 0) || registration.purchaseItem ? (
         <div className="space-y-2">
           <h3 className="font-semibold text-gray-900">報名項目</h3>
-          <div className="text-sm text-gray-900">
-            {registration.purchaseItem.name}
-          </div>
+          {registration.purchaseItems && registration.purchaseItems.length > 0 ? (
+            // Multiple purchase items
+            <div className="space-y-1">
+              {registration.purchaseItems.map((item) => (
+                <div key={item.id} className="text-sm text-gray-900">
+                  {item.name} ${item.amount}
+                </div>
+              ))}
+            </div>
+          ) : registration.purchaseItem ? (
+            // Single purchase item (backward compatibility)
+            <div className="text-sm text-gray-900">
+              {registration.purchaseItem.name}
+            </div>
+          ) : null}
         </div>
-      )}
+      ) : null}
 
       {/* Participants */}
       <div className="space-y-3">

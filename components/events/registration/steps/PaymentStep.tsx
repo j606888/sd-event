@@ -13,6 +13,7 @@ type PaymentStepProps = {
   event: PublicEventData;
   formData: FormData;
   selectedPlan: EventPurchaseItem | null;
+  selectedPlans: EventPurchaseItem[];
   copiedText: string | null;
   onCopy: (text: string, type: string) => void;
   onPaymentMethodChange: (method: "Line Pay" | "Bank Transfer" | "Other") => void;
@@ -26,6 +27,7 @@ export function PaymentStep({
   event,
   formData,
   selectedPlan,
+  selectedPlans,
   copiedText,
   onCopy,
   onPaymentMethodChange,
@@ -66,13 +68,29 @@ export function PaymentStep({
                   <span className="text-gray-900">{event.location.name}</span>
                 </div>
               )}
-              {selectedPlan && (
-                <div className="flex gap-3">
-                  <span className="text-gray-500">選擇方案</span>
-                  <span className="text-gray-900">
-                    {selectedPlan.name} ${selectedPlan.amount}
-                  </span>
-                </div>
+              {event.allowMultiplePurchase ? (
+                selectedPlans.length > 0 && (
+                  <div className="flex gap-3">
+                    <span className="text-gray-500">選擇方案</span>
+                    <span className="text-gray-900">
+                      {selectedPlans.map((plan, i) => (
+                        <span key={plan.id}>
+                          {plan.name} ${plan.amount}
+                          {i < selectedPlans.length - 1 && " + "}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                )
+              ) : (
+                selectedPlan && (
+                  <div className="flex gap-3">
+                    <span className="text-gray-500">選擇方案</span>
+                    <span className="text-gray-900">
+                      {selectedPlan.name} ${selectedPlan.amount}
+                    </span>
+                  </div>
+                )
               )}
               <div className="flex gap-3">
                 <span className="text-gray-500">聯絡人</span>

@@ -5,6 +5,7 @@ import {
   eventRegistrations,
   eventAttendees,
   eventPurchaseItems,
+  eventRegistrationPurchaseItems,
   teamMembers,
   eventLocations,
 } from "@/db/schema";
@@ -73,7 +74,7 @@ export async function GET(_request: Request, { params }: Params) {
     .from(eventAttendees)
     .where(eq(eventAttendees.registrationId, registrationId));
 
-  // 取得購買項目
+  // 取得購買項目（單選或多選）
   const purchaseItem = registration.purchaseItemId
     ? await db
         .select()
@@ -82,6 +83,28 @@ export async function GET(_request: Request, { params }: Params) {
         .limit(1)
         .then((rows) => rows[0] || null)
     : null;
+
+  // 取得多選購買項目
+  const registrationPurchaseItems = event.allowMultiplePurchase
+    ? await db
+        .select({
+          id: eventPurchaseItems.id,
+          name: eventPurchaseItems.name,
+          amount: eventPurchaseItems.amount,
+        })
+        .from(eventRegistrationPurchaseItems)
+        .innerJoin(
+          eventPurchaseItems,
+          eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
+        )
+        .where(eq(eventRegistrationPurchaseItems.registrationId, registrationId))
+    : [];
+
+  const purchaseItems = event.allowMultiplePurchase && registrationPurchaseItems.length > 0
+    ? registrationPurchaseItems
+    : purchaseItem
+    ? [purchaseItem]
+    : [];
 
   return NextResponse.json({
     registration: {
@@ -93,7 +116,8 @@ export async function GET(_request: Request, { params }: Params) {
         checkedIn: a.checkedIn || false,
         checkedInAt: a.checkedInAt,
       })),
-      purchaseItem,
+      purchaseItem, // For backward compatibility
+      purchaseItems, // Array of purchase items (for multiple selection)
     },
   });
 }

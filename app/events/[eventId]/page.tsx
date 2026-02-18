@@ -23,6 +23,7 @@ type EventData = {
   organizerId: number | null;
   bankInfoId: number | null;
   allowMultiplePurchase: boolean;
+  autoCalcAmount: boolean;
   status: string;
   createdAt: string;
   updatedAt: string | null;
@@ -60,7 +61,8 @@ type RegistrationDetailData = {
   paymentNote: string | null;
   createdAt: string;
   attendees: Array<{ id: number; name: string; role: "Leader" | "Follower" | "Not sure" | string; checkedIn?: boolean; checkedInAt?: string | null }>;
-  purchaseItem: { id: number; name: string; amount: number } | null;
+  purchaseItem: { id: number; name: string; amount: number } | null; // For backward compatibility
+  purchaseItems?: Array<{ id: number; name: string; amount: number }>; // Array of purchase items (for multiple selection)
 };
 
 export default function EventDetailPage() {

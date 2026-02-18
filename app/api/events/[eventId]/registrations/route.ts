@@ -6,6 +6,7 @@ import {
   eventRegistrations,
   eventAttendees,
   eventPurchaseItems,
+  eventRegistrationPurchaseItems,
   teamMembers,
 } from "@/db/schema";
 import { sendRegistrationSuccessEmail } from "@/lib/email";
@@ -152,6 +153,9 @@ export async function POST(request: Request, { params }: Params) {
     // 驗證必填欄位
     const purchaseItemId =
       body.purchaseItemId != null ? Number(body.purchaseItemId) : null;
+    const purchaseItemIds = Array.isArray(body.purchaseItemIds)
+      ? body.purchaseItemIds.map((id: any) => Number(id)).filter((id: number) => Number.isInteger(id))
+      : [];
     const contactName =
       typeof body.contactName === "string" ? body.contactName.trim() : "";
     const contactPhone =
@@ -166,18 +170,24 @@ export async function POST(request: Request, { params }: Params) {
         ? body.attendees
         : [];
 
+    // Check if event allows multiple purchase
+    const hasPurchaseItems = event.allowMultiplePurchase 
+      ? purchaseItemIds.length > 0
+      : purchaseItemId != null;
+
     if (
       !contactName ||
       !contactPhone ||
       !contactEmail ||
       !Number.isInteger(totalAmount) ||
       totalAmount <= 0 ||
-      attendees.length === 0
+      attendees.length === 0 ||
+      !hasPurchaseItems
     ) {
       return NextResponse.json(
         {
           error:
-            "請提供有效的聯絡人資訊（姓名、電話、信箱）、總金額與至少一位參加者",
+            "請提供有效的聯絡人資訊（姓名、電話、信箱）、購買項目、總金額與至少一位參加者",
         },
         { status: 400 }
       );
@@ -188,19 +198,42 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "請提供有效的 email" }, { status: 400 });
     }
 
-    // 驗證購買項目是否存在（如果提供）
-    if (purchaseItemId != null) {
-      const [purchaseItem] = await db
+    // 驗證購買項目是否存在
+    if (event.allowMultiplePurchase) {
+      // Multiple selection: validate all purchase items
+      if (purchaseItemIds.length === 0) {
+        return NextResponse.json(
+          { error: "請至少選擇一個購買項目" },
+          { status: 400 }
+        );
+      }
+      const purchaseItems = await db
         .select()
         .from(eventPurchaseItems)
-        .where(eq(eventPurchaseItems.id, purchaseItemId))
-        .limit(1);
-
-      if (!purchaseItem || purchaseItem.eventId !== eventId) {
+        .where(eq(eventPurchaseItems.eventId, eventId));
+      const validItemIds = purchaseItems.map((item) => item.id);
+      const invalidIds = purchaseItemIds.filter((id: number) => !validItemIds.includes(id));
+      if (invalidIds.length > 0) {
         return NextResponse.json(
           { error: "無效的購買項目" },
           { status: 400 }
         );
+      }
+    } else {
+      // Single selection: validate single purchase item
+      if (purchaseItemId != null) {
+        const [purchaseItem] = await db
+          .select()
+          .from(eventPurchaseItems)
+          .where(eq(eventPurchaseItems.id, purchaseItemId))
+          .limit(1);
+
+        if (!purchaseItem || purchaseItem.eventId !== eventId) {
+          return NextResponse.json(
+            { error: "無效的購買項目" },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -228,7 +261,7 @@ export async function POST(request: Request, { params }: Params) {
       .values({
         registrationKey,
         eventId,
-        purchaseItemId: Number.isInteger(purchaseItemId) ? purchaseItemId : null,
+        purchaseItemId: event.allowMultiplePurchase ? null : (Number.isInteger(purchaseItemId) ? purchaseItemId : null),
         contactName,
         contactPhone,
         contactEmail,
@@ -240,6 +273,18 @@ export async function POST(request: Request, { params }: Params) {
 
     if (!registration) {
       return NextResponse.json({ error: "建立報名失敗" }, { status: 500 });
+    }
+
+    // 建立購買項目關聯（多選時）
+    if (event.allowMultiplePurchase && purchaseItemIds.length > 0) {
+      const registrationPurchaseItemValues = purchaseItemIds.map((itemId: number) => ({
+        registrationId: registration.id,
+        purchaseItemId: itemId,
+        quantity: 1, // Default quantity, can be extended later
+      }));
+      if (registrationPurchaseItemValues.length > 0) {
+        await db.insert(eventRegistrationPurchaseItems).values(registrationPurchaseItemValues);
+      }
     }
 
     // 建立參加者記錄

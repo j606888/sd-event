@@ -48,6 +48,7 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
       event={event}
       formData={form.formData}
       selectedPlan={form.selectedPlan}
+      selectedPlans={form.selectedPlans}
       copiedText={form.copiedText}
       onCopy={form.handleCopy}
       onPaymentMethodChange={(method) => form.setFormField("paymentMethod", method)}

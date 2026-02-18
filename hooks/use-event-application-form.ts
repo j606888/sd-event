@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicEventData } from "@/types/event";
 import type { FormData, Participant } from "@/components/events/registration/event-application-types";
@@ -29,6 +29,10 @@ export function useEventApplicationForm(event: PublicEventData) {
     (item) => item.id === formData.selectedPlanId
   ) ?? null;
 
+  const selectedPlans = event.purchaseItems.filter(
+    (item) => formData.selectedPlanIds.includes(item.id)
+  );
+
   const handleCopy = useCallback(async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -52,10 +56,11 @@ export function useEventApplicationForm(event: PublicEventData) {
   const removeParticipant = useCallback((id: string) => {
     setFormData((prev) => {
       if (prev.participants.length <= 1) return prev;
-      return {
+      const updated = {
         ...prev,
         participants: prev.participants.filter((p) => p.id !== id),
       };
+      return updated;
     });
   }, []);
 
@@ -75,12 +80,42 @@ export function useEventApplicationForm(event: PublicEventData) {
     field: K,
     value: FormData[K]
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      return updated;
+    });
   }, []);
 
+  // Auto-calculate total amount when autoCalcAmount is enabled
+  useEffect(() => {
+    if (!event.autoCalcAmount) return;
+    
+    let total = 0;
+    if (event.allowMultiplePurchase && formData.selectedPlanIds.length > 0) {
+      // Multiple selection: sum of all selected items * participant count
+      const selectedPlans = event.purchaseItems.filter(
+        (item) => formData.selectedPlanIds.includes(item.id)
+      );
+      total = selectedPlans.reduce((sum, item) => sum + item.amount, 0) * formData.participants.length;
+    } else if (formData.selectedPlanId != null) {
+      // Single selection: selected item amount * participant count
+      const plan = event.purchaseItems.find((item) => item.id === formData.selectedPlanId);
+      if (plan) {
+        total = plan.amount * formData.participants.length;
+      }
+    }
+    
+    if (total > 0) {
+      setFormData((prev) => ({ ...prev, totalAmount: String(total) }));
+    }
+  }, [event.autoCalcAmount, event.allowMultiplePurchase, event.purchaseItems, formData.selectedPlanId, formData.selectedPlanIds, formData.participants.length]);
+
   const canProceedToStep2 = agreedToTerms;
+  const hasSelectedPlan = event.allowMultiplePurchase 
+    ? formData.selectedPlanIds.length > 0
+    : formData.selectedPlanId !== null;
   const canProceedToStep3 =
-    formData.selectedPlanId !== null &&
+    hasSelectedPlan &&
     formData.contactName.trim() !== "" &&
     formData.contactPhone.trim() !== "" &&
     formData.contactEmail.trim() !== "" &&
@@ -95,7 +130,8 @@ export function useEventApplicationForm(event: PublicEventData) {
 
     try {
       const result = await createRegistration(event.id, {
-        purchaseItemId: formData.selectedPlanId,
+        purchaseItemId: event.allowMultiplePurchase ? null : formData.selectedPlanId,
+        purchaseItemIds: event.allowMultiplePurchase ? formData.selectedPlanIds : [],
         contactName: formData.contactName,
         contactPhone: formData.contactPhone,
         contactEmail: formData.contactEmail,
@@ -122,6 +158,7 @@ export function useEventApplicationForm(event: PublicEventData) {
     submitting,
     submitError,
     selectedPlan,
+    selectedPlans,
     handleCopy,
     addParticipant,
     removeParticipant,

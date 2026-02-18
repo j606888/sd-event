@@ -47,6 +47,8 @@ export type PublicEventData = {
   startAt: string;
   endAt: string;
   status: string;
+  allowMultiplePurchase: boolean;
+  autoCalcAmount: boolean;
   location: EventLocation | null;
   organizer: EventOrganizer | null;
   bankInfo: EventBankInfo | null;

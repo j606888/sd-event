@@ -33,7 +33,8 @@ type Registration = {
   paymentNote: string | null;
   createdAt: string;
   attendees: Array<{ id: number; name: string; role: string; checkedIn?: boolean; checkedInAt?: string | null }>;
-  purchaseItem: PurchaseItem | null;
+  purchaseItem: PurchaseItem | null; // For backward compatibility
+  purchaseItems?: PurchaseItem[]; // Array of purchase items (for multiple selection)
 };
 
 type RegistrationDetailProps = {
@@ -217,14 +218,23 @@ export function RegistrationDetail({
       <div className="space-y-3">
         <h3 className="font-semibold text-gray-900">報名項目</h3>
         <div className="space-y-2 text-sm">
-          {registration.purchaseItem && (
+          {registration.purchaseItems && registration.purchaseItems.length > 0 ? (
+            // Multiple purchase items
+            registration.purchaseItems.map((item) => (
+              <div key={item.id} className="flex justify-between">
+                <span className="text-gray-900">{item.name}</span>
+                <span className="text-gray-900">${item.amount}</span>
+              </div>
+            ))
+          ) : registration.purchaseItem ? (
+            // Single purchase item (backward compatibility)
             <div className="flex justify-between">
               <span className="text-gray-900">{registration.purchaseItem.name}</span>
               <span className="text-gray-900">${registration.purchaseItem.amount}</span>
             </div>
-          )}
+          ) : null}
           <div className="flex justify-between">
-            <span className="text-gray-500">總金額 (用戶自行輸入)</span>
+            <span className="text-gray-500">總金額</span>
             <span className="text-gray-900 font-semibold">
               ${registration.totalAmount.toLocaleString()}
             </span>
@@ -303,6 +313,7 @@ export function RegistrationDetail({
                   totalAmount: registration.totalAmount,
                   paymentStatus: registration.paymentStatus,
                   purchaseItem: registration.purchaseItem,
+                  purchaseItems: registration.purchaseItems,
                   attendees: registration.attendees.map((a) => ({
                     id: a.id,
                     name: a.name,
