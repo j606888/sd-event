@@ -40,6 +40,7 @@ export default function EventsPage() {
     if (teamId == null && !teamLoading) return;
     if (teamId == null) return;
     setLoading(true);
+    setError(null);
     fetch("/api/events", { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("無法載入");
@@ -49,6 +50,26 @@ export default function EventsPage() {
       .catch(() => setError("無法載入活動"))
       .finally(() => setLoading(false));
   }, [teamId, teamLoading]);
+
+  // Listen for team changes
+  useEffect(() => {
+    const handleTeamChange = () => {
+      if (teamId != null) {
+        setLoading(true);
+        fetch("/api/events", { credentials: "include" })
+          .then((res) => {
+            if (!res.ok) throw new Error("無法載入");
+            return res.json();
+          })
+          .then((data) => setEvents(data.events ?? []))
+          .catch(() => setError("無法載入活動"))
+          .finally(() => setLoading(false));
+      }
+    };
+
+    window.addEventListener("teamChanged", handleTeamChange);
+    return () => window.removeEventListener("teamChanged", handleTeamChange);
+  }, [teamId]);
 
   useEffect(() => {
     if (!loading && !teamLoading && !error && teamId == null) {

@@ -20,6 +20,7 @@ export async function GET() {
         name: users.name,
         email: users.email,
         role: users.role,
+        activeTeamId: users.activeTeamId,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -40,6 +41,7 @@ export async function GET() {
         name: user.name,
         email: user.email,
         role: user.role,
+        activeTeamId: user.activeTeamId,
         createdAt: user.createdAt,
       },
     });

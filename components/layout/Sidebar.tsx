@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
@@ -13,20 +14,34 @@ import {
   Landmark,
   LogOut,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Drawer } from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { Team as TeamType } from "@/hooks/use-current-team";
 
-type Team = { id: number; name: string } | null;
+type Team = TeamType | null;
 
 type SidebarProps = {
   open: boolean;
   onClose: () => void;
   team: Team;
+  teams: TeamType[];
+  onTeamChange: () => void;
 };
 
-export function Sidebar({ open, onClose, team }: SidebarProps) {
+export function Sidebar({ open, onClose, team, teams, onTeamChange }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [createTeamDrawerOpen, setCreateTeamDrawerOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
   const teamLabel = team?.name ?? "選擇團隊";
   const teamInitial = team?.name?.charAt(0)?.toUpperCase() ?? "?";
+  const currentTeamId = team?.id ? String(team.id) : "";
 
   const isActive = (href: string) => {
     if (href === "/events") {
@@ -35,13 +50,79 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+  const handleTeamChange = async (teamId: string) => {
+    if (teamId && teamId !== currentTeamId) {
+      const teamIdNum = Number(teamId);
+      if (!Number.isInteger(teamIdNum)) return;
+
+      // Update active team in database
+      try {
+        await fetch("/api/user/active-team", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ teamId: teamIdNum }),
+        });
+      } catch (error) {
+        console.error("Failed to update active team:", error);
+      }
+
+      // Refresh teams to update active team
+      onTeamChange();
+      
+      // Trigger team change event for other components
+      window.dispatchEvent(new CustomEvent("teamChanged"));
+      
+      // Navigate to team detail page
+      router.push(`/teams/${teamId}`);
+      router.refresh();
+    }
+  };
+
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError(null);
+    const name = teamName.trim();
+    if (!name) {
+      setCreateError("請輸入團隊名稱");
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCreateError(data.error || "建立失敗");
+        setCreating(false);
+        return;
+      }
+      setCreateTeamDrawerOpen(false);
+      setTeamName("");
+      onTeamChange();
+      // Trigger team change event for other components
+      window.dispatchEvent(new CustomEvent("teamChanged"));
+      // Navigate to the new team
+      if (data.team?.id) {
+        router.push(`/teams/${data.team.id}`);
+        router.refresh();
+      }
+    } catch {
+      setCreateError("建立失敗");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     router.push("/login");
     router.refresh();
   };
-
-  console.log({ open })
 
   return (
     <>
@@ -49,14 +130,14 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
       {open && (
         <div
           onClick={onClose}
-          className="fixed inset-0 z-[60] bg-black/50 transition-opacity lg:hidden"
+          className="fixed inset-0 z-60 bg-black/50 transition-opacity lg:hidden"
         />
       )}
 
       {/* 2. Sidebar 主體 */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-[70] w-[280px] bg-white border-r transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-70 w-[280px] bg-white border-r transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "-translate-x-full"}
           lg:static lg:translate-x-0
           flex h-full flex-col
@@ -82,18 +163,49 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
         {/* 捲動區域 */}
         <div className="flex flex-1 flex-col overflow-y-auto p-4 scrollbar-thin">
           {/* Team selector */}
-          <div className="mb-2 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#5295BC]/15 text-sm font-bold text-[#5295BC]">
-              {teamInitial}
-            </div>
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
-              {teamLabel}
-            </span>
-            <ChevronsUpDown className="size-4 shrink-0 text-gray-400" />
+          <div className="mb-2">
+            <Select value={currentTeamId} onValueChange={handleTeamChange}>
+              <SelectTrigger className="w-full border-gray-200 bg-white shadow-sm h-auto py-3 px-3 cursor-pointer hover:bg-gray-50">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#5295BC]/15 text-sm font-bold text-[#5295BC]">
+                    {teamInitial}
+                  </div>
+                  <SelectValue className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
+                    {teamLabel}
+                  </SelectValue>
+                </div>
+              </SelectTrigger>
+              <SelectContent className="z-[100]">
+                {teams.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-gray-500">尚無團隊</div>
+                ) : (
+                  teams.map((t) => {
+                    if (!t) return null;
+                    const initial = t.name.charAt(0).toUpperCase();
+                    const isSelected = String(t.id) === currentTeamId;
+                    return (
+                      <SelectItem key={t.id} value={String(t.id)}>
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded bg-[#5295BC]/15 text-xs font-bold text-[#5295BC]">
+                            {initial}
+                          </div>
+                          <span className={isSelected ? "font-semibold" : ""}>{t.name}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           <button
             type="button"
+            onClick={() => {
+              setCreateTeamDrawerOpen(true);
+              setTeamName("");
+              setCreateError(null);
+            }}
             className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-[#5295BC] hover:opacity-80 transition-opacity"
           >
             <Plus className="size-3.5" />
@@ -134,6 +246,55 @@ export function Sidebar({ open, onClose, team }: SidebarProps) {
           </div>
         </div>
       </aside>
+
+      {/* Create Team Drawer */}
+      <Drawer
+        open={createTeamDrawerOpen}
+        onClose={() => {
+          setCreateTeamDrawerOpen(false);
+          setTeamName("");
+          setCreateError(null);
+        }}
+        title="建立新團隊"
+        subtitle="New Team"
+      >
+        <form onSubmit={handleCreateTeam} className="flex flex-col gap-4">
+          {createError && (
+            <p className="text-sm text-red-500">{createError}</p>
+          )}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="team-name">團隊名稱 *</Label>
+            <Input
+              id="team-name"
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="輸入團隊名稱"
+              disabled={creating}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                setCreateTeamDrawerOpen(false);
+                setTeamName("");
+                setCreateError(null);
+              }}
+              disabled={creating}
+            >
+              取消
+            </Button>
+            <Button 
+              type="submit" 
+              className="bg-gray-900 text-white hover:bg-gray-800"
+              disabled={creating}
+            >
+              {creating ? "建立中..." : "建立"}
+            </Button>
+          </div>
+        </form>
+      </Drawer>
     </>
   );
 }

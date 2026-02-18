@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { customAlphabet } from "nanoid";
 import { db } from "@/db";
-import { events, eventRegistrations, teamMembers, eventLocations } from "@/db/schema";
+import { events, eventRegistrations, teamMembers, eventLocations, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { eq, inArray, desc, count } from "drizzle-orm";
@@ -20,16 +20,33 @@ export async function GET(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
 
+  // Get user's active team
+  const userRows = await db
+    .select({
+      activeTeamId: users.activeTeamId,
+    })
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+  const user = userRows[0];
+  const activeTeamId = user?.activeTeamId ?? null;
+
   const { searchParams } = new URL(request.url);
   const teamIdParam = searchParams.get("teamId");
-  const teamId = teamIdParam ? Number(teamIdParam) : null;
+  const teamId = teamIdParam ? Number(teamIdParam) : activeTeamId;
 
-  if (teamId != null) {
-    if (!Number.isInteger(teamId)) {
-      return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
-    }
-    const forbidden = await requireTeamMember(teamId, session.userId);
-    if (forbidden) return forbidden;
+  // If no active team and no teamId param, return empty array
+  if (teamId == null) {
+    return NextResponse.json({ events: [] });
+  }
+
+  if (!Number.isInteger(teamId)) {
+    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+  }
+
+  // Verify user is a member of this team
+  const forbidden = await requireTeamMember(teamId, session.userId);
+  if (forbidden) return forbidden;
     const list = await db
       .select({
         id: events.id,
@@ -84,72 +101,6 @@ export async function GET(request: Request) {
       location: e.locationId ? locationMap.get(e.locationId) || null : null,
     }));
     return NextResponse.json({ events: eventsWithCount });
-  }
-
-  const myTeams = await db
-    .select({ teamId: teamMembers.teamId })
-    .from(teamMembers)
-    .where(eq(teamMembers.userId, session.userId));
-  const teamIds = myTeams.map((r) => r.teamId);
-  if (teamIds.length === 0) {
-    return NextResponse.json({ events: [] });
-  }
-
-  const list = await db
-    .select({
-      id: events.id,
-      publicKey: events.publicKey,
-      teamId: events.teamId,
-      userId: events.userId,
-      title: events.title,
-      description: events.description,
-      coverUrl: events.coverUrl,
-      status: events.status,
-      startAt: events.startAt,
-      endAt: events.endAt,
-      locationId: events.locationId,
-      createdAt: events.createdAt,
-    })
-    .from(events)
-    .where(inArray(events.teamId, teamIds))
-    .orderBy(desc(events.createdAt));
-
-  const eventIds = list.map((e) => e.id);
-  const registrationCounts =
-    eventIds.length > 0
-      ? await db
-          .select({
-            eventId: eventRegistrations.eventId,
-            count: count(),
-          })
-          .from(eventRegistrations)
-          .where(inArray(eventRegistrations.eventId, eventIds))
-          .groupBy(eventRegistrations.eventId)
-      : [];
-  const countMap = new Map(
-    registrationCounts.map((r) => [r.eventId, Number(r.count)])
-  );
-
-  // Fetch locations for events
-  const locationIds = list
-    .map((e) => e.locationId)
-    .filter((id): id is number => id !== null);
-  const locations =
-    locationIds.length > 0
-      ? await db
-          .select()
-          .from(eventLocations)
-          .where(inArray(eventLocations.id, locationIds))
-      : [];
-  const locationMap = new Map(locations.map((loc) => [loc.id, loc]));
-
-  const eventsWithCount = list.map((e) => ({
-    ...e,
-    registrationCount: countMap.get(e.id) ?? 0,
-    location: e.locationId ? locationMap.get(e.locationId) || null : null,
-  }));
-
-  return NextResponse.json({ events: eventsWithCount });
 }
 
 /** 建立新活動 */

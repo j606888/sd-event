@@ -11,7 +11,15 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { team } = useCurrentTeam();
+  const { team, teams, refetch: refetchTeams, teamId } = useCurrentTeam();
+
+  // Refresh page when team changes to update events
+  useEffect(() => {
+    if (teamId != null) {
+      // Trigger a refresh of the page content
+      window.dispatchEvent(new CustomEvent("teamChanged"));
+    }
+  }, [teamId]);
 
   // Initialize sidebar state based on screen size
   useEffect(() => {
@@ -33,7 +41,13 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex relative">
       {/* Sidebar: Always visible on desktop (lg+), drawer on mobile/tablet */}
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} team={team} />
+      <Sidebar 
+        open={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+        team={team}
+        teams={teams}
+        onTeamChange={refetchTeams}
+      />
       
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
