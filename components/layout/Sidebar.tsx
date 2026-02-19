@@ -19,19 +19,19 @@ import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Team as TeamType } from "@/hooks/use-current-team";
 
-type Team = TeamType | null;
+type Team = { id: number; name: string } | null;
 
 type SidebarProps = {
   open: boolean;
   onClose: () => void;
   team: Team;
-  teams: TeamType[];
+  teams: Team[] | null;
   onTeamChange: () => void;
+  changeTeam: (teamId: number) => void;
 };
 
-export function Sidebar({ open, onClose, team, teams, onTeamChange }: SidebarProps) {
+export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [createTeamDrawerOpen, setCreateTeamDrawerOpen] = useState(false);
@@ -50,30 +50,12 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange }: SidebarPro
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const handleTeamChange = async (teamId: string) => {
+  const handleTeamChange = (teamId: string) => {
     if (teamId && teamId !== currentTeamId) {
       const teamIdNum = Number(teamId);
       if (!Number.isInteger(teamIdNum)) return;
 
-      // Update active team in database
-      try {
-        await fetch("/api/user/active-team", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ teamId: teamIdNum }),
-        });
-      } catch (error) {
-        console.error("Failed to update active team:", error);
-      }
-
-      // Refresh teams to update active team
-      onTeamChange();
-      
-      // Trigger team change event for other components
-      window.dispatchEvent(new CustomEvent("teamChanged"));
-      
-      // Navigate to team detail page
+      changeTeam(teamIdNum);
       router.push(`/teams/${teamId}`);
       router.refresh();
     }
@@ -104,10 +86,8 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange }: SidebarPro
       setCreateTeamDrawerOpen(false);
       setTeamName("");
       onTeamChange();
-      // Trigger team change event for other components
-      window.dispatchEvent(new CustomEvent("teamChanged"));
-      // Navigate to the new team
       if (data.team?.id) {
+        changeTeam(data.team.id);
         router.push(`/teams/${data.team.id}`);
         router.refresh();
       }
@@ -176,10 +156,10 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange }: SidebarPro
                 </div>
               </SelectTrigger>
               <SelectContent className="z-[100]">
-                {teams.length === 0 ? (
+                {teams && teams.length === 0 ? (
                   <div className="px-3 py-2 text-sm text-gray-500">尚無團隊</div>
                 ) : (
-                  teams.map((t) => {
+                  teams && teams.map((t: Team) => {
                     if (!t) return null;
                     const initial = t.name.charAt(0).toUpperCase();
                     const isSelected = String(t.id) === currentTeamId;

@@ -1,5 +1,6 @@
 export type CreateRegistrationBody = {
-  purchaseItemId: number | null;
+  purchaseItemId: number | null; // For single selection (backward compatibility)
+  purchaseItemIds: number[]; // For multiple selection
   contactName: string;
   contactPhone: string;
   contactEmail: string;

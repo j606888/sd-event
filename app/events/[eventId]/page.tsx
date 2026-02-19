@@ -23,6 +23,7 @@ type EventData = {
   organizerId: number | null;
   bankInfoId: number | null;
   allowMultiplePurchase: boolean;
+  autoCalcAmount: boolean;
   status: string;
   createdAt: string;
   updatedAt: string | null;
@@ -60,7 +61,8 @@ type RegistrationDetailData = {
   paymentNote: string | null;
   createdAt: string;
   attendees: Array<{ id: number; name: string; role: "Leader" | "Follower" | "Not sure" | string; checkedIn?: boolean; checkedInAt?: string | null }>;
-  purchaseItem: { id: number; name: string; amount: number } | null;
+  purchaseItem: { id: number; name: string; amount: number } | null; // For backward compatibility
+  purchaseItems?: Array<{ id: number; name: string; amount: number }>; // Array of purchase items (for multiple selection)
 };
 
 export default function EventDetailPage() {
@@ -229,8 +231,11 @@ export default function EventDetailPage() {
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`relative flex flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors ${
+            onClick={() => {
+              setActiveTab(tab.id)
+              setSelectedRegistration(null)
+            }}
+            className={`relative flex flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors cursor-pointer ${
               activeTab === tab.id
                 ? "text-[#5295BC]"
                 : "text-gray-600 hover:text-gray-900"

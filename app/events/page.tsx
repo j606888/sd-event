@@ -34,7 +34,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { teamId, loading: teamLoading } = useCurrentTeam();
+  const { teamId, isLoading: teamLoading } = useCurrentTeam();
 
   useEffect(() => {
     if (teamId == null && !teamLoading) return;
@@ -50,26 +50,6 @@ export default function EventsPage() {
       .catch(() => setError("無法載入活動"))
       .finally(() => setLoading(false));
   }, [teamId, teamLoading]);
-
-  // Listen for team changes
-  useEffect(() => {
-    const handleTeamChange = () => {
-      if (teamId != null) {
-        setLoading(true);
-        fetch("/api/events", { credentials: "include" })
-          .then((res) => {
-            if (!res.ok) throw new Error("無法載入");
-            return res.json();
-          })
-          .then((data) => setEvents(data.events ?? []))
-          .catch(() => setError("無法載入活動"))
-          .finally(() => setLoading(false));
-      }
-    };
-
-    window.addEventListener("teamChanged", handleTeamChange);
-    return () => window.removeEventListener("teamChanged", handleTeamChange);
-  }, [teamId]);
 
   useEffect(() => {
     if (!loading && !teamLoading && !error && teamId == null) {
@@ -126,7 +106,7 @@ export default function EventsPage() {
           尚無活動，點擊「建立活動」開始
         </div>
       ) : (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
           {events.map((event) => (
             <li key={event.id}>
               <EventCard

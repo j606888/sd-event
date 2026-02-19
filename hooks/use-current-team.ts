@@ -1,69 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getTeams, getActiveTeamId, updateActiveTeam } from "@/lib/api/teams";
+import { useEffect } from "react";
 
-export type Team = { id: number; name: string; createdAt: string };
+type Team = { id: number; name: string };
 
 export function useCurrentTeam() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [activeTeamId, setActiveTeamId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const refetch = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Fetch teams and active team in parallel
-      const [teamsRes, activeTeamRes] = await Promise.all([
-        fetch("/api/teams", { credentials: "include" }),
-        fetch("/api/user/active-team", { credentials: "include" }),
-      ]);
+  const { data: teams = [], isLoading: teamsLoading, error: teamsError } = useQuery({
+    queryKey: ["teams"],
+    queryFn: getTeams,
+  });
 
-      if (!teamsRes.ok) {
-        setError("無法載入團隊");
-        setTeams([]);
-        return;
-      }
+  const { data: activeTeamId, isLoading: activeLoading } = useQuery({
+    queryKey: ["active-team-id"],
+    queryFn: getActiveTeamId,
+  });
 
-      const teamsData = await teamsRes.json();
-      const teamsList = teamsData.teams ?? [];
-      setTeams(teamsList);
-
-      // Get active team ID
-      let currentActiveTeamId: number | null = null;
-      if (activeTeamRes.ok) {
-        const activeTeamData = await activeTeamRes.json();
-        currentActiveTeamId = activeTeamData.activeTeamId ?? null;
-      }
-
-      // If no active team is set, set it to the first team
-      if (currentActiveTeamId == null && teamsList.length > 0) {
-        currentActiveTeamId = teamsList[0].id;
-        // Save it to the database
-        await fetch("/api/user/active-team", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ teamId: currentActiveTeamId }),
-        });
-      }
-
-      setActiveTeamId(currentActiveTeamId);
-    } catch {
-      setError("無法載入團隊");
-      setTeams([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { mutate: changeTeam } = useMutation({
+    mutationFn: updateActiveTeam,
+    onSuccess: (_data, teamId) => {
+      queryClient.setQueryData(["active-team-id"], teamId);
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
+  });
 
   useEffect(() => {
-    refetch();
-  }, []);
+    if (!activeLoading && activeTeamId === null && teams.length > 0) {
+      changeTeam(teams[0].id);
+    }
+  }, [activeLoading, activeTeamId, teams, changeTeam]);
 
-  const team = teams.find((t) => t.id === activeTeamId) ?? teams[0] ?? null;
-  const teamId = team?.id ?? null;
+  const team = teams.find((t: Team) => t.id === activeTeamId) ?? teams[0] ?? null;
 
-  return { teamId, team, teams, activeTeamId, loading, error, refetch };
+  const handleRefetch = () => {
+    queryClient.invalidateQueries({ queryKey: ["teams"] });
+    queryClient.invalidateQueries({ queryKey: ["active-team-id"] });
+  }
+  
+  return {
+    team,
+    teamId: team?.id ?? null,
+    teams,
+    activeTeamId,
+    isLoading: teamsLoading || activeLoading,
+    error: teamsError ? "無法載入團隊" : null,
+    changeTeam,
+    refetch: handleRefetch,
+  };
 }

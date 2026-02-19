@@ -1,8 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { getSession } from "@/lib/auth";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getSession();
+  if (session) {
+    redirect("/events");
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center">
       <main className="w-full flex-1 max-w-md p-4 flex flex-col items-center justify-between">

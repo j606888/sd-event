@@ -46,6 +46,7 @@ export type EventFormInitialData = {
   organizerId: number | null;
   bankInfoId: number | null;
   allowMultiplePurchase: boolean;
+  autoCalcAmount: boolean;
 };
 
 function toDateTimeLocal(iso: string): string {
@@ -98,6 +99,7 @@ export function EventForm({
 }: EventFormProps) {
   const [drawer, setDrawer] = useState<DrawerType>(null);
   const [allowMultiple, setAllowMultiple] = useState(false);
+  const [autoCalcAmount, setAutoCalcAmount] = useState(false);
   const [locationId, setLocationId] = useState<string>("");
   const [organizerId, setOrganizerId] = useState<string>("");
   const [bankInfoId, setBankInfoId] = useState<string>("");
@@ -242,6 +244,7 @@ export function EventForm({
       setBankInfoId("");
     }
     setAllowMultiple(initialData.allowMultiplePurchase);
+    setAutoCalcAmount(initialData.autoCalcAmount);
     initializedEventIdRef.current = initialData.id;
   }, [mode, initialData]);
 
@@ -390,6 +393,7 @@ export function EventForm({
             organizerId: Number(organizerId),
             bankInfoId: Number(bankInfoId),
             allowMultiplePurchase: allowMultiple,
+            autoCalcAmount: autoCalcAmount,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -415,6 +419,7 @@ export function EventForm({
             organizerId: Number(organizerId),
             bankInfoId: Number(bankInfoId),
             allowMultiplePurchase: allowMultiple,
+            autoCalcAmount: autoCalcAmount,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -571,7 +576,9 @@ export function EventForm({
         <PurchaseItemsSection
           items={purchaseItems}
           allowMultiple={allowMultiple}
+          autoCalcAmount={autoCalcAmount}
           onAllowMultipleChange={setAllowMultiple}
+          onAutoCalcAmountChange={setAutoCalcAmount}
           onAddClick={openDrawer("purchaseItem")}
           onRemove={removePurchaseItem}
         />

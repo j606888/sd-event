@@ -73,6 +73,7 @@ export async function PATCH(request: Request, { params }: Params) {
     organizerId: number | null;
     bankInfoId: number | null;
     allowMultiplePurchase: boolean;
+    autoCalcAmount: boolean;
     status: "draft" | "published";
   }> = {};
 
@@ -85,6 +86,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body.organizerId !== undefined) updates.organizerId = body.organizerId == null ? null : Number(body.organizerId);
   if (body.bankInfoId !== undefined) updates.bankInfoId = body.bankInfoId == null ? null : Number(body.bankInfoId);
   if (typeof body.allowMultiplePurchase === "boolean") updates.allowMultiplePurchase = body.allowMultiplePurchase;
+  if (typeof body.autoCalcAmount === "boolean") updates.autoCalcAmount = body.autoCalcAmount;
   if (body.status === "draft" || body.status === "published") updates.status = body.status;
 
   if (Object.keys(updates).length === 0) {

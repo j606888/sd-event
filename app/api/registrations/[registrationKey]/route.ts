@@ -8,8 +8,9 @@ import {
   organizers,
   bankInfos,
   eventPurchaseItems,
+  eventRegistrationPurchaseItems,
 } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, inArray } from "drizzle-orm";
 
 type Params = { params: Promise<{ registrationKey: string }> };
 
@@ -54,7 +55,7 @@ export async function GET(_request: Request, { params }: Params) {
       .orderBy(asc(eventAttendees.id));
 
     // 取得相關資料
-    const [location, organizer, bankInfo, purchaseItem] = await Promise.all([
+    const [location, organizer, bankInfo, purchaseItem, registrationPurchaseItems] = await Promise.all([
       event.locationId
         ? db
             .select()
@@ -87,7 +88,29 @@ export async function GET(_request: Request, { params }: Params) {
             .limit(1)
             .then((rows) => rows[0] || null)
         : Promise.resolve(null),
+      // Fetch multiple purchase items if event allows multiple
+      event.allowMultiplePurchase
+        ? db
+            .select({
+              id: eventPurchaseItems.id,
+              name: eventPurchaseItems.name,
+              amount: eventPurchaseItems.amount,
+            })
+            .from(eventRegistrationPurchaseItems)
+            .innerJoin(
+              eventPurchaseItems,
+              eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
+            )
+            .where(eq(eventRegistrationPurchaseItems.registrationId, registration.id))
+        : Promise.resolve([]),
     ]);
+
+    // Get purchase items (single or multiple)
+    const purchaseItems = event.allowMultiplePurchase && registrationPurchaseItems.length > 0
+      ? registrationPurchaseItems
+      : purchaseItem
+      ? [purchaseItem]
+      : [];
 
     return NextResponse.json({
       registration: {
@@ -117,7 +140,8 @@ export async function GET(_request: Request, { params }: Params) {
         organizer,
         bankInfo,
       },
-      purchaseItem,
+      purchaseItem, // For backward compatibility
+      purchaseItems, // Array of purchase items (for multiple selection)
       attendees: attendees.map((a) => ({
         id: a.id,
         name: a.name,

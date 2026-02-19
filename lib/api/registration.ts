@@ -33,7 +33,8 @@ export type RegistrationApiResponse = {
     organizer: EventOrganizer | null;
     bankInfo: EventBankInfo | null;
   };
-  purchaseItem: EventPurchaseItem | null;
+  purchaseItem: EventPurchaseItem | null; // For backward compatibility
+  purchaseItems: EventPurchaseItem[]; // Array of purchase items (for multiple selection)
   attendees: Array<{
     id: number;
     name: string;

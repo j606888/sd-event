@@ -9,7 +9,9 @@ type PurchaseItemDraft = { id?: number; name: string; amount: number };
 type PurchaseItemsSectionProps = {
   items: PurchaseItemDraft[];
   allowMultiple: boolean;
+  autoCalcAmount: boolean;
   onAllowMultipleChange: (value: boolean) => void;
+  onAutoCalcAmountChange: (value: boolean) => void;
   onAddClick: () => void;
   onRemove: (index: number) => void;
 };
@@ -17,23 +19,36 @@ type PurchaseItemsSectionProps = {
 export function PurchaseItemsSection({
   items,
   allowMultiple,
+  autoCalcAmount,
   onAllowMultipleChange,
+  onAutoCalcAmountChange,
   onAddClick,
   onRemove,
 }: PurchaseItemsSectionProps) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <Label>購買項目</Label>
-        <label className="flex cursor-pointer items-center gap-2">
-          <input
-            type="checkbox"
-            checked={allowMultiple}
-            onChange={(e) => onAllowMultipleChange(e.target.checked)}
-            className="size-4 rounded border-gray-300"
-          />
-          <span className="text-sm text-gray-600">開放多選</span>
-        </label>
+        <div className="flex flex-col gap-2">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={allowMultiple}
+              onChange={(e) => onAllowMultipleChange(e.target.checked)}
+              className="size-4 rounded border-gray-300"
+            />
+            <span className="text-sm text-gray-600">開放多選</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={autoCalcAmount}
+              onChange={(e) => onAutoCalcAmountChange(e.target.checked)}
+              className="size-4 rounded border-gray-300"
+            />
+            <span className="text-sm text-gray-600">自動填寫金額</span>
+          </label>
+        </div>
       </div>
       <Button
         type="button"
