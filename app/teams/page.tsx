@@ -6,7 +6,7 @@ import { useCurrentTeam } from "@/hooks/use-current-team";
 
 export default function TeamsPage() {
   const router = useRouter();
-  const { teamId, loading } = useCurrentTeam();
+  const { teamId, isLoading: loading } = useCurrentTeam();
 
   useEffect(() => {
     if (!loading) {

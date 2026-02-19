@@ -23,7 +23,7 @@ type Organizer = {
 };
 
 export default function EventOrganizersPage() {
-  const { teamId, loading: teamLoading, error: teamError } = useCurrentTeam();
+  const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);

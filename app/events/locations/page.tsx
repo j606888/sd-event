@@ -20,7 +20,7 @@ type Location = {
 };
 
 export default function EventLocationsPage() {
-  const { teamId, loading: teamLoading, error: teamError } = useCurrentTeam();
+  const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);

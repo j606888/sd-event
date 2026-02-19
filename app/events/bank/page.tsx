@@ -19,7 +19,7 @@ type BankInfo = {
 };
 
 export default function EventBankPage() {
-  const { teamId, loading: teamLoading, error: teamError } = useCurrentTeam();
+  const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [bankInfos, setBankInfos] = useState<BankInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
