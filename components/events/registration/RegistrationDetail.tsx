@@ -84,6 +84,10 @@ export function RegistrationDetail({
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
 
   const handleConfirm = async () => {
+    const notPaid = registration.paymentStatus === "pending";
+    if (notPaid && !window.confirm("用戶尚未付錢，確定要嗎？")) {
+      return;
+    }
     setUpdating(true);
     try {
       await onStatusUpdate("confirmed");
@@ -93,7 +97,8 @@ export function RegistrationDetail({
   };
 
   const attendeeCount = registration.attendees.length;
-  const canConfirm = registration.paymentStatus === "reported";
+  const showConfirmButton =
+    registration.paymentStatus === "pending" || registration.paymentStatus === "reported";
 
   return (
     <div className="space-y-6">
@@ -278,7 +283,7 @@ export function RegistrationDetail({
       )}
 
       {/* Confirm Button */}
-      {canConfirm && (
+      {showConfirmButton && (
         <Button
           onClick={handleConfirm}
           disabled={updating}

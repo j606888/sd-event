@@ -231,8 +231,11 @@ export default function EventDetailPage() {
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`relative flex flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors ${
+            onClick={() => {
+              setActiveTab(tab.id)
+              setSelectedRegistration(null)
+            }}
+            className={`relative flex flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors cursor-pointer ${
               activeTab === tab.id
                 ? "text-[#5295BC]"
                 : "text-gray-600 hover:text-gray-900"

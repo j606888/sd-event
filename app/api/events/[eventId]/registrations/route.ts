@@ -90,7 +90,7 @@ export async function GET(request: Request, { params }: Params) {
     .where(and(...whereConditions))
     .orderBy(desc(eventRegistrations.createdAt));
 
-  // 取得每個報名的參加者數量
+  // 取得每個報名的參加者數量與已入場數量
   const registrationIds = registrations.map((r) => r.id);
   const attendeesCounts =
     registrationIds.length > 0
@@ -106,14 +106,35 @@ export async function GET(request: Request, { params }: Params) {
           .groupBy(eventAttendees.registrationId)
       : [];
 
+  const checkedInCounts =
+    registrationIds.length > 0
+      ? await db
+          .select({
+            registrationId: eventAttendees.registrationId,
+            count: count(),
+          })
+          .from(eventAttendees)
+          .where(
+            and(
+              or(...registrationIds.map((id) => eq(eventAttendees.registrationId, id))),
+              eq(eventAttendees.checkedIn, true)
+            )
+          )
+          .groupBy(eventAttendees.registrationId)
+      : [];
+
   const countMap = new Map(
     attendeesCounts.map((a) => [a.registrationId, Number(a.count)])
+  );
+  const checkedInMap = new Map(
+    checkedInCounts.map((a) => [a.registrationId, Number(a.count)])
   );
 
   // 組合結果
   const result = registrations.map((reg) => ({
     ...reg,
     attendeeCount: countMap.get(reg.id) || 0,
+    checkedInCount: checkedInMap.get(reg.id) || 0,
   }));
 
   return NextResponse.json({ registrations: result });
