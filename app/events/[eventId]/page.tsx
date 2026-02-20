@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { EventForm } from "@/components/events/management/EventForm";
+import { EventStats } from "@/components/events/management/EventStats";
 import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
 import { RegistrationDetail } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
@@ -332,10 +333,8 @@ export default function EventDetailPage() {
             )}
           </>
         )}
-        {activeTab === "stats" && (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
-            統計 — 尚未有資料
-          </div>
+        {activeTab === "stats" && eventId && (
+          <EventStats eventId={eventId} />
         )}
         {activeTab === "verify" && (
           <div className="space-y-4">
