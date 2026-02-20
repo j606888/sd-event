@@ -119,7 +119,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
         className={`
           fixed inset-y-0 left-0 z-70 w-[280px] bg-white border-r transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "-translate-x-full"}
-          lg:static lg:translate-x-0
+          lg:translate-x-0
           flex h-full flex-col
         `}
       >

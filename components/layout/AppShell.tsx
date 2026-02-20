@@ -24,7 +24,7 @@ export function AppShell({ children }: AppShellProps) {
         changeTeam={changeTeam}
       />
       
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-[280px]">
         <Header onMenuClick={() => setSidebarOpen(true)} team={team} />
         <main className="flex-1 flex flex-col overflow-auto">{children}</main>
       </div>

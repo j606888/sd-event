@@ -128,7 +128,7 @@ export function EventStats({ eventId }: EventStatsProps) {
                       <Cell key={entry.name} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`${value} 人`, "人數"]} />
+                  <Tooltip formatter={(value: number | undefined) => [`${value ?? 0} 人`, "人數"]} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
