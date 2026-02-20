@@ -124,7 +124,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
         `}
       >
         {/* Header - 固定高度 */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 px-6">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-6">
           <span
             className="text-xl font-bold text-[#5295BC]"
             style={{ fontFamily: "var(--font-nunito)" }}
@@ -145,7 +145,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
           {/* Team selector */}
           <div className="mb-2">
             <Select value={currentTeamId} onValueChange={handleTeamChange}>
-              <SelectTrigger className="w-full border-gray-200 bg-white shadow-sm h-auto py-3 px-3 cursor-pointer hover:bg-gray-50">
+              <SelectTrigger className="w-full border-gray-100 bg-white shadow-sm h-auto py-3 px-3 cursor-pointer hover:bg-gray-50">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#5295BC]/15 text-sm font-bold text-[#5295BC]">
                     {teamInitial}

@@ -242,7 +242,7 @@ export function RegistrationsList({
                       </span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <div className="flex items-end gap-1.5 shrink-0">
                     <div
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}
                     >
