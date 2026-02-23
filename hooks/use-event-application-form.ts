@@ -110,7 +110,7 @@ export function useEventApplicationForm(event: PublicEventData) {
     }
   }, [event.autoCalcAmount, event.allowMultiplePurchase, event.purchaseItems, formData.selectedPlanId, formData.selectedPlanIds, formData.participants.length]);
 
-  const canProceedToStep2 = agreedToTerms;
+  const canProceedToStep2 = event.noticeItems.length === 0 || agreedToTerms;
   const hasSelectedPlan = event.allowMultiplePurchase 
     ? formData.selectedPlanIds.length > 0
     : formData.selectedPlanId !== null;
