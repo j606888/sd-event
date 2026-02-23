@@ -24,7 +24,7 @@ export function ConfirmedPaymentHeader() {
                 className="w-14 h-14 rounded-full shadow-lg shadow-blue-100 flex items-center justify-center"
                 style={{ backgroundColor: brandBlue }}
               >
-                <Check className="w-8 h-8 text-white stroke-[3]" />
+                <Check className="w-8 h-8 text-white stroke-3" />
               </div>
             </div>
           </div>
