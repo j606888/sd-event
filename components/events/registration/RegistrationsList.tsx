@@ -134,11 +134,20 @@ export function RegistrationsList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="搜尋名稱、銀行末五碼、Line ID"
+            placeholder="搜尋名稱、電話、Email"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"
           />
+          {searchQuery.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onSearchChange("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <Button
           type="button"
