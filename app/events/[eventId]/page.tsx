@@ -211,22 +211,19 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col max-w-2xl mx-auto w-full">
-      {/* Header: back + title */}
-      <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3">
-        <Link
-          href="/events"
-          className="flex size-10 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100"
-          aria-label="返回所有活動"
-        >
-          ←
-        </Link>
+    <div className="flex flex-1 flex-col max-w-2xl w-full">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
         <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-900">
           {event.title}
         </h1>
+        <Link
+          href="/events"
+          className="flex items-center justify-center text-gray-600 hover:underline"
+          aria-label="返回所有活動"
+        >
+          返回列表
+        </Link>
       </div>
-
-      {/* Tabs */}
       <div className="flex border-b border-gray-200 bg-white">
         {TABS.map((tab) => (
           <button

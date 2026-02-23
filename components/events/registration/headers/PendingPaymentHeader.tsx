@@ -21,7 +21,7 @@ export function PendingPaymentHeader() {
             <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center">
               {/* 核心圓圈 */}
               <div className="w-14 h-14 rounded-full bg-slate-600 shadow-lg flex items-center justify-center relative">
-                <Check className="w-8 h-8 text-white stroke-[3]" />
+                <Check className="w-8 h-8 text-white stroke-3" />
                 {/* 右下角的小驚嘆號，提示動作未完成 */}
                 <div className="absolute -right-1 -top-1 bg-amber-500 rounded-full p-0.5 border-2 border-white">
                   <AlertCircle className="w-3 h-3 text-white" />

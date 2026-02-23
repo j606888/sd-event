@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Users, Trash2, ChevronLeft, Mail, Clock } from "lucide-react";
+import { Plus, Trash2, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
-import { useCurrentTeam } from "@/hooks/use-current-team";
 
 type TeamMember = {
   userId: number;
@@ -37,7 +36,6 @@ export default function TeamDetailPage() {
   const params = useParams();
   const router = useRouter();
   const teamId = Number(params?.teamId);
-  const { team: currentTeam } = useCurrentTeam();
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
@@ -214,20 +212,9 @@ export default function TeamDetailPage() {
     );
   }
 
-  // Get current user ID from session - for now we'll use a workaround
-  // In a real app, you'd get this from useSession or similar
-
   return (
     <div className="p-6 max-w-2xl">
       <div className="mb-6 flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push("/teams")}
-          className="shrink-0"
-        >
-          <ChevronLeft className="size-5" />
-        </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{team.name}</h1>
           <p className="text-sm text-gray-500">

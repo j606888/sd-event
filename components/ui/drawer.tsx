@@ -43,7 +43,7 @@ export function Drawer({
         aria-modal="true"
         aria-labelledby="drawer-title"
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-50 flex max-h-[90vh] flex-col rounded-t-2xl bg-white shadow-xl transition-transform duration-300 ease-out pointer-events-auto",
+          "fixed bottom-0 left-0 right-0 z-150 flex max-h-[90vh] flex-col rounded-t-2xl bg-white shadow-xl transition-transform duration-300 ease-out pointer-events-auto",
           open ? "translate-y-0 visible" : "translate-y-full invisible pointer-events-none"
         )}
       >

@@ -63,7 +63,7 @@ export async function GET(request: Request, { params }: Params) {
     whereConditions.push(
       or(
         like(eventRegistrations.contactName, `%${search}%`),
-        like(eventRegistrations.paymentNote, `%${search}%`),
+        like(eventRegistrations.contactEmail, `%${search}%`),
         like(eventRegistrations.contactPhone, `%${search}%`)
       )!
     );
