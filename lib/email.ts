@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
 
 const apiKey = process.env.RESEND_API_KEY;
 const from =
@@ -69,7 +70,7 @@ export async function sendPaymentConfirmedEmail(
   eventTitle?: string,
   eventStartAt?: string,
   eventEndAt?: string,
-  eventLocation?: string | null
+  eventLocation?: { name: string; googleMapUrl: string | null } | null
 ): Promise<{ ok: boolean; error?: string }> {
   if (!resend) {
     console.warn("RESEND_API_KEY not set, skipping payment confirmed email");
@@ -82,23 +83,11 @@ export async function sendPaymentConfirmedEmail(
     ? `[報名成功] ${eventTitle}：付款已確認，這是您的活動憑證`
     : "[報名成功] 付款已確認，這是您的活動憑證";
 
-  // Format event time
-  let eventTimeText = "";
-  if (eventStartAt && eventEndAt) {
-    const start = new Date(eventStartAt);
-    const end = new Date(eventEndAt);
-    const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
-    const dateFmt = (d: Date) =>
-      `${d.getMonth() + 1}月${d.getDate()}日 (${WEEKDAY[d.getDay()]})`;
-    const timeFmt = (d: Date) => {
-      const hour = d.getHours();
-      const minute = String(d.getMinutes()).padStart(2, "0");
-      const period = hour >= 12 ? "下午" : "上午";
-      const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-      return `${period} ${displayHour}:${minute}`;
-    };
-    eventTimeText = `${dateFmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
-  }
+  // Format event time (uses same helpers as UI for consistent timezone)
+  const eventTimeText =
+    eventStartAt && eventEndAt
+      ? `${getEventDateLabel(eventStartAt, eventEndAt)} ${getEventTimeRange(eventStartAt, eventEndAt)}`
+      : "";
 
   const html = `
     <p>您好，</p>
@@ -109,7 +98,7 @@ export async function sendPaymentConfirmedEmail(
     <p><strong>活動資訊：</strong></p>
     <ul>
       ${eventTimeText ? `<li>時間：${eventTimeText}</li>` : ""}
-      ${eventLocation ? `<li>地點：${eventLocation}</li>` : ""}
+      ${eventLocation ? `<li>地點：${eventLocation.googleMapUrl ? `<a href="${eventLocation.googleMapUrl}">${eventLocation.name}</a>` : eventLocation.name}</li>` : ""}
     </ul>
     ` : ""}
     <p>如果有任何問題，歡迎直接回覆此郵件與我們聯繫。</p>

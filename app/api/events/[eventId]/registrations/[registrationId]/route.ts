@@ -190,14 +190,22 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // When creator confirms payment, send notification email to contact
     if (updated && body.paymentStatus === "confirmed" && registration.paymentStatus !== "confirmed") {
-      let locationName: string | null = null;
+      let location: { name: string; googleMapUrl: string | null } | null = null;
       if (event.locationId) {
-        const [location] = await db
-          .select({ name: eventLocations.name })
+        const [loc] = await db
+          .select({
+            name: eventLocations.name,
+            googleMapUrl: eventLocations.googleMapUrl,
+          })
           .from(eventLocations)
           .where(eq(eventLocations.id, event.locationId))
           .limit(1);
-        locationName = location?.name ?? null;
+        if (loc) {
+          location = {
+            name: loc.name,
+            googleMapUrl: loc.googleMapUrl ?? null,
+          };
+        }
       }
 
       sendPaymentConfirmedEmail(
@@ -206,7 +214,7 @@ export async function PATCH(request: Request, { params }: Params) {
         event.title ?? undefined,
         event.startAt ? new Date(event.startAt).toISOString() : undefined,
         event.endAt ? new Date(event.endAt).toISOString() : undefined,
-        locationName
+        location
       ).catch((err) =>
         console.error("Payment confirmed email error:", err)
       );
