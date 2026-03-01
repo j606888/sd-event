@@ -180,7 +180,7 @@ export default function EntryVoucherPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push(`/registration-success/${registrationKey}`)}
           className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100"
         >
           <ChevronLeft className="w-5 h-5" />
