@@ -4,6 +4,7 @@ import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { Analytics } from "@vercel/analytics/react";
 // import "@uploadthing/react/styles.css";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
       >
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <QueryProvider>{children}</QueryProvider>
+        <Analytics />
       </body>
     </html>
   );
