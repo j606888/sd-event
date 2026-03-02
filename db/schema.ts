@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   primaryKey,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 
 // ============ Enums ============
@@ -188,17 +189,28 @@ export const eventRegistrations = pgTable("event_registrations", {
 });
 
 // ============ Event Registration Purchase Items (報名購買項目，用於多選) ============
-export const eventRegistrationPurchaseItems = pgTable("event_registration_purchase_items", {
-  id: serial("id").primaryKey(),
-  registrationId: integer("registration_id")
-    .notNull()
-    .references(() => eventRegistrations.id, { onDelete: "cascade" }),
-  purchaseItemId: integer("purchase_item_id")
-    .notNull()
-    .references(() => eventPurchaseItems.id, { onDelete: "cascade" }),
-  quantity: integer("quantity").notNull().default(1),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const eventRegistrationPurchaseItems = pgTable(
+  "event_registration_purchase_items",
+  {
+    id: serial("id").primaryKey(),
+    registrationId: integer("registration_id").notNull(),
+    purchaseItemId: integer("purchase_item_id").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    foreignKey({
+      name: "erpi_registration_id_fk",
+      columns: [t.registrationId],
+      foreignColumns: [eventRegistrations.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "erpi_purchase_item_id_fk",
+      columns: [t.purchaseItemId],
+      foreignColumns: [eventPurchaseItems.id],
+    }).onDelete("cascade"),
+  ]
+);
 
 // ============ Event Attendees (參加者) ============
 export const eventAttendees = pgTable("event_attendees", {
