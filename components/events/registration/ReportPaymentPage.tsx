@@ -261,30 +261,14 @@ export function ReportPaymentPage({
         {organizer?.lineId && (
           <div className="space-y-3">
             <h2 className="font-semibold text-gray-900">Line 好友</h2>
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-sm text-gray-500">LINE ID</span>
-                <span className="ml-2 text-sm text-gray-900">{organizer.lineId}</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleCopy(organizer.lineId!, "line")}
-                className="h-8 text-[#5295BC] border-[#5295BC] hover:bg-[#5295BC]/10"
-              >
-                {copiedText === "line" ? (
-                  <>
-                    <Check className="w-3 h-3" />
-                    已複製
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3" />
-                    複製 ID
-                  </>
-                )}
-              </Button>
-            </div>
+            <a
+              href={`https://line.me/ti/p/${organizer.lineId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-[#5295BC] border border-[#5295BC] hover:bg-[#5295BC]/10"
+            >
+              開啟 Line 好友
+            </a>
           </div>
         )}
 
