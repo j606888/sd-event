@@ -174,22 +174,34 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const body = await request.json().catch(() => ({}));
 
-  // 只允許更新付款狀態
+  const updates: Partial<{ paymentStatus: string; hidden: boolean; updatedAt: Date }> = {
+    updatedAt: new Date(),
+  };
+
   if (
     typeof body.paymentStatus === "string" &&
     ["pending", "reported", "confirmed", "rejected"].includes(body.paymentStatus)
   ) {
+    updates.paymentStatus = body.paymentStatus;
+  }
+
+  if (typeof body.hidden === "boolean") {
+    updates.hidden = body.hidden;
+  }
+
+  if (updates.paymentStatus !== undefined || updates.hidden !== undefined) {
     const [updated] = await db
       .update(eventRegistrations)
-      .set({
-        paymentStatus: body.paymentStatus,
-        updatedAt: new Date(),
-      })
+      .set(updates)
       .where(eq(eventRegistrations.id, registrationId))
       .returning();
 
     // When creator confirms payment, send notification email to contact
-    if (updated && body.paymentStatus === "confirmed" && registration.paymentStatus !== "confirmed") {
+    if (
+      updated &&
+      updates.paymentStatus === "confirmed" &&
+      registration.paymentStatus !== "confirmed"
+    ) {
       let location: { name: string; googleMapUrl: string | null } | null = null;
       if (event.locationId) {
         const [loc] = await db

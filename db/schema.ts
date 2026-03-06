@@ -184,6 +184,8 @@ export const eventRegistrations = pgTable("event_registrations", {
   /** 付款回報資訊 */
   paymentScreenshotUrl: text("payment_screenshot_url"),
   paymentNote: text("payment_note"), // 銀行末五碼或其他訊息
+  /** 管理員可將報名標記為隱藏，在報名詳情頁可再取消隱藏 */
+  hidden: boolean("hidden").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

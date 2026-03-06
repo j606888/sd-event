@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { events, eventRegistrations, teamMembers, eventLocations, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, inArray, desc, count } from "drizzle-orm";
+import { eq, inArray, desc, count, and } from "drizzle-orm";
 
 function generatePublicKey(): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -75,7 +75,12 @@ export async function GET(request: Request) {
               count: count(),
             })
             .from(eventRegistrations)
-            .where(inArray(eventRegistrations.eventId, eventIds))
+            .where(
+              and(
+                inArray(eventRegistrations.eventId, eventIds),
+                eq(eventRegistrations.hidden, false)
+              )
+            )
             .groupBy(eventRegistrations.eventId)
         : [];
     const countMap = new Map(

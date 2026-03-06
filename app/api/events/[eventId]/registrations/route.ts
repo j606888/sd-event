@@ -83,6 +83,7 @@ export async function GET(request: Request, { params }: Params) {
       paymentStatus: eventRegistrations.paymentStatus,
       paymentScreenshotUrl: eventRegistrations.paymentScreenshotUrl,
       paymentNote: eventRegistrations.paymentNote,
+      hidden: eventRegistrations.hidden,
       createdAt: eventRegistrations.createdAt,
       updatedAt: eventRegistrations.updatedAt,
     })

@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { events, eventRegistrations, eventAttendees } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -37,11 +37,16 @@ export async function GET(_request: Request, { params }: Params) {
   const forbidden = await requireTeamMember(event.teamId, session.userId);
   if (forbidden) return forbidden;
 
-  // Get all registration IDs for this event
+  // Get non-hidden registration IDs for this event (hidden registrations excluded from stats)
   const regs = await db
     .select({ id: eventRegistrations.id })
     .from(eventRegistrations)
-    .where(eq(eventRegistrations.eventId, eventId));
+    .where(
+      and(
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.hidden, false)
+      )
+    );
   const registrationIds = regs.map((r) => r.id);
 
   if (registrationIds.length === 0) {
