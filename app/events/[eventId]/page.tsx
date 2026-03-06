@@ -46,6 +46,7 @@ type Registration = {
   totalAmount: number;
   paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
   attendeeCount: number;
+  hidden?: boolean;
   createdAt: string;
 };
 
@@ -60,6 +61,7 @@ type RegistrationDetailData = {
   paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
   paymentScreenshotUrl: string | null;
   paymentNote: string | null;
+  hidden?: boolean;
   createdAt: string;
   attendees: Array<{ id: number; name: string; role: "Leader" | "Follower" | "Not sure" | string; checkedIn?: boolean; checkedInAt?: string | null }>;
   purchaseItem: { id: number; name: string; amount: number } | null; // For backward compatibility
@@ -147,6 +149,29 @@ export default function EventDetailPage() {
       console.error("Failed to update registration status:", err);
     }
   }, [eventId, searchQuery, selectedRegistrationId, fetchRegistrations, fetchRegistrationDetail]);
+
+  const updateRegistrationHidden = useCallback(
+    async (registrationId: number, hidden: boolean) => {
+      if (!eventId) return;
+      try {
+        const res = await fetch(`/api/events/${eventId}/registrations/${registrationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ hidden }),
+        });
+        if (res.ok) {
+          await fetchRegistrations(searchQuery);
+          if (selectedRegistrationId === registrationId) {
+            await fetchRegistrationDetail(registrationId);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to update registration hidden:", err);
+      }
+    },
+    [eventId, searchQuery, selectedRegistrationId, fetchRegistrations, fetchRegistrationDetail]
+  );
 
   const handleCheckIn = useCallback(async (attendeeId: number) => {
     try {
@@ -313,6 +338,11 @@ export default function EventDetailPage() {
                 onStatusUpdate={async (status) => {
                   if (selectedRegistrationId) {
                     await updateRegistrationStatus(selectedRegistrationId, status);
+                  }
+                }}
+                onHiddenToggle={async (hidden) => {
+                  if (selectedRegistrationId) {
+                    await updateRegistrationHidden(selectedRegistrationId, hidden);
                   }
                 }}
                 onCheckIn={handleCheckIn}

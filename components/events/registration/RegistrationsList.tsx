@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Cloud, CheckCircle2, Clock, Filter, X } from "lucide-react";
+import { Search, Cloud, CheckCircle2, Clock, EyeOff, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -16,6 +16,7 @@ type Registration = {
   paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
   attendeeCount: number;
   checkedInCount?: number;
+  hidden?: boolean;
   createdAt: string;
 };
 
@@ -251,7 +252,13 @@ export function RegistrationsList({
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-end gap-1.5 shrink-0">
+                  <div className="flex items-end gap-1.5 shrink-0 flex-wrap">
+                    {reg.hidden && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                        <EyeOff className="w-3 h-3 shrink-0" />
+                        已隱藏
+                      </span>
+                    )}
                     <div
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}
                     >

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, CheckCircle2, Cloud, QrCode, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Cloud, Eye, EyeOff, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
 
@@ -31,6 +31,7 @@ type Registration = {
   paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
   paymentScreenshotUrl: string | null;
   paymentNote: string | null;
+  hidden?: boolean;
   createdAt: string;
   attendees: Array<{ id: number; name: string; role: string; checkedIn?: boolean; checkedInAt?: string | null }>;
   purchaseItem: PurchaseItem | null; // For backward compatibility
@@ -45,6 +46,7 @@ type RegistrationDetailProps = {
   onPrevious: () => void;
   onNext: () => void;
   onStatusUpdate: (status: "confirmed") => Promise<void>;
+  onHiddenToggle?: (hidden: boolean) => Promise<void>;
   onCheckIn: (attendeeId: number) => Promise<void>;
 };
 
@@ -78,9 +80,11 @@ export function RegistrationDetail({
   onPrevious,
   onNext,
   onStatusUpdate,
+  onHiddenToggle,
   onCheckIn,
 }: RegistrationDetailProps) {
   const [updating, setUpdating] = useState(false);
+  const [hiddenUpdating, setHiddenUpdating] = useState(false);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
 
   const handleConfirm = async () => {
@@ -93,6 +97,16 @@ export function RegistrationDetail({
       await onStatusUpdate("confirmed");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleHiddenToggle = async () => {
+    if (!onHiddenToggle) return;
+    setHiddenUpdating(true);
+    try {
+      await onHiddenToggle(!registration.hidden);
+    } finally {
+      setHiddenUpdating(false);
     }
   };
 
@@ -143,20 +157,52 @@ export function RegistrationDetail({
               {attendeeCount}人 · NT ${registration.totalAmount.toLocaleString()}
             </div>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
-            <Cloud className="w-3 h-3" />
-            <span>
-              {registration.paymentStatus === "pending"
-                ? "尚未付款"
-                : registration.paymentStatus === "reported"
-                  ? "待確認"
-                  : registration.paymentStatus === "confirmed"
-                    ? "已完成"
-                    : "已拒絕"}
-            </span>
+          <div className="flex items-center gap-2">
+            {registration.hidden && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 rounded-full text-xs font-medium text-amber-800">
+                <EyeOff className="w-3 h-3" />
+                已隱藏
+              </span>
+            )}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+              <Cloud className="w-3 h-3" />
+              <span>
+                {registration.paymentStatus === "pending"
+                  ? "尚未付款"
+                  : registration.paymentStatus === "reported"
+                    ? "待確認"
+                    : registration.paymentStatus === "confirmed"
+                      ? "已完成"
+                      : "已拒絕"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="text-xs text-gray-500">{formatDate(registration.createdAt)}</div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-gray-500">{formatDate(registration.createdAt)}</span>
+          {onHiddenToggle && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={hiddenUpdating}
+              onClick={handleHiddenToggle}
+              className="gap-1.5 shrink-0 text-amber-700 border-amber-200 hover:bg-amber-50"
+            >
+              {registration.hidden ? (
+                <>
+                  <Eye className="w-4 h-4" />
+                  {hiddenUpdating ? "處理中…" : "取消隱藏"}
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-4 h-4" />
+                  {hiddenUpdating ? "處理中…" : "標記為隱藏"}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Contact Information */}
