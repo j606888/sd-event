@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Search, Cloud, CheckCircle2, Clock, EyeOff, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
+import {
+  PAYMENT_OPTIONS,
+  CHECK_IN_OPTIONS,
+  HIDDEN_OPTIONS,
+  type PaymentFilter,
+  type CheckInFilter,
+  type HiddenFilter,
+} from "@/lib/registration-list-filters";
 
 type Registration = {
   id: number;
@@ -20,29 +28,19 @@ type Registration = {
   createdAt: string;
 };
 
-type PaymentFilter = "all" | "pending" | "reported" | "confirmed" | "rejected";
-type CheckInFilter = "all" | "none" | "partial" | "all_entered";
-
-const PAYMENT_OPTIONS: { value: PaymentFilter; label: string }[] = [
-  { value: "all", label: "全部" },
-  { value: "confirmed", label: "已完成付款" },
-  { value: "pending", label: "待付款" },
-  { value: "reported", label: "待確認" },
-  { value: "rejected", label: "已退款" },
-];
-
-const CHECK_IN_OPTIONS: { value: CheckInFilter; label: string }[] = [
-  { value: "all", label: "全部" },
-  { value: "none", label: "未入場" },
-  { value: "partial", label: "部分入場" },
-  { value: "all_entered", label: "已全部入場" },
-];
-
 type RegistrationsListProps = {
   registrations: Registration[];
   onSelect: (registrationId: number) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  paymentFilter: PaymentFilter;
+  onPaymentFilterChange: (v: PaymentFilter) => void;
+  checkInFilter: CheckInFilter;
+  onCheckInFilterChange: (v: CheckInFilter) => void;
+  hiddenFilter: HiddenFilter;
+  onHiddenFilterChange: (v: HiddenFilter) => void;
+  /** Total count before filters (for empty state message) */
+  totalUnfilteredCount?: number;
 };
 
 function getStatusBadge(status: Registration["paymentStatus"]) {
@@ -91,41 +89,20 @@ function getAttendanceTag(attendeeCount: number, checkedInCount: number) {
   };
 }
 
-function matchesPaymentFilter(status: Registration["paymentStatus"], filter: PaymentFilter): boolean {
-  if (filter === "all") return true;
-  return status === filter;
-}
-
-function matchesCheckInFilter(
-  attendeeCount: number,
-  checkedInCount: number,
-  filter: CheckInFilter
-): boolean {
-  if (filter === "all") return true;
-  const checked = checkedInCount ?? 0;
-  if (filter === "none") return attendeeCount === 0 || checked === 0;
-  if (filter === "all_entered") return attendeeCount > 0 && checked >= attendeeCount;
-  if (filter === "partial") return attendeeCount > 0 && checked > 0 && checked < attendeeCount;
-  return true;
-}
-
 export function RegistrationsList({
   registrations,
   onSelect,
   searchQuery,
   onSearchChange,
+  paymentFilter,
+  onPaymentFilterChange,
+  checkInFilter,
+  onCheckInFilterChange,
+  hiddenFilter,
+  onHiddenFilterChange,
+  totalUnfilteredCount = 0,
 }: RegistrationsListProps) {
   const [filterOpen, setFilterOpen] = useState(false);
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
-  const [checkInFilter, setCheckInFilter] = useState<CheckInFilter>("all");
-
-  const filteredRegistrations = useMemo(() => {
-    return registrations.filter((reg) => {
-      if (!matchesPaymentFilter(reg.paymentStatus, paymentFilter)) return false;
-      if (!matchesCheckInFilter(reg.attendeeCount, reg.checkedInCount ?? 0, checkInFilter)) return false;
-      return true;
-    });
-  }, [registrations, paymentFilter, checkInFilter]);
 
   return (
     <div className="space-y-4">
@@ -182,7 +159,7 @@ export function RegistrationsList({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setPaymentFilter(opt.value)}
+                  onClick={() => onPaymentFilterChange(opt.value)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     paymentFilter === opt.value
                       ? opt.value === "all"
@@ -203,10 +180,31 @@ export function RegistrationsList({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setCheckInFilter(opt.value)}
+                  onClick={() => onCheckInFilterChange(opt.value)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     checkInFilter === opt.value
                       ? opt.value === "all"
+                        ? "bg-[#5295BC] text-white"
+                        : "bg-sky-50 text-sky-700 border border-sky-200"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">顯示</h3>
+            <div className="flex flex-wrap gap-2">
+              {HIDDEN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onHiddenFilterChange(opt.value)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    hiddenFilter === opt.value
+                      ? opt.value === "non_hidden"
                         ? "bg-[#5295BC] text-white"
                         : "bg-sky-50 text-sky-700 border border-sky-200"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -221,13 +219,13 @@ export function RegistrationsList({
       </Drawer>
 
       {/* Registrations List */}
-      {filteredRegistrations.length === 0 ? (
+      {registrations.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
-          {registrations.length === 0 ? "尚無報名記錄" : "沒有符合條件的報名記錄"}
+          {totalUnfilteredCount === 0 ? "尚無報名記錄" : "沒有符合條件的報名記錄"}
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredRegistrations.map((reg) => {
+          {registrations.map((reg) => {
             const statusBadge = getStatusBadge(reg.paymentStatus);
             const StatusIcon = statusBadge.icon;
             const attendance = getAttendanceTag(reg.attendeeCount, reg.checkedInCount ?? 0);

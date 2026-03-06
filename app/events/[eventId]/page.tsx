@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { EventForm } from "@/components/events/management/EventForm";
 import { EventStats } from "@/components/events/management/EventStats";
 import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
 import { RegistrationDetail } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
+import {
+  filterRegistrations,
+  type PaymentFilter,
+  type CheckInFilter,
+  type HiddenFilter,
+} from "@/lib/registration-list-filters";
 
 type EventData = {
   id: number;
@@ -83,6 +89,20 @@ export default function EventDetailPage() {
   const [selectedRegistration, setSelectedRegistration] = useState<RegistrationDetailData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  // Filter state (lifted so it persists when opening/closing registration detail)
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [checkInFilter, setCheckInFilter] = useState<CheckInFilter>("all");
+  const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>("non_hidden");
+
+  const filteredRegistrations = useMemo(
+    () =>
+      filterRegistrations(registrations, paymentFilter, checkInFilter, hiddenFilter),
+    [registrations, paymentFilter, checkInFilter, hiddenFilter]
+  );
+  const visibleRegistrationCount = useMemo(
+    () => registrations.filter((r) => !r.hidden).length,
+    [registrations]
+  );
 
   const fetchEvent = useCallback(async () => {
     if (!eventId) return;
@@ -265,9 +285,9 @@ export default function EventDetailPage() {
             }`}
           >
             {tab.label}
-            {tab.id === "replies" && registrations.length > 0 && (
+            {tab.id === "replies" && visibleRegistrationCount > 0 && (
               <span className="rounded-full bg-[#5295BC] px-1.5 py-0.5 text-xs font-medium text-white">
-                {registrations.length}
+                {visibleRegistrationCount}
               </span>
             )}
             {activeTab === tab.id && (
@@ -315,23 +335,23 @@ export default function EventDetailPage() {
             {selectedRegistration ? (
               <RegistrationDetail
                 registration={selectedRegistration}
-                currentIndex={registrations.findIndex((r) => r.id === selectedRegistrationId) || 0}
-                totalCount={registrations.length}
+                currentIndex={filteredRegistrations.findIndex((r) => r.id === selectedRegistrationId) ?? 0}
+                totalCount={filteredRegistrations.length}
                 onBack={() => {
                   setSelectedRegistration(null);
                   setSelectedRegistrationId(null);
                 }}
                 onPrevious={() => {
-                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId) || 0;
+                  const currentIdx = filteredRegistrations.findIndex((r) => r.id === selectedRegistrationId) ?? 0;
                   if (currentIdx > 0) {
-                    const prevId = registrations[currentIdx - 1].id;
+                    const prevId = filteredRegistrations[currentIdx - 1].id;
                     setSelectedRegistrationId(prevId);
                   }
                 }}
                 onNext={() => {
-                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId) || 0;
-                  if (currentIdx < registrations.length - 1) {
-                    const nextId = registrations[currentIdx + 1].id;
+                  const currentIdx = filteredRegistrations.findIndex((r) => r.id === selectedRegistrationId) ?? 0;
+                  if (currentIdx < filteredRegistrations.length - 1) {
+                    const nextId = filteredRegistrations[currentIdx + 1].id;
                     setSelectedRegistrationId(nextId);
                   }
                 }}
@@ -349,10 +369,17 @@ export default function EventDetailPage() {
               />
             ) : (
               <RegistrationsList
-                registrations={registrations}
+                registrations={filteredRegistrations}
                 onSelect={(id) => setSelectedRegistrationId(id)}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                paymentFilter={paymentFilter}
+                onPaymentFilterChange={setPaymentFilter}
+                checkInFilter={checkInFilter}
+                onCheckInFilterChange={setCheckInFilter}
+                hiddenFilter={hiddenFilter}
+                onHiddenFilterChange={setHiddenFilter}
+                totalUnfilteredCount={registrations.length}
               />
             )}
             {loadingRegistrations && (
