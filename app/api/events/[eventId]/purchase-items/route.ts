@@ -64,10 +64,11 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const sortOrder = Number.isInteger(body.sortOrder) ? body.sortOrder : 0;
+  const hidden = body.hidden === true;
 
   const [item] = await db
     .insert(eventPurchaseItems)
-    .values({ eventId, name, amount, sortOrder })
+    .values({ eventId, name, amount, sortOrder, hidden })
     .returning();
 
   if (!item) {

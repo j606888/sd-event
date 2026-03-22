@@ -8,7 +8,7 @@ import {
   eventPurchaseItems,
   eventNoticeItems,
 } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { and, eq, asc } from "drizzle-orm";
 
 type Params = { params: Promise<{ publicKey: string }> };
 
@@ -61,7 +61,12 @@ export async function GET(_request: Request, { params }: Params) {
     db
       .select()
       .from(eventPurchaseItems)
-      .where(eq(eventPurchaseItems.eventId, event.id))
+      .where(
+        and(
+          eq(eventPurchaseItems.eventId, event.id),
+          eq(eventPurchaseItems.hidden, false)
+        )
+      )
       .orderBy(asc(eventPurchaseItems.sortOrder)),
     db
       .select()
