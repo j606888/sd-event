@@ -31,7 +31,12 @@ type DrawerType =
 type Location = { id: number; name: string };
 type Organizer = { id: number; name: string };
 type BankInfo = { id: number; bankName: string };
-type PurchaseItemDraft = { id?: number; name: string; amount: number };
+type PurchaseItemDraft = {
+  id?: number;
+  name: string;
+  amount: number;
+  hidden?: boolean;
+};
 type NoticeItemDraft = { id?: number; content: string };
 
 export type EventFormInitialData = {
@@ -173,6 +178,9 @@ export function EventForm({
   }, [previewUrl]);
 
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([]);
+  const [purchaseItemHiddenUpdatingIndex, setPurchaseItemHiddenUpdatingIndex] = useState<
+    number | null
+  >(null);
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
 
   const initializedEventIdRef = useRef<number | null>(null);
@@ -254,11 +262,14 @@ export function EventForm({
       fetch(`/api/events/${eventId}/purchase-items`, { credentials: "include" }).then((r) => r.json()),
       fetch(`/api/events/${eventId}/notice-items`, { credentials: "include" }).then((r) => r.json()),
     ]).then(([pData, nData]) => {
-      const items = (pData?.items ?? []).map((i: { id: number; name: string; amount: number }) => ({
-        id: i.id,
-        name: i.name,
-        amount: i.amount,
-      }));
+      const items = (pData?.items ?? []).map(
+        (i: { id: number; name: string; amount: number; hidden?: boolean }) => ({
+          id: i.id,
+          name: i.name,
+          amount: i.amount,
+          hidden: Boolean(i.hidden),
+        })
+      );
       const notices = (nData?.items ?? []).map((i: { id: number; content: string }) => ({
         id: i.id,
         content: i.content ?? "",
@@ -300,6 +311,39 @@ export function EventForm({
     const item = purchaseItems[index];
     if (item.id != null) return;
     setPurchaseItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const setPurchaseItemHidden = async (index: number, hidden: boolean) => {
+    const item = purchaseItems[index];
+    if (item.id == null) {
+      setPurchaseItems((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, hidden } : row))
+      );
+      return;
+    }
+    if (mode !== "edit" || eventId == null) return;
+    setPurchaseItemHiddenUpdatingIndex(index);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/events/${eventId}/purchase-items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ hidden }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSaveError(data.error || "更新購買項目失敗");
+        return;
+      }
+      setPurchaseItems((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, hidden } : row))
+      );
+    } catch {
+      setSaveError("更新購買項目失敗");
+    } finally {
+      setPurchaseItemHiddenUpdatingIndex(null);
+    }
   };
   const removeNoticeItem = (index: number) => {
     const item = noticeItems[index];
@@ -436,7 +480,12 @@ export function EventForm({
               method: "POST",
               headers: { "Content-Type": "application/json" },
               credentials: "include",
-              body: JSON.stringify({ name: item.name, amount: item.amount, sortOrder: i }),
+              body: JSON.stringify({
+                name: item.name,
+                amount: item.amount,
+                sortOrder: i,
+                hidden: item.hidden === true,
+              }),
             });
           }
           for (let i = 0; i < noticeItems.length; i++) {
@@ -581,6 +630,8 @@ export function EventForm({
           onAutoCalcAmountChange={setAutoCalcAmount}
           onAddClick={openDrawer("purchaseItem")}
           onRemove={removePurchaseItem}
+          onSetItemHidden={setPurchaseItemHidden}
+          itemHiddenUpdatingIndex={purchaseItemHiddenUpdatingIndex}
         />
         <NoticeItemsSection
           items={noticeItems}

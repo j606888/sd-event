@@ -145,6 +145,8 @@ export const eventPurchaseItems = pgTable("event_purchase_items", {
     .references(() => events.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   amount: integer("amount").notNull(),
+  /** 為 true 時不顯示於公開報名表，仍保留於後台與既有報名紀錄 */
+  hidden: boolean("hidden").default(false).notNull(),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

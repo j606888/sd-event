@@ -4,7 +4,13 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-type PurchaseItemDraft = { id?: number; name: string; amount: number };
+type PurchaseItemDraft = {
+  id?: number;
+  name: string;
+  amount: number;
+  /** 不在公開報名表顯示（已儲存項目由後端同步；新建項目僅存於表單狀態） */
+  hidden?: boolean;
+};
 
 type PurchaseItemsSectionProps = {
   items: PurchaseItemDraft[];
@@ -14,6 +20,8 @@ type PurchaseItemsSectionProps = {
   onAutoCalcAmountChange: (value: boolean) => void;
   onAddClick: () => void;
   onRemove: (index: number) => void;
+  onSetItemHidden: (index: number, hidden: boolean) => void;
+  itemHiddenUpdatingIndex: number | null;
 };
 
 export function PurchaseItemsSection({
@@ -24,6 +32,8 @@ export function PurchaseItemsSection({
   onAutoCalcAmountChange,
   onAddClick,
   onRemove,
+  onSetItemHidden,
+  itemHiddenUpdatingIndex,
 }: PurchaseItemsSectionProps) {
   return (
     <div className="flex flex-col gap-2">
@@ -62,18 +72,49 @@ export function PurchaseItemsSection({
       {items.length > 0 && (
         <ul className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
           {items.map((item, i) => (
-            <li key={item.id ?? i} className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-gray-700">{item.name} — ${item.amount}</span>
-              {item.id == null && (
-                <button
-                  type="button"
-                  onClick={() => onRemove(i)}
-                  className="text-red-500 hover:underline"
-                  aria-label="移除"
-                >
-                  移除
-                </button>
-              )}
+            <li key={item.id ?? i} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span className={item.hidden ? "text-gray-400" : "text-gray-700"}>
+                {item.name} — ${item.amount}
+                {item.hidden ? (
+                  <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
+                ) : null}
+              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                {item.id == null ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onSetItemHidden(i, !item.hidden)}
+                      className="text-gray-500 hover:underline"
+                      aria-label={item.hidden ? "在報名表顯示" : "從報名表隱藏"}
+                    >
+                      {item.hidden ? "在報名表顯示" : "從報名表隱藏"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRemove(i)}
+                      className="text-red-500 hover:underline"
+                      aria-label="移除"
+                    >
+                      移除
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={itemHiddenUpdatingIndex === i}
+                    onClick={() => onSetItemHidden(i, !item.hidden)}
+                    className="text-gray-500 hover:underline disabled:opacity-50"
+                    aria-label={item.hidden ? "在報名表顯示" : "從報名表隱藏"}
+                  >
+                    {itemHiddenUpdatingIndex === i
+                      ? "更新中…"
+                      : item.hidden
+                        ? "在報名表顯示"
+                        : "從報名表隱藏"}
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

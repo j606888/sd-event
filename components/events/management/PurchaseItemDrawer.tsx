@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type PurchaseItemDraft = { id?: number; name: string; amount: number };
+type PurchaseItemDraft = {
+  id?: number;
+  name: string;
+  amount: number;
+  hidden?: boolean;
+};
 
 type PurchaseItemDrawerProps = {
   mode: "create" | "edit";
@@ -59,7 +64,12 @@ export function PurchaseItemDrawer({
           setSubmitting(false);
           return;
         }
-        onSuccess({ id: data.item?.id, name: trimmedName, amount: amountNum });
+        onSuccess({
+          id: data.item?.id,
+          name: trimmedName,
+          amount: amountNum,
+          hidden: false,
+        });
         setName("");
         setAmount("");
         onCancel();
@@ -68,7 +78,7 @@ export function PurchaseItemDrawer({
       }
       setSubmitting(false);
     } else {
-      onSuccess({ name: trimmedName, amount: amountNum });
+      onSuccess({ name: trimmedName, amount: amountNum, hidden: false });
       setName("");
       setAmount("");
       onCancel();

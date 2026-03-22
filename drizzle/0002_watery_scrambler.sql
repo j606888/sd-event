@@ -1,0 +1,1 @@
+ALTER TABLE "event_purchase_items" ADD COLUMN "hidden" boolean DEFAULT false NOT NULL;

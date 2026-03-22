@@ -232,7 +232,12 @@ export async function POST(request: Request, { params }: Params) {
       const purchaseItems = await db
         .select()
         .from(eventPurchaseItems)
-        .where(eq(eventPurchaseItems.eventId, eventId));
+        .where(
+          and(
+            eq(eventPurchaseItems.eventId, eventId),
+            eq(eventPurchaseItems.hidden, false)
+          )
+        );
       const validItemIds = purchaseItems.map((item) => item.id);
       const invalidIds = purchaseItemIds.filter((id: number) => !validItemIds.includes(id));
       if (invalidIds.length > 0) {
@@ -250,7 +255,11 @@ export async function POST(request: Request, { params }: Params) {
           .where(eq(eventPurchaseItems.id, purchaseItemId))
           .limit(1);
 
-        if (!purchaseItem || purchaseItem.eventId !== eventId) {
+        if (
+          !purchaseItem ||
+          purchaseItem.eventId !== eventId ||
+          purchaseItem.hidden
+        ) {
           return NextResponse.json(
             { error: "無效的購買項目" },
             { status: 400 }
