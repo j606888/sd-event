@@ -20,6 +20,11 @@ type StatsData = {
   roleCounts: RoleCounts;
   totalAttendees: number;
   checkedInCount: number;
+  paymentAmountTotals: {
+    confirmed: number;
+    reported: number;
+    pending: number;
+  };
 };
 
 const ROLE_LABELS: Record<keyof RoleCounts, string> = {
@@ -80,7 +85,7 @@ export function EventStats({ eventId }: EventStatsProps) {
 
   if (!data) return null;
 
-  const { roleCounts, totalAttendees, checkedInCount } = data;
+  const { roleCounts, totalAttendees, checkedInCount, paymentAmountTotals } = data;
   const chartData = (Object.entries(roleCounts) as [keyof RoleCounts, number][]).map(
     ([role, value], index) => ({
       name: ROLE_LABELS[role],
@@ -102,6 +107,7 @@ export function EventStats({ eventId }: EventStatsProps) {
           <div className="text-2xl font-semibold text-gray-900">{checkedInCount}</div>
         </div>
       </div>
+
 
       {/* Role breakdown */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -146,6 +152,27 @@ export function EventStats({ eventId }: EventStatsProps) {
             </ul>
           </>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="text-sm text-green-700">已入帳（已確認）</div>
+          <div className="text-2xl font-semibold text-green-900">
+            NT$ {paymentAmountTotals.confirmed.toLocaleString()}
+          </div>
+        </div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="text-sm text-amber-700">處理中（待確認）</div>
+          <div className="text-2xl font-semibold text-amber-900">
+            NT$ {paymentAmountTotals.reported.toLocaleString()}
+          </div>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className="text-sm text-slate-700">應收未收（尚未付款）</div>
+          <div className="text-2xl font-semibold text-slate-900">
+            NT$ {paymentAmountTotals.pending.toLocaleString()}
+          </div>
+        </div>
       </div>
     </div>
   );

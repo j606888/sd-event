@@ -37,9 +37,13 @@ export async function GET(_request: Request, { params }: Params) {
   const forbidden = await requireTeamMember(event.teamId, session.userId);
   if (forbidden) return forbidden;
 
-  // Get non-hidden registration IDs for this event (hidden registrations excluded from stats)
+  // Get non-hidden registrations for this event (hidden registrations excluded from stats)
   const regs = await db
-    .select({ id: eventRegistrations.id })
+    .select({
+      id: eventRegistrations.id,
+      paymentStatus: eventRegistrations.paymentStatus,
+      totalAmount: eventRegistrations.totalAmount,
+    })
     .from(eventRegistrations)
     .where(
       and(
@@ -54,20 +58,42 @@ export async function GET(_request: Request, { params }: Params) {
       roleCounts: { Leader: 0, Follower: 0, "Not sure": 0 },
       totalAttendees: 0,
       checkedInCount: 0,
+      paymentAmountTotals: {
+        confirmed: 0,
+        reported: 0,
+        pending: 0,
+      },
     });
   }
 
   const allAttendees = await db
     .select({
+      registrationId: eventAttendees.registrationId,
       role: eventAttendees.role,
       checkedIn: eventAttendees.checkedIn,
     })
     .from(eventAttendees)
     .where(inArray(eventAttendees.registrationId, registrationIds));
 
-  let totalAttendees = allAttendees.length;
+  const totalAttendees = allAttendees.length;
   let checkedInCount = 0;
   const roleCountsResult = { Leader: 0, Follower: 0, "Not sure": 0 };
+  const paymentAmountTotals = {
+    confirmed: 0,
+    reported: 0,
+    pending: 0,
+  };
+  for (const reg of regs) {
+    if (reg.paymentStatus === "confirmed") {
+      paymentAmountTotals.confirmed += reg.totalAmount;
+    } else if (reg.paymentStatus === "reported") {
+      paymentAmountTotals.reported += reg.totalAmount;
+    } else {
+      // Treat pending/rejected/unknown as receivable-uncollected bucket.
+      paymentAmountTotals.pending += reg.totalAmount;
+    }
+  }
+
   for (const a of allAttendees) {
     if (a.checkedIn) checkedInCount++;
     if (ROLES.includes(a.role as (typeof ROLES)[number])) {
@@ -79,5 +105,6 @@ export async function GET(_request: Request, { params }: Params) {
     roleCounts: roleCountsResult,
     totalAttendees,
     checkedInCount,
+    paymentAmountTotals,
   });
 }
