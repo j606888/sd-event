@@ -45,6 +45,21 @@ function getRoleBadge(role: string) {
   return styles[role] || styles["Not sure"];
 }
 
+function getPaymentStatusBadge(status: string) {
+  switch (status) {
+    case "confirmed":
+      return { label: "已完成付款", className: "bg-green-100 text-green-700" };
+    case "reported":
+      return { label: "待確認", className: "bg-amber-100 text-amber-700" };
+    case "pending":
+      return { label: "尚未付款", className: "bg-slate-100 text-slate-700" };
+    case "rejected":
+      return { label: "付款未通過", className: "bg-red-100 text-red-700" };
+    default:
+      return { label: "未知狀態", className: "bg-gray-100 text-gray-700" };
+  }
+}
+
 export function ScannedRegistrationDetail({
   registration,
   onBack,
@@ -78,8 +93,19 @@ export function ScannedRegistrationDetail({
     }
   };
 
+  const requestCheckIn = async (attendeeId: number) => {
+    if (registration.paymentStatus !== "confirmed") {
+      const shouldProceed = window.confirm(
+        "此報名付款尚未確認，仍要讓此參與者入場嗎？"
+      );
+      if (!shouldProceed) return;
+    }
+    await handleCheckIn(attendeeId);
+  };
+
   const attendeeCount = localAttendees.length;
   const allCheckedIn = localAttendees.every((a) => a.checkedIn);
+  const paymentBadge = getPaymentStatusBadge(registration.paymentStatus);
 
   return (
     <div className="space-y-6">
@@ -103,6 +129,13 @@ export function ScannedRegistrationDetail({
             </h2>
             <div className="text-sm text-gray-600 mt-1">
               {attendeeCount}人 · NT ${registration.totalAmount.toLocaleString()}
+            </div>
+            <div className="mt-2">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${paymentBadge.className}`}
+              >
+                付款狀態：{paymentBadge.label}
+              </span>
             </div>
           </div>
           {allCheckedIn && (
@@ -160,7 +193,7 @@ export function ScannedRegistrationDetail({
                 </div>
               ) : (
                 <Button
-                  onClick={() => handleCheckIn(attendee.id)}
+                  onClick={() => requestCheckIn(attendee.id)}
                   disabled={checkingIn === attendee.id}
                   size="sm"
                   className="bg-[#5295BC] text-white hover:bg-[#4285A5] h-8 px-3 text-xs"
