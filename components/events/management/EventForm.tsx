@@ -121,7 +121,6 @@ export function EventForm({
                   alt="活動封面"
                   fill
                   className="object-cover"
-                  unoptimized
                 />
               </div>
               <button

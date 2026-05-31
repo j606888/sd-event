@@ -212,7 +212,7 @@ export function useEventForm({
         credentials: "include",
       }).then((r) => r.json()),
     ]).then(([pData, nData]) => {
-      const items = (pData?.items ?? []).map(
+      const items = (pData?.purchaseItems ?? []).map(
         (i: { id: number; name: string; amount: number; hidden?: boolean }) => ({
           id: i.id,
           name: i.name,
@@ -220,7 +220,7 @@ export function useEventForm({
           hidden: Boolean(i.hidden),
         })
       );
-      const notices = (nData?.items ?? []).map(
+      const notices = (nData?.noticeItems ?? []).map(
         (i: { id: number; content: string }) => ({
           id: i.id,
           content: i.content ?? "",

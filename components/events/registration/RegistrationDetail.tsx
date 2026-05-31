@@ -262,7 +262,6 @@ export function RegistrationDetail({
               alt="付款截圖"
               fill
               className="object-contain"
-              unoptimized
             />
           </button>
         </div>

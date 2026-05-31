@@ -37,7 +37,7 @@ export async function GET(_request: Request, { params }: Params) {
     .from(eventNoticeItems)
     .where(eq(eventNoticeItems.eventId, eventId));
 
-  return NextResponse.json({ items: list });
+  return NextResponse.json({ noticeItems: list });
 }
 
 /** 新增須知項目 */
@@ -70,5 +70,5 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "新增失敗" }, { status: 500 });
   }
 
-  return NextResponse.json({ item });
+  return NextResponse.json({ noticeItem: item });
 }

@@ -17,6 +17,7 @@ export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState<string | null>(null);
   const [scannedRegistration, setScannedRegistration] = useState<ScannedRegistration | null>(null);
 
   const parseQRCode = (decodedText: string): string | null => {
@@ -92,7 +93,7 @@ export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
     } catch (err) {
       console.error("Failed to fetch registration:", err);
       setError("無法載入報名資料");
-      setTimeout(() => setError(null), 3000);
+      setRetryKey(registrationKey);
     }
   };
 
@@ -211,6 +212,7 @@ export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
   const handleBackToScanner = () => {
     setScannedRegistration(null);
     setError(null);
+    setRetryKey(null);
     startScanning();
   };
 
@@ -266,9 +268,26 @@ export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
           />
 
           {error && (
-            <div className="mt-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span className="text-sm">{error}</span>
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span className="text-sm">{error}</span>
+              </div>
+              {retryKey && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 w-full border-red-200 text-red-700 hover:bg-red-100"
+                  onClick={() => {
+                    const key = retryKey;
+                    setError(null);
+                    setRetryKey(null);
+                    fetchRegistrationData(key);
+                  }}
+                >
+                  重試
+                </Button>
+              )}
             </div>
           )}
 

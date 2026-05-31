@@ -54,5 +54,5 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到購買項目" }, { status: 404 });
   }
 
-  return NextResponse.json({ item: updated });
+  return NextResponse.json({ purchaseItem: updated });
 }

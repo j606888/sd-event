@@ -58,7 +58,6 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
             alt={event.title}
             fill
             className="object-cover"
-            unoptimized
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (

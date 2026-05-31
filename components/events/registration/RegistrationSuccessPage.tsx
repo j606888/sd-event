@@ -179,7 +179,6 @@ export function RegistrationSuccessPage({
                     alt={event.organizer.name}
                     fill
                     className="object-cover"
-                    unoptimized
                   />
                 </div>
               )}

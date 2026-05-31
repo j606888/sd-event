@@ -167,7 +167,6 @@ export default function EventOrganizersPage() {
                     alt={org.name}
                     fill
                     className="object-cover"
-                    unoptimized
                   />
                 </div>
               ) : (
@@ -206,7 +205,6 @@ export default function EventOrganizersPage() {
                     alt="主辦方照片"
                     fill
                     className="object-cover"
-                    unoptimized
                   />
                 </div>
                 <button

@@ -197,7 +197,6 @@ export default function EntryVoucherPage() {
               alt="入場 QR Code"
               fill
               className="object-contain"
-              unoptimized
             />
           </div>
         </div>

@@ -35,7 +35,6 @@ export function EventDetailsStep({
               width={1200}
               height={600}
               className="object-cover"
-              unoptimized
               sizes="100vw"
             />
           </div>
@@ -113,7 +112,6 @@ export function EventDetailsStep({
                       alt={event.organizer.name}
                       fill
                       className="object-cover"
-                      unoptimized
                     />
                   </div>
                 )}

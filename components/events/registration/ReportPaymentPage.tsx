@@ -283,7 +283,6 @@ export function ReportPaymentPage({
                   alt="轉帳截圖"
                   fill
                   className="object-contain"
-                  unoptimized
                 />
               </div>
               <button
