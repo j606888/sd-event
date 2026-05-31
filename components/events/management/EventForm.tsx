@@ -525,7 +525,7 @@ export function EventForm({
           <textarea
             id="description"
             placeholder="輸入活動描述"
-            rows={4}
+            rows={12}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full min-w-0 rounded-md border-0 bg-[#F3F5F7] px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 md:text-sm"
