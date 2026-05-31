@@ -9,11 +9,9 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, count, sql } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
-
-const ROLES = ["Leader", "Follower", "Not sure"] as const;
 
 /**
  * GET event stats: attendee counts by role (Leader, Follower, Not sure) and check-in totals.
@@ -43,13 +41,11 @@ export async function GET(_request: Request, { params }: Params) {
   const forbidden = await requireTeamMember(event.teamId, session.userId);
   if (forbidden) return forbidden;
 
-  // Get non-hidden registrations for this event (hidden registrations excluded from stats)
+  // Get non-hidden registrations — only id and purchaseItemId needed now.
   const regs = await db
     .select({
       id: eventRegistrations.id,
       purchaseItemId: eventRegistrations.purchaseItemId,
-      paymentStatus: eventRegistrations.paymentStatus,
-      totalAmount: eventRegistrations.totalAmount,
     })
     .from(eventRegistrations)
     .where(
@@ -74,90 +70,110 @@ export async function GET(_request: Request, { params }: Params) {
     });
   }
 
-  const allAttendees = await db
+  // Query 1: Role counts + total attendees + checked-in count via DB aggregation.
+  const attendeeStats = await db
     .select({
-      registrationId: eventAttendees.registrationId,
       role: eventAttendees.role,
-      checkedIn: eventAttendees.checkedIn,
+      total: count(),
+      checkedInCount: sql<number>`cast(count(case when ${eventAttendees.checkedIn} then 1 end) as int)`,
     })
     .from(eventAttendees)
-    .where(inArray(eventAttendees.registrationId, registrationIds));
+    .where(inArray(eventAttendees.registrationId, registrationIds))
+    .groupBy(eventAttendees.role);
 
-  const registrationMultiItems = await db
+  const totalAttendees = attendeeStats.reduce((s, r) => s + Number(r.total), 0);
+  const checkedInCount = attendeeStats.reduce((s, r) => s + Number(r.checkedInCount), 0);
+  const roleCounts: Record<string, number> = { Leader: 0, Follower: 0, "Not sure": 0 };
+  for (const row of attendeeStats) {
+    if (row.role in roleCounts) roleCounts[row.role] = Number(row.total);
+  }
+
+  // Query 2: Payment amount totals via GROUP BY.
+  const paymentStats = await db
     .select({
-      registrationId: eventRegistrationPurchaseItems.registrationId,
-      purchaseItemId: eventRegistrationPurchaseItems.purchaseItemId,
-      quantity: eventRegistrationPurchaseItems.quantity,
-      name: eventPurchaseItems.name,
-      amount: eventPurchaseItems.amount,
+      paymentStatus: eventRegistrations.paymentStatus,
+      total: sql<number>`cast(sum(${eventRegistrations.totalAmount}) as int)`,
     })
-    .from(eventRegistrationPurchaseItems)
-    .innerJoin(
-      eventPurchaseItems,
-      eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
+    .from(eventRegistrations)
+    .where(
+      and(
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.hidden, false)
+      )
     )
-    .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds));
+    .groupBy(eventRegistrations.paymentStatus);
 
-  const totalAttendees = allAttendees.length;
-  let checkedInCount = 0;
-  const roleCountsResult = { Leader: 0, Follower: 0, "Not sure": 0 };
-  const paymentAmountTotals = {
-    confirmed: 0,
-    reported: 0,
-    pending: 0,
-  };
-  for (const reg of regs) {
-    if (reg.paymentStatus === "confirmed") {
-      paymentAmountTotals.confirmed += reg.totalAmount;
-    } else if (reg.paymentStatus === "reported") {
-      paymentAmountTotals.reported += reg.totalAmount;
+  const paymentAmountTotals = { confirmed: 0, reported: 0, pending: 0 };
+  for (const row of paymentStats) {
+    if (row.paymentStatus === "confirmed") {
+      paymentAmountTotals.confirmed = Number(row.total);
+    } else if (row.paymentStatus === "reported") {
+      paymentAmountTotals.reported = Number(row.total);
     } else {
       // Treat pending/rejected/unknown as receivable-uncollected bucket.
-      paymentAmountTotals.pending += reg.totalAmount;
+      paymentAmountTotals.pending += Number(row.total);
     }
   }
 
-  const attendeeCountByRegistrationId = new Map<number, number>();
-  for (const a of allAttendees) {
-    attendeeCountByRegistrationId.set(
-      a.registrationId,
-      (attendeeCountByRegistrationId.get(a.registrationId) ?? 0) + 1
+  // Query 3: Multi-item purchase summary using a subquery for per-registration attendee counts.
+  const attCountSubquery = db
+    .select({
+      registrationId: eventAttendees.registrationId,
+      cnt: sql<number>`cast(count(*) as int)`.as("cnt"),
+    })
+    .from(eventAttendees)
+    .where(inArray(eventAttendees.registrationId, registrationIds))
+    .groupBy(eventAttendees.registrationId)
+    .as("att_counts");
+
+  const multiItemSummary = await db
+    .select({
+      purchaseItemId: eventRegistrationPurchaseItems.purchaseItemId,
+      name: eventPurchaseItems.name,
+      amount: eventPurchaseItems.amount,
+      attendeeCount: sql<number>`cast(sum(att_counts.cnt * ${eventRegistrationPurchaseItems.quantity}) as int)`,
+    })
+    .from(eventRegistrationPurchaseItems)
+    .innerJoin(eventPurchaseItems, eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id))
+    .innerJoin(attCountSubquery, eq(eventRegistrationPurchaseItems.registrationId, attCountSubquery.registrationId))
+    .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds))
+    .groupBy(
+      eventRegistrationPurchaseItems.purchaseItemId,
+      eventPurchaseItems.name,
+      eventPurchaseItems.amount,
     );
-    if (a.checkedIn) checkedInCount++;
-    if (ROLES.includes(a.role as (typeof ROLES)[number])) {
-      roleCountsResult[a.role as (typeof ROLES)[number]]++;
-    }
-  }
 
   const summaryMap = new Map<number, { id: number; name: string; amount: number; attendeeCount: number }>();
   const registrationsWithMultiItems = new Set<number>();
-  for (const row of registrationMultiItems) {
-    registrationsWithMultiItems.add(row.registrationId);
-    const attendeeCount = attendeeCountByRegistrationId.get(row.registrationId) ?? 0;
-    const quantity = Number.isInteger(row.quantity) && row.quantity > 0 ? row.quantity : 1;
-    const current = summaryMap.get(row.purchaseItemId);
-    if (current) {
-      current.attendeeCount += attendeeCount * quantity;
-      continue;
-    }
+
+  // Build summaryMap from DB-aggregated multi-item results.
+  for (const row of multiItemSummary) {
     summaryMap.set(row.purchaseItemId, {
       id: row.purchaseItemId,
       name: row.name,
       amount: row.amount,
-      attendeeCount: attendeeCount * quantity,
+      attendeeCount: Number(row.attendeeCount),
     });
   }
 
-  const singleItemIds = Array.from(
-    new Set(
-      regs
-        .filter(
-          (reg) =>
-            reg.purchaseItemId != null && !registrationsWithMultiItems.has(reg.id)
-        )
-        .map((reg) => reg.purchaseItemId as number)
-    )
+  // Determine which registrations are covered by multi-item entries.
+  const multiItemRegRows = await db
+    .select({ registrationId: eventRegistrationPurchaseItems.registrationId })
+    .from(eventRegistrationPurchaseItems)
+    .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds));
+  for (const row of multiItemRegRows) {
+    registrationsWithMultiItems.add(row.registrationId);
+  }
+
+  // Single-item (legacy) path: registrations using the purchaseItemId field directly.
+  const singleItemRegs = regs.filter(
+    (reg) => reg.purchaseItemId != null && !registrationsWithMultiItems.has(reg.id)
   );
+
+  const singleItemIds = Array.from(
+    new Set(singleItemRegs.map((reg) => reg.purchaseItemId as number))
+  );
+
   const singleItemMetaRows =
     singleItemIds.length > 0
       ? await db
@@ -172,6 +188,23 @@ export async function GET(_request: Request, { params }: Params) {
   const singleItemMetaMap = new Map(
     singleItemMetaRows.map((row) => [row.id, row] as const)
   );
+
+  // Fetch per-registration attendee counts only for the single-item registrations.
+  const attendeeCountByRegistrationId = new Map<number, number>();
+  if (singleItemRegs.length > 0) {
+    const singleItemRegIds = singleItemRegs.map((r) => r.id);
+    const perRegCounts = await db
+      .select({
+        registrationId: eventAttendees.registrationId,
+        cnt: sql<number>`cast(count(*) as int)`.as("cnt"),
+      })
+      .from(eventAttendees)
+      .where(inArray(eventAttendees.registrationId, singleItemRegIds))
+      .groupBy(eventAttendees.registrationId);
+    for (const row of perRegCounts) {
+      attendeeCountByRegistrationId.set(row.registrationId, Number(row.cnt));
+    }
+  }
 
   for (const reg of regs) {
     if (reg.purchaseItemId == null) continue;
@@ -197,7 +230,7 @@ export async function GET(_request: Request, { params }: Params) {
   );
 
   return NextResponse.json({
-    roleCounts: roleCountsResult,
+    roleCounts,
     totalAttendees,
     checkedInCount,
     paymentAmountTotals,

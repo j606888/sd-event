@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { events, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -117,7 +117,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   const rows = await db
-    .select({ teamId: events.teamId })
+    .select({ teamId: events.teamId, userId: events.userId })
     .from(events)
     .where(eq(events.id, eventId))
     .limit(1);
@@ -128,6 +128,27 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   const forbidden = await requireTeamMember(existing.teamId, session.userId);
   if (forbidden) return forbidden;
+
+  // Allow deletion only for event creator or team owner
+  if (existing.userId !== session.userId) {
+    const [membership] = await db
+      .select({ role: teamMembers.role })
+      .from(teamMembers)
+      .where(
+        and(
+          eq(teamMembers.teamId, existing.teamId),
+          eq(teamMembers.userId, session.userId)
+        )
+      )
+      .limit(1);
+
+    if (!membership || membership.role !== "owner") {
+      return NextResponse.json(
+        { error: "只有活動建立者或團隊擁有者可以刪除活動" },
+        { status: 403 }
+      );
+    }
+  }
 
   await db.delete(events).where(eq(events.id, eventId));
   return NextResponse.json({ ok: true });

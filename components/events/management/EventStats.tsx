@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   PieChart,
   Pie,
@@ -46,34 +46,19 @@ type EventStatsProps = {
 };
 
 export function EventStats({ eventId }: EventStatsProps) {
-  const [data, setData] = useState<StatsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetch(`/api/events/${eventId}/stats`, { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error("無法載入統計");
-        return res.json();
-      })
-      .then((stats: StatsData) => {
-        if (!cancelled) setData(stats);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "載入失敗");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["eventStats", eventId],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/${eventId}/stats`, {
+        credentials: "include",
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId]);
+      if (!res.ok) throw new Error("無法載入統計");
+      return res.json() as Promise<StatsData>;
+    },
+    staleTime: 30_000,
+  });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
         載入統計中…
@@ -84,7 +69,7 @@ export function EventStats({ eventId }: EventStatsProps) {
   if (error) {
     return (
       <div className="rounded-lg border border-gray-200 bg-red-50 py-8 text-center text-sm text-red-600">
-        {error}
+        {error instanceof Error ? error.message : "載入失敗"}
       </div>
     );
   }

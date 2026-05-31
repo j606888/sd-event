@@ -2,39 +2,22 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { EventForm } from "@/components/events/management/EventForm";
 import { EventStats } from "@/components/events/management/EventStats";
 import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
 import { RegistrationDetail } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEvent } from "@/hooks/use-event-detail";
 import {
-  filterRegistrations,
-  type PaymentFilter,
-  type CheckInFilter,
-  type HiddenFilter,
-} from "@/lib/registration-list-filters";
-
-type EventData = {
-  id: number;
-  publicKey: string;
-  teamId: number;
-  userId: number;
-  title: string;
-  description: string | null;
-  coverUrl: string | null;
-  startAt: string;
-  endAt: string;
-  locationId: number | null;
-  organizerId: number | null;
-  bankInfoId: number | null;
-  allowMultiplePurchase: boolean;
-  autoCalcAmount: boolean;
-  status: string;
-  createdAt: string;
-  updatedAt: string | null;
-};
+  useRegistrations,
+  useRegistrationDetail,
+  useUpdateRegistration,
+  useCheckIn,
+} from "@/hooks/use-registrations";
+import type { PaymentFilter, CheckInFilter, HiddenFilter } from "@/lib/registration-list-filters";
 
 const TABS = [
   { id: "form" as const, label: "表單" },
@@ -43,201 +26,65 @@ const TABS = [
   { id: "verify" as const, label: "驗票" },
 ];
 
-type Registration = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  totalAmount: number;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-  attendeeCount: number;
-  hidden?: boolean;
-  createdAt: string;
-};
-
-type RegistrationDetailData = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  paymentMethod: string | null;
-  totalAmount: number;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-  paymentScreenshotUrl: string | null;
-  paymentNote: string | null;
-  hidden?: boolean;
-  createdAt: string;
-  attendees: Array<{ id: number; name: string; role: "Leader" | "Follower" | "Not sure" | string; checkedIn?: boolean; checkedInAt?: string | null }>;
-  purchaseItem: { id: number; name: string; amount: number } | null; // For backward compatibility
-  purchaseItems?: Array<{ id: number; name: string; amount: number }>; // Array of purchase items (for multiple selection)
-};
-
 export default function EventDetailPage() {
   const params = useParams();
   const eventId = params?.eventId as string;
-  const [event, setEvent] = useState<EventData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // UI state
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("form");
   const [shareCopied, setShareCopied] = useState(false);
-  
-  // Registrations state
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [selectedRegistrationId, setSelectedRegistrationId] = useState<number | null>(null);
-  const [selectedRegistration, setSelectedRegistration] = useState<RegistrationDetailData | null>(null);
+
+  // Filter / search state
   const [searchQuery, setSearchQuery] = useState("");
-  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
-  // Filter state (lifted so it persists when opening/closing registration detail)
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
   const [checkInFilter, setCheckInFilter] = useState<CheckInFilter>("all");
   const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>("non_hidden");
+  const [page, setPage] = useState(1);
 
-  const filteredRegistrations = useMemo(
-    () =>
-      filterRegistrations(registrations, paymentFilter, checkInFilter, hiddenFilter),
-    [registrations, paymentFilter, checkInFilter, hiddenFilter]
-  );
-  const visibleRegistrationCount = useMemo(
-    () => registrations.filter((r) => !r.hidden).length,
-    [registrations]
-  );
-
-  const fetchEvent = useCallback(async () => {
-    if (!eventId) return;
-    const res = await fetch(`/api/events/${eventId}`, { credentials: "include" });
-    if (res.status === 404) {
-      setError("找不到活動");
-      return null;
-    }
-    if (!res.ok) throw new Error("無法載入");
-    const data = await res.json();
-    if (data?.event) setEvent(data.event);
-    return data?.event;
-  }, [eventId]);
-
-  const fetchRegistrations = useCallback(async (search?: string) => {
-    if (!eventId) return;
-    setLoadingRegistrations(true);
-    try {
-      const url = `/api/events/${eventId}/registrations${search ? `?search=${encodeURIComponent(search)}` : ""}`;
-      const res = await fetch(url, { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setRegistrations(data.registrations || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch registrations:", err);
-    } finally {
-      setLoadingRegistrations(false);
-    }
-  }, [eventId]);
-
-  const fetchRegistrationDetail = useCallback(async (registrationId: number) => {
-    if (!eventId) return;
-    try {
-      const res = await fetch(`/api/events/${eventId}/registrations/${registrationId}`, {
-        credentials: "include",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedRegistration(data.registration);
-      }
-    } catch (err) {
-      console.error("Failed to fetch registration detail:", err);
-    }
-  }, [eventId]);
-
-  const updateRegistrationStatus = useCallback(async (registrationId: number, status: "confirmed") => {
-    if (!eventId) return;
-    try {
-      const res = await fetch(`/api/events/${eventId}/registrations/${registrationId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ paymentStatus: status }),
-      });
-      if (res.ok) {
-        // Refresh registrations and detail
-        await fetchRegistrations(searchQuery);
-        if (selectedRegistrationId === registrationId) {
-          await fetchRegistrationDetail(registrationId);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to update registration status:", err);
-    }
-  }, [eventId, searchQuery, selectedRegistrationId, fetchRegistrations, fetchRegistrationDetail]);
-
-  const updateRegistrationHidden = useCallback(
-    async (registrationId: number, hidden: boolean) => {
-      if (!eventId) return;
-      try {
-        const res = await fetch(`/api/events/${eventId}/registrations/${registrationId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ hidden }),
-        });
-        if (res.ok) {
-          await fetchRegistrations(searchQuery);
-          if (selectedRegistrationId === registrationId) {
-            await fetchRegistrationDetail(registrationId);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to update registration hidden:", err);
-      }
-    },
-    [eventId, searchQuery, selectedRegistrationId, fetchRegistrations, fetchRegistrationDetail]
-  );
-
-  const handleCheckIn = useCallback(async (attendeeId: number) => {
-    try {
-      const res = await fetch(`/api/attendees/${attendeeId}/check-in`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || "檢查入場失敗");
-      }
-
-      // Refresh registration detail after check-in
-      if (selectedRegistrationId) {
-        await fetchRegistrationDetail(selectedRegistrationId);
-      }
-    } catch (err) {
-      console.error("Check-in error:", err);
-      throw err;
-    }
-  }, [selectedRegistrationId, fetchRegistrationDetail]);
-
+  // Debounce search query
   useEffect(() => {
-    if (!eventId) return;
-    setLoading(true);
-    fetchEvent()
-      .catch(() => setError("無法載入活動"))
-      .finally(() => setLoading(false));
-    fetchRegistrations();
-  }, [eventId, fetchEvent, fetchRegistrations]);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
+  // Reset page when search or filters change
   useEffect(() => {
-    if (activeTab === "replies" && eventId) {
-      fetchRegistrations(searchQuery);
-    }
-  }, [activeTab, eventId, searchQuery, fetchRegistrations]);
+    setPage(1);
+  }, [debouncedSearch, paymentFilter, checkInFilter, hiddenFilter]);
 
-  useEffect(() => {
-    if (selectedRegistrationId) {
-      fetchRegistrationDetail(selectedRegistrationId);
-    }
-  }, [selectedRegistrationId, fetchRegistrationDetail]);
+  // Server state
+  const eventQuery = useEvent(eventId);
+  const event = eventQuery.data;
 
-  if (loading) {
+  const registrationsParams = {
+    search: debouncedSearch,
+    page,
+    pageSize: 50,
+    paymentStatus: paymentFilter,
+    hiddenFilter,
+    checkInFilter,
+  };
+
+  const registrationsQuery = useRegistrations(eventId, registrationsParams);
+  const registrationsData = registrationsQuery.data;
+
+  const registrationDetailQuery = useRegistrationDetail(eventId, selectedRegistrationId);
+  const selectedRegistration = registrationDetailQuery.data ?? null;
+
+  const updateRegistration = useUpdateRegistration(eventId);
+  const checkInMutation = useCheckIn(eventId, selectedRegistrationId);
+
+  // Derived values
+  const registrations = registrationsData?.registrations ?? [];
+  const visibleRegistrationCount =
+    hiddenFilter === "non_hidden"
+      ? registrationsData?.pagination?.total ?? 0
+      : registrationsData?.registrations?.length ?? 0;
+
+  if (eventQuery.isLoading) {
     return (
       <div className="min-h-screen p-6">
         <p className="text-gray-500">載入中…</p>
@@ -245,10 +92,14 @@ export default function EventDetailPage() {
     );
   }
 
-  if (error || !event) {
+  if (eventQuery.error || !event) {
     return (
       <div className="min-h-screen p-6">
-        <p className="text-red-500">{error ?? "找不到活動"}</p>
+        <p className="text-red-500">
+          {eventQuery.error instanceof Error
+            ? eventQuery.error.message
+            : "找不到活動"}
+        </p>
         <Link href="/events" className="mt-2 inline-block text-[#5295BC] underline">
           返回活動列表
         </Link>
@@ -276,8 +127,8 @@ export default function EventDetailPage() {
             key={tab.id}
             type="button"
             onClick={() => {
-              setActiveTab(tab.id)
-              setSelectedRegistration(null)
+              setActiveTab(tab.id);
+              setSelectedRegistrationId(null);
             }}
             className={`relative flex flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors cursor-pointer ${
               activeTab === tab.id
@@ -310,7 +161,9 @@ export default function EventDetailPage() {
             teamId={event.teamId}
             initialData={event}
             submitLabel="更新表單"
-            onSaveSuccess={() => fetchEvent()}
+            onSaveSuccess={() =>
+              queryClient.invalidateQueries({ queryKey: ["event", eventId] })
+            }
             renderExtraActions={
               <Button
                 type="button"
@@ -336,41 +189,46 @@ export default function EventDetailPage() {
             {selectedRegistration ? (
               <RegistrationDetail
                 registration={selectedRegistration}
-                currentIndex={filteredRegistrations.findIndex((r) => r.id === selectedRegistrationId) ?? 0}
-                totalCount={filteredRegistrations.length}
+                currentIndex={registrations.findIndex((r) => r.id === selectedRegistrationId)}
+                totalCount={registrations.length}
                 onBack={() => {
-                  setSelectedRegistration(null);
                   setSelectedRegistrationId(null);
                 }}
                 onPrevious={() => {
-                  const currentIdx = filteredRegistrations.findIndex((r) => r.id === selectedRegistrationId) ?? 0;
+                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId);
                   if (currentIdx > 0) {
-                    const prevId = filteredRegistrations[currentIdx - 1].id;
-                    setSelectedRegistrationId(prevId);
+                    setSelectedRegistrationId(registrations[currentIdx - 1].id);
                   }
                 }}
                 onNext={() => {
-                  const currentIdx = filteredRegistrations.findIndex((r) => r.id === selectedRegistrationId) ?? 0;
-                  if (currentIdx < filteredRegistrations.length - 1) {
-                    const nextId = filteredRegistrations[currentIdx + 1].id;
-                    setSelectedRegistrationId(nextId);
+                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId);
+                  if (currentIdx < registrations.length - 1) {
+                    setSelectedRegistrationId(registrations[currentIdx + 1].id);
                   }
                 }}
                 onStatusUpdate={async (status) => {
                   if (selectedRegistrationId) {
-                    await updateRegistrationStatus(selectedRegistrationId, status);
+                    await updateRegistration.mutateAsync({
+                      registrationId: selectedRegistrationId,
+                      patch: { paymentStatus: status },
+                    });
                   }
                 }}
                 onHiddenToggle={async (hidden) => {
                   if (selectedRegistrationId) {
-                    await updateRegistrationHidden(selectedRegistrationId, hidden);
+                    await updateRegistration.mutateAsync({
+                      registrationId: selectedRegistrationId,
+                      patch: { hidden },
+                    });
                   }
                 }}
-                onCheckIn={handleCheckIn}
+                onCheckIn={async (attendeeId) => {
+                  await checkInMutation.mutateAsync(attendeeId);
+                }}
               />
             ) : (
               <RegistrationsList
-                registrations={filteredRegistrations}
+                registrations={registrations}
                 onSelect={(id) => setSelectedRegistrationId(id)}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -380,12 +238,48 @@ export default function EventDetailPage() {
                 onCheckInFilterChange={setCheckInFilter}
                 hiddenFilter={hiddenFilter}
                 onHiddenFilterChange={setHiddenFilter}
-                totalUnfilteredCount={registrations.length}
+                totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
               />
             )}
-            {loadingRegistrations && (
+            {registrationsQuery.isFetching && (
               <div className="text-center text-sm text-gray-500 py-4">載入中…</div>
             )}
+            {!selectedRegistration &&
+              registrationsData?.pagination &&
+              registrationsData.pagination.total > registrationsData.pagination.pageSize && (
+                <div className="flex items-center justify-between px-1 py-2 text-sm text-gray-600">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    上一頁
+                  </Button>
+                  <span>
+                    第 {page} /{" "}
+                    {Math.ceil(
+                      registrationsData.pagination.total /
+                        registrationsData.pagination.pageSize
+                    )}{" "}
+                    頁
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      page >=
+                      Math.ceil(
+                        registrationsData.pagination.total /
+                          registrationsData.pagination.pageSize
+                      )
+                    }
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    下一頁
+                  </Button>
+                </div>
+              )}
           </>
         )}
         {activeTab === "stats" && eventId && (

@@ -12,7 +12,7 @@ import {
 import { sendRegistrationSuccessEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, desc, count, or, like, and } from "drizzle-orm";
+import { eq, desc, count, or, like, and, inArray, sql } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -55,6 +55,16 @@ export async function GET(request: Request, { params }: Params) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.trim() || "";
 
+  // Pagination params
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+  const rawPageSize = parseInt(searchParams.get("pageSize") || "50", 10) || 50;
+  const pageSize = Math.min(200, Math.max(1, rawPageSize));
+
+  // Filter params
+  const paymentStatus = searchParams.get("paymentStatus") || "all";
+  const hiddenFilter = searchParams.get("hiddenFilter") || "all";
+  const checkInFilter = searchParams.get("checkInFilter") || "all";
+
   // 建立查詢條件
   const whereConditions = [eq(eventRegistrations.eventId, eventId)];
 
@@ -68,6 +78,26 @@ export async function GET(request: Request, { params }: Params) {
       )!
     );
   }
+
+  // Payment status filter
+  if (paymentStatus !== "all") {
+    whereConditions.push(
+      eq(eventRegistrations.paymentStatus, paymentStatus as "pending" | "reported" | "confirmed" | "rejected")
+    );
+  }
+
+  // Hidden filter
+  if (hiddenFilter === "non_hidden") {
+    whereConditions.push(eq(eventRegistrations.hidden, false));
+  } else if (hiddenFilter === "hidden") {
+    whereConditions.push(eq(eventRegistrations.hidden, true));
+  }
+
+  // COUNT query for pagination total (before checkInFilter which is applied in JS)
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(eventRegistrations)
+    .where(and(...whereConditions));
 
   const registrations = await db
     .select({
@@ -89,56 +119,48 @@ export async function GET(request: Request, { params }: Params) {
     })
     .from(eventRegistrations)
     .where(and(...whereConditions))
-    .orderBy(desc(eventRegistrations.createdAt));
+    .orderBy(desc(eventRegistrations.createdAt))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
 
-  // 取得每個報名的參加者數量與已入場數量
+  // 取得每個報名的參加者數量與已入場數量（單一查詢）
   const registrationIds = registrations.map((r) => r.id);
-  const attendeesCounts =
+  const attendeeCounts =
     registrationIds.length > 0
       ? await db
           .select({
             registrationId: eventAttendees.registrationId,
-            count: count(),
+            total: count(),
+            checkedIn: sql<number>`cast(count(case when ${eventAttendees.checkedIn} then 1 end) as int)`,
           })
           .from(eventAttendees)
-          .where(
-            or(...registrationIds.map((id) => eq(eventAttendees.registrationId, id)))
-          )
+          .where(inArray(eventAttendees.registrationId, registrationIds))
           .groupBy(eventAttendees.registrationId)
       : [];
 
-  const checkedInCounts =
-    registrationIds.length > 0
-      ? await db
-          .select({
-            registrationId: eventAttendees.registrationId,
-            count: count(),
-          })
-          .from(eventAttendees)
-          .where(
-            and(
-              or(...registrationIds.map((id) => eq(eventAttendees.registrationId, id))),
-              eq(eventAttendees.checkedIn, true)
-            )
-          )
-          .groupBy(eventAttendees.registrationId)
-      : [];
-
-  const countMap = new Map(
-    attendeesCounts.map((a) => [a.registrationId, Number(a.count)])
-  );
-  const checkedInMap = new Map(
-    checkedInCounts.map((a) => [a.registrationId, Number(a.count)])
-  );
+  const countMap = new Map(attendeeCounts.map((a) => [a.registrationId, Number(a.total)]));
+  const checkedInMap = new Map(attendeeCounts.map((a) => [a.registrationId, Number(a.checkedIn)]));
 
   // 組合結果
-  const result = registrations.map((reg) => ({
+  let result = registrations.map((reg) => ({
     ...reg,
     attendeeCount: countMap.get(reg.id) || 0,
     checkedInCount: checkedInMap.get(reg.id) || 0,
   }));
 
-  return NextResponse.json({ registrations: result });
+  // Apply checkInFilter in JavaScript (attendee counts already available)
+  if (checkInFilter === "none") {
+    result = result.filter((r) => r.attendeeCount > 0 && r.checkedInCount === 0);
+  } else if (checkInFilter === "partial") {
+    result = result.filter((r) => r.checkedInCount > 0 && r.checkedInCount < r.attendeeCount);
+  } else if (checkInFilter === "all_entered") {
+    result = result.filter((r) => r.attendeeCount > 0 && r.checkedInCount === r.attendeeCount);
+  }
+
+  return NextResponse.json({
+    registrations: result,
+    pagination: { total: Number(total), page, pageSize },
+  });
 }
 
 /**
@@ -193,7 +215,7 @@ export async function POST(request: Request, { params }: Params) {
         : [];
 
     // Check if event allows multiple purchase
-    const hasPurchaseItems = event.allowMultiplePurchase 
+    const hasPurchaseItems = event.allowMultiplePurchase
       ? purchaseItemIds.length > 0
       : purchaseItemId != null;
 
@@ -286,48 +308,50 @@ export async function POST(request: Request, { params }: Params) {
 
     const registrationKey = generateRegistrationKey();
 
-    // 建立報名記錄
-    const [registration] = await db
-      .insert(eventRegistrations)
-      .values({
-        registrationKey,
-        eventId,
-        purchaseItemId: event.allowMultiplePurchase ? null : (Number.isInteger(purchaseItemId) ? purchaseItemId : null),
-        contactName,
-        contactPhone,
-        contactEmail,
-        paymentMethod,
-        totalAmount,
-        paymentStatus: "pending",
-      })
-      .returning();
+    // 建立報名記錄（在 transaction 中確保原子性）
+    const registration = await db.transaction(async (tx) => {
+      // 建立報名記錄
+      const [reg] = await tx
+        .insert(eventRegistrations)
+        .values({
+          registrationKey,
+          eventId,
+          purchaseItemId: event.allowMultiplePurchase ? null : (Number.isInteger(purchaseItemId) ? purchaseItemId : null),
+          contactName,
+          contactPhone,
+          contactEmail,
+          paymentMethod,
+          totalAmount,
+          paymentStatus: "pending",
+        })
+        .returning();
 
-    if (!registration) {
-      return NextResponse.json({ error: "建立報名失敗" }, { status: 500 });
-    }
-
-    // 建立購買項目關聯（多選時）
-    if (event.allowMultiplePurchase && purchaseItemIds.length > 0) {
-      const registrationPurchaseItemValues = purchaseItemIds.map((itemId: number) => ({
-        registrationId: registration.id,
-        purchaseItemId: itemId,
-        quantity: 1, // Default quantity, can be extended later
-      }));
-      if (registrationPurchaseItemValues.length > 0) {
-        await db.insert(eventRegistrationPurchaseItems).values(registrationPurchaseItemValues);
+      if (!reg) {
+        throw new Error("建立報名失敗");
       }
-    }
 
-    // 建立參加者記錄
-    const attendeeValues = validAttendees.map((a: any) => ({
-      registrationId: registration.id,
-      name: a.name.trim(),
-      role: a.role,
-    }));
+      // 建立購買項目關聯（多選時）
+      if (event.allowMultiplePurchase && purchaseItemIds.length > 0) {
+        const registrationPurchaseItemValues = purchaseItemIds.map((itemId: number) => ({
+          registrationId: reg.id,
+          purchaseItemId: itemId,
+          quantity: 1, // Default quantity, can be extended later
+        }));
+        await tx.insert(eventRegistrationPurchaseItems).values(registrationPurchaseItemValues);
+      }
 
-    await db.insert(eventAttendees).values(attendeeValues);
+      // 建立參加者記錄
+      const attendeeValues = validAttendees.map((a: any) => ({
+        registrationId: reg.id,
+        name: a.name.trim(),
+        role: a.role,
+      }));
+      await tx.insert(eventAttendees).values(attendeeValues);
 
-    // Send confirmation email to contact (non-blocking)
+      return reg;
+    });
+
+    // Send confirmation email to contact (non-blocking, outside transaction)
     sendRegistrationSuccessEmail(
       contactEmail,
       registration.registrationKey,

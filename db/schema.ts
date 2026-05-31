@@ -8,6 +8,7 @@ import {
   boolean,
   primaryKey,
   foreignKey,
+  index,
 } from "drizzle-orm/pg-core";
 
 // ============ Enums ============
@@ -135,7 +136,9 @@ export const events = pgTable("events", {
   status: eventStatusEnum("status").notNull().default("published"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("idx_events_team_id").on(t.teamId),
+]);
 
 // ============ Event Purchase Items (購買項目) ============
 export const eventPurchaseItems = pgTable("event_purchase_items", {
@@ -150,7 +153,9 @@ export const eventPurchaseItems = pgTable("event_purchase_items", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("idx_purchase_items_event_id").on(t.eventId),
+]);
 
 // ============ Event Notice Items (須知項目) ============
 export const eventNoticeItems = pgTable("event_notice_items", {
@@ -162,7 +167,9 @@ export const eventNoticeItems = pgTable("event_notice_items", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("idx_notice_items_event_id").on(t.eventId),
+]);
 
 // ============ Event Registrations (報名記錄) ============
 export const eventRegistrations = pgTable("event_registrations", {
@@ -190,7 +197,10 @@ export const eventRegistrations = pgTable("event_registrations", {
   hidden: boolean("hidden").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("idx_reg_event_id").on(t.eventId),
+  index("idx_reg_reg_key").on(t.registrationKey),
+]);
 
 // ============ Event Registration Purchase Items (報名購買項目，用於多選) ============
 export const eventRegistrationPurchaseItems = pgTable(
@@ -213,6 +223,8 @@ export const eventRegistrationPurchaseItems = pgTable(
       columns: [t.purchaseItemId],
       foreignColumns: [eventPurchaseItems.id],
     }).onDelete("cascade"),
+    index("idx_erpi_reg_id").on(t.registrationId),
+    index("idx_erpi_item_id").on(t.purchaseItemId),
   ]
 );
 
@@ -228,4 +240,6 @@ export const eventAttendees = pgTable("event_attendees", {
   checkedInAt: timestamp("checked_in_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("idx_attendees_reg_id").on(t.registrationId),
+]);
