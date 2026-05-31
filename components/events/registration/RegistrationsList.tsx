@@ -14,6 +14,7 @@ import {
   type HiddenFilter,
 } from "@/lib/registration-list-filters";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Registration } from "@/types/registration";
 
 type RegistrationsListProps = {
@@ -29,6 +30,7 @@ type RegistrationsListProps = {
   onHiddenFilterChange: (v: HiddenFilter) => void;
   /** Total count before filters (for empty state message) */
   totalUnfilteredCount?: number;
+  isLoading?: boolean;
 };
 
 function getAttendanceTag(attendeeCount: number, checkedInCount: number) {
@@ -54,8 +56,14 @@ export function RegistrationsList({
   hiddenFilter,
   onHiddenFilterChange,
   totalUnfilteredCount = 0,
+  isLoading = false,
 }: RegistrationsListProps) {
   const [filterOpen, setFilterOpen] = useState(false);
+
+  const activeFilterCount =
+    (paymentFilter !== "all" ? 1 : 0) +
+    (checkInFilter !== "all" ? 1 : 0) +
+    (hiddenFilter !== "non_hidden" ? 1 : 0);
 
   return (
     <div className="space-y-4">
@@ -80,16 +88,22 @@ export function RegistrationsList({
             </button>
           )}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => setFilterOpen(true)}
-          className="shrink-0"
-          aria-label="篩選條件"
-        >
-          <Filter className="w-4 h-4" />
-        </Button>
+        <div className="relative shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setFilterOpen(true)}
+            aria-label="篩選條件"
+          >
+            <Filter className="w-4 h-4" />
+          </Button>
+          {activeFilterCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#5295BC] text-[10px] font-semibold text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Filter Drawer */}
@@ -172,7 +186,27 @@ export function RegistrationsList({
       </Drawer>
 
       {/* Registrations List */}
-      {registrations.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="p-4 rounded-lg border border-gray-200 bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-5 w-10 rounded-full" />
+                    <Skeleton className="h-5 w-16" />
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : registrations.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
           {totalUnfilteredCount === 0 ? "尚無報名記錄" : "沒有符合條件的報名記錄"}
         </div>

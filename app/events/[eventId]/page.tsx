@@ -6,8 +6,9 @@ import { useEffect, useState } from "react";
 import { EventForm } from "@/components/events/management/EventForm";
 import { EventStats } from "@/components/events/management/EventStats";
 import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
-import { RegistrationDetail } from "@/components/events/registration/RegistrationDetail";
+import { RegistrationDetail, RegistrationDetailSkeleton } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Share2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "@/hooks/use-event-detail";
@@ -86,8 +87,24 @@ export default function EventDetailPage() {
 
   if (eventQuery.isLoading) {
     return (
-      <div className="min-h-screen p-6">
-        <p className="text-gray-500">載入中…</p>
+      <div className="flex flex-1 flex-col max-w-2xl w-full">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+        <div className="flex border-b border-gray-200 bg-white px-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-10 w-12 mx-2 my-1.5 rounded" />
+          ))}
+        </div>
+        <div className="flex-1 p-4 space-y-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -186,7 +203,9 @@ export default function EventDetailPage() {
         )}
         {activeTab === "replies" && (
           <>
-            {selectedRegistration ? (
+            {selectedRegistrationId && registrationDetailQuery.isLoading ? (
+              <RegistrationDetailSkeleton onBack={() => setSelectedRegistrationId(null)} />
+            ) : selectedRegistration ? (
               <RegistrationDetail
                 registration={selectedRegistration}
                 currentIndex={registrations.findIndex((r) => r.id === selectedRegistrationId)}
@@ -239,10 +258,8 @@ export default function EventDetailPage() {
                 hiddenFilter={hiddenFilter}
                 onHiddenFilterChange={setHiddenFilter}
                 totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
+                isLoading={registrationsQuery.isLoading}
               />
-            )}
-            {registrationsQuery.isFetching && (
-              <div className="text-center text-sm text-gray-500 py-4">載入中…</div>
             )}
             {!selectedRegistration &&
               registrationsData?.pagination &&

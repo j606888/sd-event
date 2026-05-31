@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, CheckCircle2, Eye, EyeOff, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { RoleBadge } from "./RoleBadge";
@@ -21,6 +22,70 @@ type RegistrationDetailProps = {
   onHiddenToggle?: (hidden: boolean) => Promise<void>;
   onCheckIn: (attendeeId: number) => Promise<void>;
 };
+
+export function RegistrationDetailSkeleton({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+          <ChevronLeft className="w-4 h-4" />
+          <span className="text-sm">返回列表</span>
+        </button>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-4 rounded" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-4 w-28" />
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-7 w-24 rounded-md" />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-16" />
+        <div className="space-y-2">
+          {["姓名", "電話", "信箱"].map((_, i) => (
+            <div key={i} className="flex gap-2">
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-16" />
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex items-center justify-between p-2 rounded bg-gray-50">
+              <div className="flex gap-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-10 rounded-full" />
+              </div>
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-20" />
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <div className="flex justify-between">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function RegistrationDetail({
   registration,
