@@ -75,3 +75,67 @@ export type EntryVoucherPageData = {
   event: EntryVoucherEventData;
   registration: EntryVoucherRegistrationData;
 };
+
+export type PurchaseItem = {
+  id: number;
+  name: string;
+  amount: number;
+};
+
+/** Registration row in list view */
+export type Registration = {
+  id: number;
+  registrationKey: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  totalAmount: number;
+  paymentStatus: PaymentStatus;
+  attendeeCount: number;
+  checkedInCount?: number;
+  hidden?: boolean;
+  createdAt: string;
+};
+
+/** Full registration data in detail view */
+export type RegistrationDetailData = {
+  id: number;
+  registrationKey: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  paymentMethod: string | null;
+  totalAmount: number;
+  paymentStatus: PaymentStatus;
+  paymentScreenshotUrl: string | null;
+  paymentNote: string | null;
+  hidden?: boolean;
+  createdAt: string;
+  attendees: Array<{
+    id: number;
+    name: string;
+    role: "Leader" | "Follower" | "Not sure" | string;
+    checkedIn?: boolean;
+    checkedInAt?: string | null;
+  }>;
+  purchaseItem: PurchaseItem | null;
+  purchaseItems?: PurchaseItem[];
+};
+
+/** Registration as shown in the QR scan check-in view */
+export type ScannedRegistration = {
+  id: number;
+  registrationKey: string;
+  contactName: string;
+  totalAmount: number;
+  paymentStatus: string;
+  purchaseItem: PurchaseItem | null;
+  purchaseItems?: PurchaseItem[];
+  attendees: Array<{
+    id: number;
+    name: string;
+    role: string;
+    checkedIn: boolean;
+    checkedInAt: string | null;
+  }>;
+};

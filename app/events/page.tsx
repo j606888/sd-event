@@ -6,13 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EventCard } from "@/components/events/management/EventCard";
 import { useCurrentTeam } from "@/hooks/use-current-team";
-
-type EventLocation = {
-  id: number;
-  name: string;
-  address: string | null;
-  googleMapUrl: string | null;
-};
+import type { EventLocation } from "@/types/event";
 
 type EventItem = {
   id: number;

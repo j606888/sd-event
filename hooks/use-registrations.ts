@@ -2,44 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PaymentFilter, HiddenFilter, CheckInFilter } from "@/lib/registration-list-filters";
+import type { Registration, RegistrationDetailData } from "@/types/registration";
 
-export type Registration = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  totalAmount: number;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-  attendeeCount: number;
-  checkedInCount?: number;
-  hidden?: boolean;
-  createdAt: string;
-};
-
-export type RegistrationDetailData = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  paymentMethod: string | null;
-  totalAmount: number;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-  paymentScreenshotUrl: string | null;
-  paymentNote: string | null;
-  hidden?: boolean;
-  createdAt: string;
-  attendees: Array<{
-    id: number;
-    name: string;
-    role: "Leader" | "Follower" | "Not sure" | string;
-    checkedIn?: boolean;
-    checkedInAt?: string | null;
-  }>;
-  purchaseItem: { id: number; name: string; amount: number } | null;
-  purchaseItems?: Array<{ id: number; name: string; amount: number }>;
-};
+export type { Registration, RegistrationDetailData };
 
 export type RegistrationsParams = {
   search: string;

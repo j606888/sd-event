@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Cloud, CheckCircle2, Clock, EyeOff, Filter, X } from "lucide-react";
+import { Search, EyeOff, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -13,20 +13,8 @@ import {
   type CheckInFilter,
   type HiddenFilter,
 } from "@/lib/registration-list-filters";
-
-type Registration = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  totalAmount: number;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-  attendeeCount: number;
-  checkedInCount?: number;
-  hidden?: boolean;
-  createdAt: string;
-};
+import { PaymentStatusBadge } from "./PaymentStatusBadge";
+import type { Registration } from "@/types/registration";
 
 type RegistrationsListProps = {
   registrations: Registration[];
@@ -42,41 +30,6 @@ type RegistrationsListProps = {
   /** Total count before filters (for empty state message) */
   totalUnfilteredCount?: number;
 };
-
-function getStatusBadge(status: Registration["paymentStatus"]) {
-  switch (status) {
-    case "pending":
-      return {
-        icon: Cloud,
-        label: "尚未付款",
-        className: "bg-gray-100 text-gray-700",
-      };
-    case "reported":
-      return {
-        icon: Clock,
-        label: "待確認",
-        className: "bg-yellow-100 text-yellow-800",
-      };
-    case "confirmed":
-      return {
-        icon: CheckCircle2,
-        label: "已完成付款",
-        className: "bg-green-100 text-green-700",
-      };
-    case "rejected":
-      return {
-        icon: Clock,
-        label: "已拒絕",
-        className: "bg-red-100 text-red-700",
-      };
-    default:
-      return {
-        icon: Cloud,
-        label: "未知",
-        className: "bg-gray-100 text-gray-700",
-      };
-  }
-}
 
 function getAttendanceTag(attendeeCount: number, checkedInCount: number) {
   const checked = checkedInCount ?? 0;
@@ -226,8 +179,6 @@ export function RegistrationsList({
       ) : (
         <div className="space-y-2">
           {registrations.map((reg) => {
-            const statusBadge = getStatusBadge(reg.paymentStatus);
-            const StatusIcon = statusBadge.icon;
             const attendance = getAttendanceTag(reg.attendeeCount, reg.checkedInCount ?? 0);
 
             return (
@@ -257,12 +208,7 @@ export function RegistrationsList({
                         已隱藏
                       </span>
                     )}
-                    <div
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}
-                    >
-                      <StatusIcon className="w-3 h-3 shrink-0" />
-                      <span>{statusBadge.label}</span>
-                    </div>
+                    <PaymentStatusBadge status={reg.paymentStatus} />
                     <div
                       className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${attendance.className}`}
                     >

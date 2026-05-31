@@ -5,22 +5,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
-
-type RegistrationData = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  totalAmount: number;
-  paymentStatus: string;
-  purchaseItem: { id: number; name: string; amount: number } | null;
-  attendees: Array<{
-    id: number;
-    name: string;
-    role: string;
-    checkedIn: boolean;
-    checkedInAt: string | null;
-  }>;
-};
+import type { ScannedRegistration } from "@/types/registration";
 
 type QRScannerProps = {
   eventId: number;
@@ -32,8 +17,7 @@ export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scannedRegistration, setScannedRegistration] = useState<RegistrationData | null>(null);
-  const processingRef = useRef(false);
+  const [scannedRegistration, setScannedRegistration] = useState<ScannedRegistration | null>(null);
 
   const parseQRCode = (decodedText: string): string | null => {
     try {
@@ -93,6 +77,7 @@ export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
                 amount: data.purchaseItem.amount,
               }
             : null,
+          purchaseItems: data.purchaseItems ?? undefined,
           attendees: data.attendees.map((a: any) => ({
             id: a.id,
             name: a.name,

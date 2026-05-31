@@ -106,6 +106,19 @@ export function formatEventDate(startAt: string, endAt: string): string {
   return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
 }
 
+/**
+ * Format a single ISO timestamp (e.g. createdAt) in Asia/Taipei timezone.
+ * Output: 2024年01月03日 3:45 PM
+ */
+export function formatTimestamp(isoString: string): string {
+  const date = new Date(isoString);
+  const { year, month, day } = getDatePartsInTz(date);
+  const { hour, minute } = getTimePartsInTz(date);
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${year}年${String(month).padStart(2, "0")}月${String(day).padStart(2, "0")}日 ${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
 export function formatEventDateShort(startAt: string, endAt: string): string {
   const start = new Date(startAt);
   const end = new Date(endAt);

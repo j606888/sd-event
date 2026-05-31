@@ -3,62 +3,16 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-type Attendee = {
-  id: number;
-  name: string;
-  role: string;
-  checkedIn: boolean;
-  checkedInAt: string | null;
-};
-
-type PurchaseItem = {
-  id: number;
-  name: string;
-  amount: number;
-};
-
-type Registration = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  totalAmount: number;
-  paymentStatus: string;
-  purchaseItem: PurchaseItem | null; // For backward compatibility
-  purchaseItems?: PurchaseItem[]; // Array of purchase items (for multiple selection)
-  attendees: Attendee[];
-};
+import { PaymentStatusBadge } from "./PaymentStatusBadge";
+import { RoleBadge } from "./RoleBadge";
+import type { ScannedRegistration } from "@/types/registration";
 
 type ScannedRegistrationDetailProps = {
-  registration: Registration;
+  registration: ScannedRegistration;
   onBack: () => void;
   onCheckIn: (attendeeId: number) => Promise<void>;
   backLabel?: string;
 };
-
-function getRoleBadge(role: string) {
-  const styles: Record<string, string> = {
-    Leader: "bg-green-100 text-green-700",
-    Follower: "bg-gray-100 text-gray-700",
-    "Not sure": "bg-blue-100 text-blue-700",
-  };
-  return styles[role] || styles["Not sure"];
-}
-
-function getPaymentStatusBadge(status: string) {
-  switch (status) {
-    case "confirmed":
-      return { label: "已完成付款", className: "bg-green-100 text-green-700" };
-    case "reported":
-      return { label: "待確認", className: "bg-amber-100 text-amber-700" };
-    case "pending":
-      return { label: "尚未付款", className: "bg-slate-100 text-slate-700" };
-    case "rejected":
-      return { label: "付款未通過", className: "bg-red-100 text-red-700" };
-    default:
-      return { label: "未知狀態", className: "bg-gray-100 text-gray-700" };
-  }
-}
 
 export function ScannedRegistrationDetail({
   registration,
@@ -105,7 +59,6 @@ export function ScannedRegistrationDetail({
 
   const attendeeCount = localAttendees.length;
   const allCheckedIn = localAttendees.every((a) => a.checkedIn);
-  const paymentBadge = getPaymentStatusBadge(registration.paymentStatus);
 
   return (
     <div className="space-y-6">
@@ -131,11 +84,7 @@ export function ScannedRegistrationDetail({
               {attendeeCount}人 · NT ${registration.totalAmount.toLocaleString()}
             </div>
             <div className="mt-2">
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${paymentBadge.className}`}
-              >
-                付款狀態：{paymentBadge.label}
-              </span>
+              <PaymentStatusBadge status={registration.paymentStatus} />
             </div>
           </div>
           {allCheckedIn && (
@@ -180,11 +129,7 @@ export function ScannedRegistrationDetail({
             >
               <div className="flex items-center gap-2">
                 <span className="text-gray-900 font-medium">• {attendee.name}</span>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadge(attendee.role)}`}
-                >
-                  {attendee.role}
-                </span>
+                <RoleBadge role={attendee.role} />
               </div>
               {attendee.checkedIn ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">

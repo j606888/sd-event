@@ -2,44 +2,16 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, CheckCircle2, Cloud, Eye, EyeOff, QrCode, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Eye, EyeOff, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
-
-type Attendee = {
-  id: number;
-  name: string;
-  role: "Leader" | "Follower" | "Not sure" | string;
-  checkedIn?: boolean;
-  checkedInAt?: string | null;
-};
-
-type PurchaseItem = {
-  id: number;
-  name: string;
-  amount: number;
-};
-
-type Registration = {
-  id: number;
-  registrationKey: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  paymentMethod: string | null;
-  totalAmount: number;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
-  paymentScreenshotUrl: string | null;
-  paymentNote: string | null;
-  hidden?: boolean;
-  createdAt: string;
-  attendees: Array<{ id: number; name: string; role: string; checkedIn?: boolean; checkedInAt?: string | null }>;
-  purchaseItem: PurchaseItem | null; // For backward compatibility
-  purchaseItems?: PurchaseItem[]; // Array of purchase items (for multiple selection)
-};
+import { PaymentStatusBadge } from "./PaymentStatusBadge";
+import { RoleBadge } from "./RoleBadge";
+import { formatTimestamp } from "@/lib/format-event-date";
+import type { RegistrationDetailData } from "@/types/registration";
 
 type RegistrationDetailProps = {
-  registration: Registration;
+  registration: RegistrationDetailData;
   currentIndex: number;
   totalCount: number;
   onBack: () => void;
@@ -49,28 +21,6 @@ type RegistrationDetailProps = {
   onHiddenToggle?: (hidden: boolean) => Promise<void>;
   onCheckIn: (attendeeId: number) => Promise<void>;
 };
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const period = date.getHours() >= 12 ? "PM" : "AM";
-  const displayHour = date.getHours() > 12 ? date.getHours() - 12 : date.getHours() === 0 ? 12 : date.getHours();
-  
-  return `${year}年${month}月${day}日 ${displayHour}:${minutes} ${period}`;
-}
-
-function getRoleBadge(role: string) {
-  const styles: Record<string, string> = {
-    Leader: "bg-green-100 text-green-700",
-    Follower: "bg-gray-100 text-gray-700",
-    "Not sure": "bg-blue-100 text-blue-700",
-  };
-  return styles[role] || styles["Not sure"];
-}
 
 export function RegistrationDetail({
   registration,
@@ -165,22 +115,11 @@ export function RegistrationDetail({
                 已隱藏
               </span>
             )}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
-              <Cloud className="w-3 h-3" />
-              <span>
-                {registration.paymentStatus === "pending"
-                  ? "尚未付款"
-                  : registration.paymentStatus === "reported"
-                    ? "待確認"
-                    : registration.paymentStatus === "confirmed"
-                      ? "已完成"
-                      : "已拒絕"}
-              </span>
-            </div>
+            <PaymentStatusBadge status={registration.paymentStatus} />
           </div>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-gray-500">{formatDate(registration.createdAt)}</span>
+          <span className="text-xs text-gray-500">{formatTimestamp(registration.createdAt)}</span>
           {onHiddenToggle && (
             <Button
               type="button"
@@ -247,11 +186,7 @@ export function RegistrationDetail({
             >
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-900">{attendee.name}</span>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadge(attendee.role)}`}
-                >
-                  {attendee.role}
-                </span>
+                <RoleBadge role={attendee.role} />
               </div>
               {attendee.checkedIn ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">
