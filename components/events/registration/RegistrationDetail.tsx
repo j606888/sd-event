@@ -86,6 +86,7 @@ export function RegistrationDetail({
   const [updating, setUpdating] = useState(false);
   const [hiddenUpdating, setHiddenUpdating] = useState(false);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
 
   const handleConfirm = async () => {
     const notPaid = registration.paymentStatus === "pending";
@@ -316,7 +317,11 @@ export function RegistrationDetail({
       {registration.paymentScreenshotUrl && (
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-900">付款證明</h3>
-          <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+          <button
+            type="button"
+            onClick={() => setImagePreviewOpen(true)}
+            className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100 cursor-zoom-in"
+          >
             <Image
               src={registration.paymentScreenshotUrl}
               alt="付款截圖"
@@ -324,7 +329,7 @@ export function RegistrationDetail({
               className="object-contain"
               unoptimized
             />
-          </div>
+          </button>
         </div>
       )}
 
@@ -382,6 +387,30 @@ export function RegistrationDetail({
                 backLabel="返回"
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {imagePreviewOpen && registration.paymentScreenshotUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setImagePreviewOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setImagePreviewOpen(false)}
+            className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30"
+            aria-label="關閉"
+          >
+            <X className="size-5" />
+          </button>
+          <div onClick={(e) => e.stopPropagation()}>
+            <img
+              src={registration.paymentScreenshotUrl}
+              alt="付款截圖"
+              className="max-h-[90vh] max-w-[90vw] object-contain rounded"
+            />
           </div>
         </div>
       )}
