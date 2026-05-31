@@ -222,7 +222,8 @@ export default function EventDetailPage() {
     fetchEvent()
       .catch(() => setError("無法載入活動"))
       .finally(() => setLoading(false));
-  }, [eventId, fetchEvent]);
+    fetchRegistrations();
+  }, [eventId, fetchEvent, fetchRegistrations]);
 
   useEffect(() => {
     if (activeTab === "replies" && eventId) {
