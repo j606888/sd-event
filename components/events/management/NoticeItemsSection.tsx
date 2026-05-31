@@ -3,8 +3,7 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-
-type NoticeItemDraft = { id?: number; content: string };
+import type { NoticeItemDraft } from "@/hooks/use-event-form";
 
 type NoticeItemsSectionProps = {
   items: NoticeItemDraft[];

@@ -3,6 +3,7 @@
 本檔案列出 `/events/:eventId` 及相關模組的待辦改善項目。
 Items 1–8 + 13 已在 `feature/claude` branch 完成（commit `cfee2e6`）。
 Items 9–10 已完成。
+Item 11 已完成。
 
 ---
 
@@ -16,47 +17,14 @@ Items 9–10 已完成。
 - **Item 6** — 加 DB indexes（`db/schema.ts`，migration: `drizzle/0003_wet_wilson_fisk.sql`）⚠️ 記得跑 `npm run db:migrate`
 - **Item 7** — Stats endpoint 改用 DB-level aggregation（`app/api/events/[eventId]/stats/route.ts`）
 - **Item 8** — DELETE event 加 ownership 驗證（`app/api/events/[eventId]/route.ts`）
-- **Item 13** — 搜尋加 300ms debounce（`app/events/[eventId]/page.tsx`）
 - **Item 9** — 抽出 `PaymentStatusBadge`、`RoleBadge` 共用元件；date formatting 統一用 `lib/format-event-date.ts` 的 `formatTimestamp()`
 - **Item 10** — Canonical types 移至 `types/registration.ts`（`Registration`、`RegistrationDetailData`、`ScannedRegistration`、`PurchaseItem`）；`EventLocation` 改從 `types/event.ts` import
+- **Item 11** — `EventForm.tsx` 表單邏輯抽成 `hooks/use-event-form.ts`；`PurchaseItemDraft`、`NoticeItemDraft` 類型集中到 hook 檔案，移除三個同名 sibling 重複定義
+- **Item 13** — 搜尋加 300ms debounce（`app/events/[eventId]/page.tsx`）
 
 ---
 
 ## 🔲 待辦
-
-### Item 9 — 重複的 UI 邏輯抽成共用元件
-相同程式碼出現在多個地方：
-
-**Payment status badge**（出現 3 次）：
-- `components/events/registration/RegistrationDetail.tsx`
-- `components/events/registration/RegistrationsList.tsx`
-- `components/events/registration/ScannedRegistrationDetail.tsx`
-
-**Role badge**（出現 2 次，Leader/Follower/Not sure 顏色對應）：
-- `components/events/registration/RegistrationDetail.tsx`
-- `components/events/registration/ScannedRegistrationDetail.tsx`
-
-**Date formatting**（兩套實作）：
-- `lib/format-event-date.ts`（正確的，有 timezone）
-- `components/events/registration/RegistrationDetail.tsx` 裡的 `formatDate()`（自己寫的，應刪除改用 lib）
-
-做法：抽成 `components/events/registration/PaymentStatusBadge.tsx`、`RoleBadge.tsx`，date formatting 統一用 `lib/format-event-date.ts`。
-
----
-
-### Item 10 — Type 定義散落、重複
-`Registration` type 在以下地方各自定義（已有部分整合到 `hooks/use-registrations.ts`，但還需清理）：
-- `components/events/registration/RegistrationsList.tsx`
-- `components/events/registration/RegistrationDetail.tsx`
-- `components/events/registration/QRScanner.tsx`（叫 `RegistrationData`）
-
-`EventLocation` 重複定義：
-- `types/event.ts`
-- `app/events/page.tsx`
-
-做法：在 `types/` 建立 canonical types，各元件 import 共用，不各自定義。
-
----
 
 ### Item 11 — EventForm.tsx 太大（734 行），責任過多
 檔案：`components/events/management/EventForm.tsx`

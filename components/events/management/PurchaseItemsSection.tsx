@@ -3,14 +3,7 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-
-type PurchaseItemDraft = {
-  id?: number;
-  name: string;
-  amount: number;
-  /** 不在公開報名表顯示（已儲存項目由後端同步；新建項目僅存於表單狀態） */
-  hidden?: boolean;
-};
+import type { PurchaseItemDraft } from "@/hooks/use-event-form";
 
 type PurchaseItemsSectionProps = {
   items: PurchaseItemDraft[];

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { X } from "lucide-react";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
-import { useUploadThing } from "@/lib/uploadthing";
 import { LocationSelect } from "./LocationSelect";
 import { OrganizerSelect } from "./OrganizerSelect";
 import { BankInfoSelect } from "./BankInfoSelect";
@@ -19,75 +17,15 @@ import { OrganizerDrawer } from "./OrganizerDrawer";
 import { BankInfoDrawer } from "./BankInfoDrawer";
 import { PurchaseItemDrawer } from "./PurchaseItemDrawer";
 import { NoticeItemDrawer } from "./NoticeItemDrawer";
+import { useEventForm } from "@/hooks/use-event-form";
 
-type DrawerType =
-  | null
-  | "location"
-  | "purchaseItem"
-  | "notice"
-  | "organizer"
-  | "bank";
-
-type Location = { id: number; name: string };
-type Organizer = { id: number; name: string };
-type BankInfo = { id: number; bankName: string };
-type PurchaseItemDraft = {
-  id?: number;
-  name: string;
-  amount: number;
-  hidden?: boolean;
-};
-type NoticeItemDraft = { id?: number; content: string };
-
-export type EventFormInitialData = {
-  id: number;
-  teamId: number;
-  title: string;
-  description: string | null;
-  coverUrl: string | null;
-  startAt: string;
-  endAt: string;
-  locationId: number | null;
-  organizerId: number | null;
-  bankInfoId: number | null;
-  allowMultiplePurchase: boolean;
-  autoCalcAmount: boolean;
-};
-
-function toDateTimeLocal(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  // Convert to local time for datetime-local input
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-/**
- * Convert datetime-local string (YYYY-MM-DDTHH:mm) to ISO string
- * Preserves the local time as the intended time, converting to UTC properly
- */
-function datetimeLocalToISO(datetimeLocal: string): string {
-  if (!datetimeLocal) return new Date().toISOString();
-  // datetime-local format: "YYYY-MM-DDTHH:mm"
-  // Create a Date object treating it as local time
-  const localDate = new Date(datetimeLocal);
-  // Check if the date is valid
-  if (isNaN(localDate.getTime())) {
-    return new Date().toISOString();
-  }
-  // Return ISO string which will be in UTC
-  return localDate.toISOString();
-}
+export type { EventFormInitialData } from "@/hooks/use-event-form";
 
 type EventFormProps = {
   mode: "create" | "edit";
   teamId: number;
   eventId?: number;
-  initialData?: EventFormInitialData;
+  initialData?: import("@/hooks/use-event-form").EventFormInitialData;
   submitLabel: string;
   onSaveSuccess?: () => void;
   renderExtraActions?: React.ReactNode;
@@ -102,408 +40,50 @@ export function EventForm({
   onSaveSuccess,
   renderExtraActions,
 }: EventFormProps) {
-  const [drawer, setDrawer] = useState<DrawerType>(null);
-  const [allowMultiple, setAllowMultiple] = useState(false);
-  const [autoCalcAmount, setAutoCalcAmount] = useState(false);
-  const [locationId, setLocationId] = useState<string>("");
-  const [organizerId, setOrganizerId] = useState<string>("");
-  const [bankInfoId, setBankInfoId] = useState<string>("");
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [organizers, setOrganizers] = useState<Organizer[]>([]);
-  const [bankInfos, setBankInfos] = useState<BankInfo[]>([]);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
-
-  // Auto-update end time when start time changes
-  const handleStartAtChange = (value: string) => {
-    setStartAt(value);
-    if (value) {
-      const startDate = new Date(value);
-      if (!isNaN(startDate.getTime())) {
-        // Add 1 hour to start time
-        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-        // Check if current end time is before or equal to new start time
-        const currentEndDate = endAt ? new Date(endAt) : null;
-        if (!currentEndDate || currentEndDate <= startDate) {
-          // Format as datetime-local: YYYY-MM-DDTHH:mm
-          const year = endDate.getFullYear();
-          const month = String(endDate.getMonth() + 1).padStart(2, "0");
-          const day = String(endDate.getDate()).padStart(2, "0");
-          const hours = String(endDate.getHours()).padStart(2, "0");
-          const minutes = String(endDate.getMinutes()).padStart(2, "0");
-          setEndAt(`${year}-${month}-${day}T${hours}:${minutes}`);
-        }
-      }
-    }
-  };
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const { startUpload: startCoverUpload, isUploading: isUploadingCover } = useUploadThing("eventCover", {
-    onClientUploadComplete: (res) => {
-      const first = res?.[0];
-      const url =
-        first &&
-        ("url" in first
-          ? first.url
-          : (first as { ufsUrl?: string }).ufsUrl);
-      if (url) {
-        setCoverUrl(url);
-        // Clean up preview URL
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-          setPreviewUrl(null);
-        }
-        setSelectedCoverFile(null);
-      }
-    },
-    onUploadError: (err) => {
-      console.error("Cover upload error:", err);
-      setSaveError("上傳封面失敗，請重試");
-    },
-  });
-
-  // Cleanup preview URL on unmount
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
-
-  const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([]);
-  const [purchaseItemHiddenUpdatingIndex, setPurchaseItemHiddenUpdatingIndex] = useState<
-    number | null
-  >(null);
-  const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
-
-  const initializedEventIdRef = useRef<number | null>(null);
-
-  const openDrawer = (type: DrawerType) => () => {
-    setDrawer(type);
-  };
-  const closeDrawer = () => {
-    setDrawer(null);
-  };
-
-  const fetchLocations = useCallback(async () => {
-    const res = await fetch(`/api/teams/${teamId}/locations`, { credentials: "include" });
-    if (res.ok) {
-      const data = await res.json();
-      setLocations(data.locations ?? []);
-    }
-  }, [teamId]);
-  const fetchOrganizers = useCallback(async () => {
-    const res = await fetch(`/api/teams/${teamId}/organizers`, { credentials: "include" });
-    if (res.ok) {
-      const data = await res.json();
-      setOrganizers(data.organizers ?? []);
-    }
-  }, [teamId]);
-  const fetchBankInfos = useCallback(async () => {
-    const res = await fetch(`/api/teams/${teamId}/bank-infos`, { credentials: "include" });
-    if (res.ok) {
-      const data = await res.json();
-      setBankInfos(data.bankInfos ?? []);
-    }
-  }, [teamId]);
-
-  useEffect(() => {
-    fetchLocations();
-    fetchOrganizers();
-    fetchBankInfos();
-  }, [fetchLocations, fetchOrganizers, fetchBankInfos]);
-
-  useEffect(() => {
-    if (mode !== "edit" || !initialData) {
-      initializedEventIdRef.current = null;
-      return;
-    }
-    // Only initialize once per event ID
-    if (initializedEventIdRef.current === initialData.id) return;
-    
-    setTitle(initialData.title);
-    setDescription(initialData.description ?? "");
-    setCoverUrl(initialData.coverUrl);
-    setSelectedCoverFile(null);
-    setPreviewUrl(null);
-    setStartAt(toDateTimeLocal(initialData.startAt));
-    setEndAt(toDateTimeLocal(initialData.endAt));
-    // Set IDs only if they exist and are valid numbers
-    if (initialData.locationId != null && Number.isInteger(initialData.locationId)) {
-      setLocationId(String(initialData.locationId));
-    } else {
-      // setLocationId("");
-    }
-    if (initialData.organizerId != null && Number.isInteger(initialData.organizerId)) {
-      setOrganizerId(String(initialData.organizerId));
-    } else {
-      setOrganizerId("");
-    }
-    if (initialData.bankInfoId != null && Number.isInteger(initialData.bankInfoId)) {
-      setBankInfoId(String(initialData.bankInfoId));
-    } else {
-      setBankInfoId("");
-    }
-    setAllowMultiple(initialData.allowMultiplePurchase);
-    setAutoCalcAmount(initialData.autoCalcAmount);
-    initializedEventIdRef.current = initialData.id;
-  }, [mode, initialData]);
-
-  useEffect(() => {
-    if (mode !== "edit" || !eventId) return;
-    Promise.all([
-      fetch(`/api/events/${eventId}/purchase-items`, { credentials: "include" }).then((r) => r.json()),
-      fetch(`/api/events/${eventId}/notice-items`, { credentials: "include" }).then((r) => r.json()),
-    ]).then(([pData, nData]) => {
-      const items = (pData?.items ?? []).map(
-        (i: { id: number; name: string; amount: number; hidden?: boolean }) => ({
-          id: i.id,
-          name: i.name,
-          amount: i.amount,
-          hidden: Boolean(i.hidden),
-        })
-      );
-      const notices = (nData?.items ?? []).map((i: { id: number; content: string }) => ({
-        id: i.id,
-        content: i.content ?? "",
-      }));
-      setPurchaseItems(items);
-      setNoticeItems(notices);
-    });
-  }, [mode, eventId]);
-
-  const handleLocationSuccess = async (locationId: number) => {
-    await fetchLocations();
-    // setLocationId(String(locationId));
-    setDrawer(null);
-  };
-
-  const handleOrganizerSuccess = async (organizerId: number) => {
-    await fetchOrganizers();
-    setOrganizerId(String(organizerId));
-    setDrawer(null);
-  };
-
-  const handleBankInfoSuccess = async (bankInfoId: number) => {
-    await fetchBankInfos();
-    setBankInfoId(String(bankInfoId));
-    setDrawer(null);
-  };
-
-  const handlePurchaseItemSuccess = (item: PurchaseItemDraft) => {
-    setPurchaseItems((prev) => [...prev, item]);
-    setDrawer(null);
-  };
-
-  const handleNoticeItemSuccess = (item: NoticeItemDraft) => {
-    setNoticeItems((prev) => [...prev, item]);
-    setDrawer(null);
-  };
-
-  const removePurchaseItem = (index: number) => {
-    const item = purchaseItems[index];
-    if (item.id != null) return;
-    setPurchaseItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const setPurchaseItemHidden = async (index: number, hidden: boolean) => {
-    const item = purchaseItems[index];
-    if (item.id == null) {
-      setPurchaseItems((prev) =>
-        prev.map((row, i) => (i === index ? { ...row, hidden } : row))
-      );
-      return;
-    }
-    if (mode !== "edit" || eventId == null) return;
-    setPurchaseItemHiddenUpdatingIndex(index);
-    setSaveError(null);
-    try {
-      const res = await fetch(`/api/events/${eventId}/purchase-items/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ hidden }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveError(data.error || "更新購買項目失敗");
-        return;
-      }
-      setPurchaseItems((prev) =>
-        prev.map((row, i) => (i === index ? { ...row, hidden } : row))
-      );
-    } catch {
-      setSaveError("更新購買項目失敗");
-    } finally {
-      setPurchaseItemHiddenUpdatingIndex(null);
-    }
-  };
-  const removeNoticeItem = (index: number) => {
-    const item = noticeItems[index];
-    if (item.id != null) return;
-    setNoticeItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setSaveError("請選擇圖片檔案");
-      return;
-    }
-
-    // Validate file size (4MB)
-    if (file.size > 4 * 1024 * 1024) {
-      setSaveError("圖片大小不能超過 4MB");
-      return;
-    }
-
-    setSelectedCoverFile(file);
-    setSaveError(null);
-
-    // Create preview URL
-    const preview = URL.createObjectURL(file);
-    setPreviewUrl(preview);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaveError(null);
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      setSaveError("請輸入標題");
-      return;
-    }
-    if (!locationId || !locationId.trim()) {
-      setSaveError("請選擇活動地點");
-      return;
-    }
-    if (!organizerId || !organizerId.trim()) {
-      setSaveError("請選擇主辦單位");
-      return;
-    }
-    if (!bankInfoId || !bankInfoId.trim()) {
-      setSaveError("請選擇銀行資訊");
-      return;
-    }
-    setSaving(true);
-    try {
-      // Upload cover image if a new file is selected
-      let finalCoverUrl = coverUrl;
-      if (selectedCoverFile) {
-        try {
-          const uploadResult = await startCoverUpload([selectedCoverFile]);
-          if (!uploadResult || uploadResult.length === 0) {
-            throw new Error("上傳失敗");
-          }
-          const first = uploadResult[0];
-          finalCoverUrl =
-            first &&
-            ("url" in first
-              ? first.url
-              : (first as { ufsUrl?: string }).ufsUrl) ||
-            null;
-          if (!finalCoverUrl) {
-            throw new Error("無法取得上傳後的圖片網址");
-          }
-        } catch (uploadError) {
-          console.error("Upload error:", uploadError);
-          setSaveError(uploadError instanceof Error ? uploadError.message : "上傳封面失敗，請重試");
-          setSaving(false);
-          return;
-        }
-      }
-      if (mode === "edit" && eventId != null) {
-        const res = await fetch(`/api/events/${eventId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            title: trimmedTitle,
-            description: description.trim() || null,
-            coverUrl: finalCoverUrl || null,
-            startAt: datetimeLocalToISO(startAt),
-            endAt: datetimeLocalToISO(endAt),
-            locationId: Number(locationId),
-            organizerId: Number(organizerId),
-            bankInfoId: Number(bankInfoId),
-            allowMultiplePurchase: allowMultiple,
-            autoCalcAmount: autoCalcAmount,
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setSaveError(data.error || "更新失敗");
-          setSaving(false);
-          return;
-        }
-        onSaveSuccess?.();
-      } else {
-        const res = await fetch("/api/events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            teamId,
-            title: trimmedTitle,
-            description: description.trim() || undefined,
-            coverUrl: finalCoverUrl || undefined,
-            startAt: datetimeLocalToISO(startAt),
-            endAt: datetimeLocalToISO(endAt),
-            locationId: Number(locationId),
-            organizerId: Number(organizerId),
-            bankInfoId: Number(bankInfoId),
-            allowMultiplePurchase: allowMultiple,
-            autoCalcAmount: autoCalcAmount,
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setSaveError(data.error || "儲存失敗");
-          setSaving(false);
-          return;
-        }
-        const newEventId = data.event?.id;
-        if (newEventId != null) {
-          for (let i = 0; i < purchaseItems.length; i++) {
-            const item = purchaseItems[i];
-            await fetch(`/api/events/${newEventId}/purchase-items`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({
-                name: item.name,
-                amount: item.amount,
-                sortOrder: i,
-                hidden: item.hidden === true,
-              }),
-            });
-          }
-          for (let i = 0; i < noticeItems.length; i++) {
-            await fetch(`/api/events/${newEventId}/notice-items`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ content: noticeItems[i].content, sortOrder: i }),
-            });
-          }
-        }
-        window.location.href = "/events";
-      }
-    } catch {
-      setSaveError(mode === "edit" ? "更新失敗" : "儲存失敗");
-    }
-    setSaving(false);
-  };
+  const {
+    drawer,
+    allowMultiple,
+    autoCalcAmount,
+    locationId,
+    organizerId,
+    bankInfoId,
+    locations,
+    organizers,
+    bankInfos,
+    title,
+    description,
+    startAt,
+    endAt,
+    coverUrl,
+    previewUrl,
+    purchaseItems,
+    purchaseItemHiddenUpdatingIndex,
+    noticeItems,
+    saveError,
+    saving,
+    setTitle,
+    setDescription,
+    setEndAt,
+    setLocationId,
+    setOrganizerId,
+    setBankInfoId,
+    setAllowMultiple,
+    setAutoCalcAmount,
+    handleStartAtChange,
+    handleFileSelect,
+    removeCover,
+    openDrawer,
+    closeDrawer,
+    handleLocationSuccess,
+    handleOrganizerSuccess,
+    handleBankInfoSuccess,
+    handlePurchaseItemSuccess,
+    handleNoticeItemSuccess,
+    removePurchaseItem,
+    removeNoticeItem,
+    setPurchaseItemHidden,
+    handleSubmit,
+  } = useEventForm({ mode, teamId, eventId, initialData, onSaveSuccess });
 
   return (
     <div className="w-full">
@@ -546,17 +126,7 @@ export function EventForm({
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  if (previewUrl) {
-                    // If there's a preview, remove the selected file and preview
-                    URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl(null);
-                    setSelectedCoverFile(null);
-                  } else {
-                    // If no preview, remove the existing cover URL
-                    setCoverUrl(null);
-                  }
-                }}
+                onClick={removeCover}
                 className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
                 aria-label="移除封面"
               >

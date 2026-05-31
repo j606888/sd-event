@@ -4,13 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-type PurchaseItemDraft = {
-  id?: number;
-  name: string;
-  amount: number;
-  hidden?: boolean;
-};
+import type { PurchaseItemDraft } from "@/hooks/use-event-form";
 
 type PurchaseItemDrawerProps = {
   mode: "create" | "edit";
