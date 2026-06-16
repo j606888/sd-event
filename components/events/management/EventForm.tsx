@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { X } from "lucide-react";
+import { X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +86,9 @@ export function EventForm({
     handleSubmit,
   } = useEventForm({ mode, teamId, eventId, initialData, onSaveSuccess });
 
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const coverSrc = previewUrl || coverUrl || "";
+
   return (
     <div className="w-full">
       <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -115,14 +119,22 @@ export function EventForm({
           <Label>活動封面</Label>
           {(coverUrl || previewUrl) ? (
             <div className="relative inline-block">
-              <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="group relative block aspect-video w-full max-w-md cursor-zoom-in overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
+                aria-label="放大檢視封面"
+              >
                 <Image
-                  src={previewUrl || coverUrl || ""}
+                  src={coverSrc}
                   alt="活動封面"
                   fill
                   className="object-cover"
                 />
-              </div>
+                <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
+                  <ZoomIn className="size-8 text-white" />
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={removeCover}
@@ -297,6 +309,32 @@ export function EventForm({
             />
           )}
         </Drawer>
+      )}
+
+      {lightboxOpen && coverSrc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="活動封面預覽"
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            aria-label="關閉預覽"
+          >
+            <X className="size-5" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element -- lightbox needs natural-resolution detail and supports blob: preview URLs */}
+          <img
+            src={coverSrc}
+            alt="活動封面"
+            className="max-h-[90vh] max-w-[90vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
     </div>
   );
