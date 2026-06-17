@@ -59,22 +59,37 @@ const SelectContent = React.forwardRef<
 ));
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
+type SelectItemProps = React.ComponentPropsWithoutRef<
+  typeof SelectPrimitive.Item
+> & {
+  /** 次要說明，渲染於 ItemText 之外（不會鏡射到 trigger） */
+  description?: React.ReactNode;
+  /** 前置內容（如頭像、圖示），渲染於 ItemText 之外 */
+  leading?: React.ReactNode;
+};
+
 const SelectItem = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
+  SelectItemProps
+>(({ className, children, description, leading, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-2 pl-3 pr-8 text-base outline-none focus:bg-[#5295BC]/10 focus:text-[#5295BC] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 md:text-sm",
+      "relative flex w-full cursor-default select-none items-center gap-2.5 rounded-sm py-2 pl-3 pr-8 text-base outline-none focus:bg-[#5295BC]/10 focus:text-[#5295BC] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 md:text-sm",
       className
     )}
     {...props}
   >
+    {leading && <span className="shrink-0">{leading}</span>}
+    <span className="flex min-w-0 flex-col">
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {description && (
+        <span className="mt-0.5 text-xs text-gray-500">{description}</span>
+      )}
+    </span>
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>✓</SelectPrimitive.ItemIndicator>
     </span>
-    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;

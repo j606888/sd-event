@@ -80,8 +80,20 @@ export type EventFormInitialData = {
 };
 
 type Location = { id: number; name: string };
-type Organizer = { id: number; name: string };
-type BankInfo = { id: number; bankName: string };
+type Organizer = {
+  id: number;
+  name: string;
+  photoUrl: string | null;
+  lineId: string | null;
+  instagram: string | null;
+  facebook: string | null;
+};
+type BankInfo = {
+  id: number;
+  bankName: string;
+  bankCode: string;
+  account: string | null;
+};
 
 function toDateTimeLocal(iso: string): string {
   if (!iso) return "";

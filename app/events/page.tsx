@@ -4,7 +4,11 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { EventCard } from "@/components/events/management/EventCard";
+import {
+  EventListRow,
+  getEventStatus,
+  type EventStatus,
+} from "@/components/events/management/EventListRow";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import type { EventLocation } from "@/types/event";
 
@@ -78,6 +82,24 @@ export default function EventsPage() {
     );
   }
 
+  const GROUP_ORDER: { status: EventStatus; title: string }[] = [
+    { status: "active", title: "進行中" },
+    { status: "draft", title: "草稿" },
+    { status: "ended", title: "已結束" },
+  ];
+
+  const groups = GROUP_ORDER.map(({ status, title }) => {
+    const items = events
+      .filter((e) => getEventStatus(e) === status)
+      .sort((a, b) => {
+        const aT = new Date(a.startAt).getTime();
+        const bT = new Date(b.startAt).getTime();
+        // 進行中／草稿：由近到遠；已結束：由新到舊
+        return status === "ended" ? bT - aT : aT - bT;
+      });
+    return { status, title, items };
+  }).filter((g) => g.items.length > 0);
+
   return (
     <div className="flex-1 p-4 md:p-6">
       {/* Header with title and create button */}
@@ -100,16 +122,26 @@ export default function EventsPage() {
           尚無活動，點擊「建立活動」開始
         </div>
       ) : (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-          {events.map((event) => (
-            <li key={event.id}>
-              <EventCard
-                event={event}
-                registrationCount={event.registrationCount ?? 0}
-              />
-            </li>
+        <div className="space-y-8">
+          {groups.map((group) => (
+            <section key={group.status}>
+              <h2 className="mb-3 text-sm font-medium text-gray-500">
+                {group.title}
+                <span className="ml-1.5 text-gray-400">{group.items.length}</span>
+              </h2>
+              <ul className="space-y-2">
+                {group.items.map((event) => (
+                  <li key={event.id}>
+                    <EventListRow
+                      event={event}
+                      registrationCount={event.registrationCount ?? 0}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
 
       {/* Mobile FAB: only show when there are events */}

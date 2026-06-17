@@ -10,7 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type BankInfo = { id: number; bankName: string };
+type BankInfo = {
+  id: number;
+  bankName: string;
+  bankCode: string;
+  account: string | null;
+};
 
 type BankInfoSelectProps = {
   value: string;
@@ -51,8 +56,12 @@ export function BankInfoSelect({
         </SelectTrigger>
         <SelectContent>
           {bankInfos.map((bank) => (
-            <SelectItem key={bank.id} value={String(bank.id)}>
-              {bank.bankName}
+            <SelectItem
+              key={bank.id}
+              value={String(bank.id)}
+              description={bank.account ? `帳號 ${bank.account}` : "尚未填寫帳號"}
+            >
+              {bank.bankName} {bank.bankCode}
             </SelectItem>
           ))}
           <SelectItem
