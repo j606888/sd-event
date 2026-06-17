@@ -43,8 +43,14 @@ export function Drawer({
         aria-modal="true"
         aria-labelledby="drawer-title"
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-150 flex max-h-[90vh] flex-col rounded-t-2xl bg-white shadow-xl transition-transform duration-300 ease-out pointer-events-auto",
-          open ? "translate-y-0 visible" : "translate-y-full invisible pointer-events-none"
+          // mobile：貼底滿版的 bottom sheet
+          "fixed inset-x-0 bottom-0 z-150 flex max-h-[90vh] flex-col rounded-t-2xl bg-white shadow-xl pointer-events-auto transition-all duration-300 ease-out",
+          // desktop（md+）：置中 modal、固定寬度、四角圓角
+          "md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-[32rem] md:max-w-[calc(100vw-2rem)] md:max-h-[85vh] md:-translate-x-1/2 md:rounded-2xl",
+          open
+            ? "translate-y-0 visible md:-translate-y-1/2 md:scale-100 md:opacity-100"
+            : "translate-y-full invisible pointer-events-none md:translate-y-[-44%] md:scale-95 md:opacity-0",
+          className
         )}
       >
         <div className="flex shrink-0 flex-col gap-0.5 border-b border-gray-100 px-4 pb-4 pt-4">
