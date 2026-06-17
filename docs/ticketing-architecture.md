@@ -121,7 +121,7 @@ tierName    text? // 報名當下生效的時段名稱（純記錄用）
 
 ## 實作分期（可分 session 進行）
 
-### Phase 1 — 時段價（最高價值、風險最低，幾乎純加法）
+### Phase 1 — 時段價（最高價值、風險最低，幾乎純加法）✅ 已完成
 
 **Schema**：新增 `eventPriceTiers`、`eventPurchaseItemPrices`；`db:generate` → `db:migrate:local` 驗證。
 
@@ -139,7 +139,14 @@ tierName    text? // 報名當下生效的時段名稱（純記錄用）
 **報名建立**：`app/api/events/[eventId]/registrations/route.ts` 在 transaction 內以伺服器解析的時段價
 回填 `unitAmount` / `tierName`，並可在後端重算總額做防呆校驗。
 
-### Phase 2 — 票種群組 + 選擇規則（結構性）
+### Phase 2 — 票種群組 + 選擇規則（結構性）✅ 已完成
+
+> 實作摘要：新增 `eventPurchaseItemGroups` + `eventPurchaseItems.groupId`；group CRUD 路由
+> （`app/api/events/[eventId]/purchase-item-groups/`）；public-event 回傳 `groups[]`；管理 UI 改群組階層
+> （`PurchaseItemsSection` / `PurchaseItemDrawer` / `use-event-form`）；報名端依群組 radio/checkbox 渲染、
+> 選填擇一群組附「不需要」選項、自動算總額（`FormData.selectedByGroup`）；報名建立依群組規則後端驗證並寫 join table。
+> 採**全有全無**：活動一旦有群組即走新模型，舊活動（無群組）完全沿用舊路徑。瀏覽器端對端 + 後端防呆皆已實測通過。
+
 
 **Schema**：新增 `eventPurchaseItemGroups`；`eventPurchaseItems` 加 `groupId`。
 
@@ -154,9 +161,23 @@ tierName    text? // 報名當下生效的時段名稱（純記錄用）
 
 **報名建立**：依群組規則做後端驗證，全部選項寫入 join table。
 
-### Phase 3 — 條件加購 / 折扣規則（延後）
+### Phase 3 — 跨群組規則 / 條件加購 / 折扣（待實作）
 
 第一版加購用固定價或獨立項目。日後可在群組/項目上加「加購價隨主票而變」的規則層。
+
+**Phase 2 實測後發現、優先度最高的缺口 —— 跨群組互斥（建議當 Phase 2.5 先做）：**
+
+目前群組的 `required` / `selectionMode` 只管**群組內**，沒有「選了 A 群組就鎖住 B 群組」的跨群組規則。
+以 Bachata Festival 為例（套票群組 single + 單堂課群組 multiple + Party 群組），使用者可以**同時**勾
+「全餐雙日 $2800」**又**勾單堂 A/B/C + Party，總額被加總成 $5200 —— 系統不擋，造成重複付費；
+「套票已含 Party」也擋不住再加買 Party 單購。
+
+建議方案（比完整折扣引擎小很多）：在 `eventPurchaseItemGroups` 加一個輕量的「互斥」關聯
+（如 `excludesGroupId` 或群組間 mutual-exclusion 表），前端：選了互斥群組的項目即清空/禁用另一群組；
+後端：報名建立時校驗互斥群組不可同時有選取。
+
+**完整 Phase 3（折扣 / 條件加購引擎，更後面再做）：**
+「雙堂免費加 Party」這類「加購價隨已選主票而變」的條件規則層；折扣自動推導。
 
 ---
 

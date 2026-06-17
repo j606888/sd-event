@@ -31,6 +31,17 @@ export type EventPurchaseItem = {
   name: string;
   /** 當下生效時段的有效價（由公開 API 依伺服器時間解析後填入） */
   amount: number;
+  /** 所屬票種群組；null/undefined = 此活動未使用群組 */
+  groupId?: number | null;
+};
+
+export type EventPurchaseItemGroup = {
+  id: number;
+  title: string;
+  selectionMode: "single" | "multiple";
+  required: boolean;
+  sortOrder: number;
+  items: EventPurchaseItem[];
 };
 
 export type EventNoticeItem = {
@@ -56,5 +67,7 @@ export type PublicEventData = {
   organizer: EventOrganizer | null;
   bankInfo: EventBankInfo | null;
   purchaseItems: EventPurchaseItem[];
+  /** 票種群組（含其下項目）；空陣列 = 此活動未使用群組，走舊模型 */
+  groups: EventPurchaseItemGroup[];
   noticeItems: EventNoticeItem[];
 };

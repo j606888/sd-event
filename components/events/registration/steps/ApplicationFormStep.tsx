@@ -85,61 +85,151 @@ export function ApplicationFormStep({
               </div>
             </div>
           </div>
-          <div className="space-y-3">
-            <h2 className="font-semibold text-gray-900">選擇方案</h2>
-            <div className="space-y-2">
-              {event.purchaseItems.map((item) => {
-                const isSelected = event.allowMultiplePurchase
-                  ? formData.selectedPlanIds.includes(item.id)
-                  : formData.selectedPlanId === item.id;
-                
-                return (
-                  <label
-                    key={item.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
-                      isSelected ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"
-                    }`}
-                  >
-                    <input
-                      type={event.allowMultiplePurchase ? "checkbox" : "radio"}
-                      name={event.allowMultiplePurchase ? `plan-${item.id}` : "plan"}
-                      checked={isSelected}
-                      onChange={() => {
-                        if (event.allowMultiplePurchase) {
-                          const newIds = isSelected
-                            ? formData.selectedPlanIds.filter((id) => id !== item.id)
-                            : [...formData.selectedPlanIds, item.id];
-                          onFormFieldChange("selectedPlanIds", newIds);
-                          // Clear single selection when using multiple
-                          if (formData.selectedPlanId !== null) {
-                            onFormFieldChange("selectedPlanId", null);
+          {event.groups.length > 0 ? (
+            // 群組模式：依群組規則渲染（single=radio、multiple=checkbox）
+            event.groups.map((group) => {
+              const selected = formData.selectedByGroup[group.id] ?? [];
+              const isSingle = group.selectionMode === "single";
+              const setGroupSelection = (ids: number[]) =>
+                onFormFieldChange("selectedByGroup", {
+                  ...formData.selectedByGroup,
+                  [group.id]: ids,
+                });
+              return (
+                <div key={group.id} className="space-y-3">
+                  <h2 className="font-semibold text-gray-900">
+                    {group.title}
+                    {group.required ? (
+                      <span className="ml-1 text-red-500">*</span>
+                    ) : (
+                      <span className="ml-2 text-xs font-normal text-gray-400">
+                        （選填）
+                      </span>
+                    )}
+                  </h2>
+                  <div className="space-y-2">
+                    {group.items.map((item) => {
+                      const isSelected = selected.includes(item.id);
+                      return (
+                        <label
+                          key={item.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
+                            isSelected ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"
+                          }`}
+                        >
+                          <input
+                            type={isSingle ? "radio" : "checkbox"}
+                            name={`group-${group.id}`}
+                            checked={isSelected}
+                            onChange={() => {
+                              if (isSingle) {
+                                setGroupSelection([item.id]);
+                              } else {
+                                setGroupSelection(
+                                  isSelected
+                                    ? selected.filter((id) => id !== item.id)
+                                    : [...selected, item.id]
+                                );
+                              }
+                            }}
+                            className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{item.name}</div>
+                            <div className="text-sm text-gray-600">
+                              ${item.amount}
+                              {event.activeTier ? (
+                                <span className="ml-1 text-xs text-gray-400">
+                                  （{event.activeTier.name}）
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                    {/* 選填 + 擇一群組：提供「不需要」選項以清除選取 */}
+                    {isSingle && !group.required && (
+                      <label
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
+                          selected.length === 0
+                            ? "bg-gray-50 border-[#5295BC]"
+                            : "border-gray-200"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`group-${group.id}`}
+                          checked={selected.length === 0}
+                          onChange={() => setGroupSelection([])}
+                          className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">不需要</div>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="space-y-3">
+              <h2 className="font-semibold text-gray-900">選擇方案</h2>
+              <div className="space-y-2">
+                {event.purchaseItems.map((item) => {
+                  const isSelected = event.allowMultiplePurchase
+                    ? formData.selectedPlanIds.includes(item.id)
+                    : formData.selectedPlanId === item.id;
+
+                  return (
+                    <label
+                      key={item.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
+                        isSelected ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"
+                      }`}
+                    >
+                      <input
+                        type={event.allowMultiplePurchase ? "checkbox" : "radio"}
+                        name={event.allowMultiplePurchase ? `plan-${item.id}` : "plan"}
+                        checked={isSelected}
+                        onChange={() => {
+                          if (event.allowMultiplePurchase) {
+                            const newIds = isSelected
+                              ? formData.selectedPlanIds.filter((id) => id !== item.id)
+                              : [...formData.selectedPlanIds, item.id];
+                            onFormFieldChange("selectedPlanIds", newIds);
+                            // Clear single selection when using multiple
+                            if (formData.selectedPlanId !== null) {
+                              onFormFieldChange("selectedPlanId", null);
+                            }
+                          } else {
+                            onFormFieldChange("selectedPlanId", item.id);
+                            // Clear multiple selection when using single
+                            if (formData.selectedPlanIds.length > 0) {
+                              onFormFieldChange("selectedPlanIds", []);
+                            }
                           }
-                        } else {
-                          onFormFieldChange("selectedPlanId", item.id);
-                          // Clear multiple selection when using single
-                          if (formData.selectedPlanIds.length > 0) {
-                            onFormFieldChange("selectedPlanIds", []);
-                          }
-                        }
-                      }}
-                      className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{item.name}</div>
-                      <div className="text-sm text-gray-600">
-                        ${item.amount}
-                        {event.activeTier ? (
-                          <span className="ml-1 text-xs text-gray-400">
-                            （{event.activeTier.name}）
-                          </span>
-                        ) : null}
+                        }}
+                        className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-sm text-gray-600">
+                          ${item.amount}
+                          {event.activeTier ? (
+                            <span className="ml-1 text-xs text-gray-400">
+                              （{event.activeTier.name}）
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  </label>
-                );
-              })}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
 
           <div className="space-y-4">
@@ -213,7 +303,9 @@ export function ApplicationFormStep({
             <h2 className="font-semibold text-gray-900">費用</h2>
             <div>
               <Label htmlFor="totalAmount">
-                {event.autoCalcAmount ? "總金額（自動計算）" : "總金額（請自行計算）"}
+                {event.autoCalcAmount || event.groups.length > 0
+                  ? "總金額（自動計算）"
+                  : "總金額（請自行計算）"}
               </Label>
               <Input
                 id="totalAmount"
@@ -221,7 +313,7 @@ export function ApplicationFormStep({
                 type="number"
                 value={formData.totalAmount}
                 onChange={(e) => onFormFieldChange("totalAmount", e.target.value)}
-                disabled={event.autoCalcAmount}
+                disabled={event.autoCalcAmount || event.groups.length > 0}
                 className="mt-1"
               />
             </div>

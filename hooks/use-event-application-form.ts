@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { PublicEventData } from "@/types/event";
+import type { PublicEventData, EventPurchaseItem } from "@/types/event";
 import type { FormData, Participant } from "@/components/events/registration/event-application-types";
 import { INITIAL_FORM_DATA } from "@/components/events/registration/event-application-types";
 import { createRegistration } from "@/lib/api/create-registration";
@@ -25,13 +25,23 @@ export function useEventApplicationForm(event: PublicEventData) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // 活動有群組 → 走群組模型；否則沿用舊的 single / multiple 欄位
+  const useGroups = event.groups.length > 0;
+
   const selectedPlan = event.purchaseItems.find(
     (item) => item.id === formData.selectedPlanId
   ) ?? null;
 
-  const selectedPlans = event.purchaseItems.filter(
-    (item) => formData.selectedPlanIds.includes(item.id)
-  );
+  // 已選項目的扁平清單（群組/非群組共用，供金額計算與摘要顯示）
+  const selectedPlans: EventPurchaseItem[] = useGroups
+    ? event.groups.flatMap((g) =>
+        (formData.selectedByGroup[g.id] ?? [])
+          .map((id) => g.items.find((it) => it.id === id))
+          .filter((it): it is EventPurchaseItem => it != null)
+      )
+    : event.purchaseItems.filter((item) =>
+        formData.selectedPlanIds.includes(item.id)
+      );
 
   const handleCopy = useCallback(async (text: string, type: string) => {
     try {
@@ -86,17 +96,23 @@ export function useEventApplicationForm(event: PublicEventData) {
     });
   }, []);
 
-  // Auto-calculate total amount when autoCalcAmount is enabled
+  // Auto-calculate total amount.
+  // 群組活動一律自動算；無群組活動沿用 autoCalcAmount 開關。
   useEffect(() => {
-    if (!event.autoCalcAmount) return;
-    
+    if (!useGroups && !event.autoCalcAmount) return;
+
     let total = 0;
-    if (event.allowMultiplePurchase && formData.selectedPlanIds.length > 0) {
+    if (useGroups) {
+      // 群組模式：Σ(已選項目當下時段價) × 參加者人數
+      total =
+        selectedPlans.reduce((sum, item) => sum + item.amount, 0) *
+        formData.participants.length;
+    } else if (event.allowMultiplePurchase && formData.selectedPlanIds.length > 0) {
       // Multiple selection: sum of all selected items * participant count
-      const selectedPlans = event.purchaseItems.filter(
+      const plans = event.purchaseItems.filter(
         (item) => formData.selectedPlanIds.includes(item.id)
       );
-      total = selectedPlans.reduce((sum, item) => sum + item.amount, 0) * formData.participants.length;
+      total = plans.reduce((sum, item) => sum + item.amount, 0) * formData.participants.length;
     } else if (formData.selectedPlanId != null) {
       // Single selection: selected item amount * participant count
       const plan = event.purchaseItems.find((item) => item.id === formData.selectedPlanId);
@@ -104,16 +120,31 @@ export function useEventApplicationForm(event: PublicEventData) {
         total = plan.amount * formData.participants.length;
       }
     }
-    
-    if (total > 0) {
-      setFormData((prev) => ({ ...prev, totalAmount: String(total) }));
+
+    // 群組模式即使歸零也要同步（清空選取時）；無群組沿用「僅 >0 才回填」舊行為
+    if (total > 0 || useGroups) {
+      setFormData((prev) =>
+        prev.totalAmount === String(total)
+          ? prev
+          : { ...prev, totalAmount: String(total) }
+      );
     }
-  }, [event.autoCalcAmount, event.allowMultiplePurchase, event.purchaseItems, formData.selectedPlanId, formData.selectedPlanIds, formData.participants.length]);
+  }, [useGroups, event.autoCalcAmount, event.allowMultiplePurchase, event.purchaseItems, formData.selectedByGroup, formData.selectedPlanId, formData.selectedPlanIds, formData.participants.length, selectedPlans]);
 
   const canProceedToStep2 = event.noticeItems.length === 0 || agreedToTerms;
-  const hasSelectedPlan = event.allowMultiplePurchase 
-    ? formData.selectedPlanIds.length > 0
-    : formData.selectedPlanId !== null;
+  // 群組模式：逐群組驗證 required / selectionMode
+  const groupsSatisfied = event.groups.every((g) => {
+    const sel = formData.selectedByGroup[g.id] ?? [];
+    if (g.required) {
+      return g.selectionMode === "single" ? sel.length === 1 : sel.length >= 1;
+    }
+    return g.selectionMode === "single" ? sel.length <= 1 : true;
+  });
+  const hasSelectedPlan = useGroups
+    ? groupsSatisfied
+    : event.allowMultiplePurchase
+      ? formData.selectedPlanIds.length > 0
+      : formData.selectedPlanId !== null;
   const canProceedToStep3 =
     hasSelectedPlan &&
     formData.contactName.trim() !== "" &&
@@ -129,9 +160,18 @@ export function useEventApplicationForm(event: PublicEventData) {
     setSubmitError(null);
 
     try {
+      const groupSelectedIds = Object.values(formData.selectedByGroup).flat();
       const result = await createRegistration(event.id, {
-        purchaseItemId: event.allowMultiplePurchase ? null : formData.selectedPlanId,
-        purchaseItemIds: event.allowMultiplePurchase ? formData.selectedPlanIds : [],
+        purchaseItemId: useGroups
+          ? null
+          : event.allowMultiplePurchase
+            ? null
+            : formData.selectedPlanId,
+        purchaseItemIds: useGroups
+          ? groupSelectedIds
+          : event.allowMultiplePurchase
+            ? formData.selectedPlanIds
+            : [],
         contactName: formData.contactName,
         contactPhone: formData.contactPhone,
         contactEmail: formData.contactEmail,
@@ -145,7 +185,7 @@ export function useEventApplicationForm(event: PublicEventData) {
       setSubmitError(err instanceof Error ? err.message : "網路錯誤，請稍後再試");
       setSubmitting(false);
     }
-  }, [event.id, formData, router]);
+  }, [event.id, event.allowMultiplePurchase, useGroups, formData, router]);
 
   return {
     step,

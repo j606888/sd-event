@@ -100,12 +100,16 @@ export async function POST(request: Request, { params }: Params) {
 
   const sortOrder = Number.isInteger(body.sortOrder) ? body.sortOrder : 0;
   const hidden = body.hidden === true;
+  const groupId =
+    body.groupId != null && Number.isInteger(Number(body.groupId))
+      ? Number(body.groupId)
+      : null;
   const prices = parsePrices(body.prices);
 
   const item = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(eventPurchaseItems)
-      .values({ eventId, name, amount, sortOrder, hidden })
+      .values({ eventId, name, amount, sortOrder, hidden, groupId })
       .returning();
     if (!created) return null;
     if (prices.length > 0) {

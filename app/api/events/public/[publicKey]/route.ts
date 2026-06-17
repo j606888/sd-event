@@ -6,6 +6,7 @@ import {
   organizers,
   bankInfos,
   eventPurchaseItems,
+  eventPurchaseItemGroups,
   eventPriceTiers,
   eventPurchaseItemPrices,
   eventNoticeItems,
@@ -36,8 +37,15 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   // Fetch related data
-  const [location, organizer, bankInfo, purchaseItems, noticeItems, priceTiers] =
-    await Promise.all([
+  const [
+    location,
+    organizer,
+    bankInfo,
+    purchaseItems,
+    noticeItems,
+    priceTiers,
+    groups,
+  ] = await Promise.all([
     event.locationId
       ? db
           .select()
@@ -82,6 +90,11 @@ export async function GET(_request: Request, { params }: Params) {
       .from(eventPriceTiers)
       .where(eq(eventPriceTiers.eventId, event.id))
       .orderBy(asc(eventPriceTiers.sortOrder)),
+    db
+      .select()
+      .from(eventPurchaseItemGroups)
+      .where(eq(eventPurchaseItemGroups.eventId, event.id))
+      .orderBy(asc(eventPurchaseItemGroups.sortOrder)),
     ]);
 
   // 解析當下生效時段（伺服器時間），把每個項目的 amount 換成該時段的有效價。
@@ -112,6 +125,23 @@ export async function GET(_request: Request, { params }: Params) {
     }));
   }
 
+  // 組裝群組：每個群組帶入其下（已解析時段價、未隱藏）的項目
+  const itemsByGroup = new Map<number, typeof itemsWithPrice>();
+  for (const item of itemsWithPrice) {
+    if (item.groupId == null) continue;
+    const arr = itemsByGroup.get(item.groupId) ?? [];
+    arr.push(item);
+    itemsByGroup.set(item.groupId, arr);
+  }
+  const groupsWithItems = groups.map((g) => ({
+    id: g.id,
+    title: g.title,
+    selectionMode: g.selectionMode,
+    required: g.required,
+    sortOrder: g.sortOrder,
+    items: itemsByGroup.get(g.id) ?? [],
+  }));
+
   return NextResponse.json({
     event: {
       ...event,
@@ -119,6 +149,7 @@ export async function GET(_request: Request, { params }: Params) {
       organizer,
       bankInfo,
       purchaseItems: itemsWithPrice,
+      groups: groupsWithItems,
       activeTier: activeTier ? { name: activeTier.name } : null,
       noticeItems,
     },

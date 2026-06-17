@@ -9,6 +9,8 @@ export type Participant = {
 export type FormData = {
   selectedPlanId: number | null; // For single selection (backward compatibility)
   selectedPlanIds: number[]; // For multiple selection
+  /** 群組模式：groupId → 已選 itemId 陣列（single 群組長度 0 或 1） */
+  selectedByGroup: Record<number, number[]>;
   contactName: string;
   contactPhone: string;
   contactEmail: string;
@@ -20,6 +22,7 @@ export type FormData = {
 export const INITIAL_FORM_DATA: FormData = {
   selectedPlanId: null,
   selectedPlanIds: [],
+  selectedByGroup: {},
   contactName: "",
   contactPhone: "",
   contactEmail: "",

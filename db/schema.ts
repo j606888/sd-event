@@ -141,12 +141,34 @@ export const events = pgTable("events", {
   index("idx_events_team_id").on(t.teamId),
 ]);
 
+// ============ Event Purchase Item Groups (票種群組，如 主票種 / 單堂課 / 加購) ============
+export const eventPurchaseItemGroups = pgTable("event_purchase_item_groups", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  /** "single"（擇一/radio） | "multiple"（可複選/checkbox） */
+  selectionMode: text("selection_mode").notNull().default("single"),
+  /** 是否必須從此群組選至少一項 */
+  required: boolean("required").notNull().default(true),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_purchase_item_groups_event_id").on(t.eventId),
+]);
+
 // ============ Event Purchase Items (購買項目) ============
 export const eventPurchaseItems = pgTable("event_purchase_items", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id")
     .notNull()
     .references(() => events.id, { onDelete: "cascade" }),
+  /** 所屬票種群組；null = 此活動未使用群組（沿用舊模型） */
+  groupId: integer("group_id").references(() => eventPurchaseItemGroups.id, {
+    onDelete: "set null",
+  }),
   name: text("name").notNull(),
   amount: integer("amount").notNull(),
   /** 為 true 時不顯示於公開報名表，仍保留於後台與既有報名紀錄 */

@@ -54,9 +54,16 @@ export async function PATCH(request: Request, { params }: Params) {
     hidden?: boolean;
     name?: string;
     amount?: number;
+    groupId?: number | null;
     updatedAt: Date;
   } = { updatedAt: new Date() };
 
+  if ("groupId" in body) {
+    updates.groupId =
+      body.groupId != null && Number.isInteger(Number(body.groupId))
+        ? Number(body.groupId)
+        : null;
+  }
   if (typeof body.hidden === "boolean") updates.hidden = body.hidden;
   if (typeof body.name === "string") {
     const trimmed = body.name.trim();

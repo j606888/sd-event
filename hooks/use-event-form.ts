@@ -26,6 +26,19 @@ export type PurchaseItemDraft = {
   hidden?: boolean;
   /** 各時段價（可空 = 全部用 amount fallback） */
   prices?: ItemTierPriceDraft[];
+  /** 所屬票種群組（已儲存群組）；null = 未分組 */
+  groupId?: number | null;
+  /** create 模式群組尚無 id 時，暫referer 草稿群組 index */
+  groupDraftIndex?: number;
+};
+
+/** 票種群組草稿 */
+export type PurchaseItemGroupDraft = {
+  id?: number;
+  title: string;
+  selectionMode: "single" | "multiple";
+  required: boolean;
+  sortOrder: number;
 };
 
 /** 票價時段草稿；endsAt 為 "YYYY-MM-DD"（空 = fallback 段，永不過期） */
@@ -125,6 +138,7 @@ export function useEventForm({
   const [purchaseItemHiddenUpdatingIndex, setPurchaseItemHiddenUpdatingIndex] =
     useState<number | null>(null);
   const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>([]);
+  const [groups, setGroups] = useState<PurchaseItemGroupDraft[]>([]);
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
 
   const initializedEventIdRef = useRef<number | null>(null);
@@ -243,19 +257,24 @@ export function useEventForm({
       fetch(`/api/events/${eventId}/price-tiers`, {
         credentials: "include",
       }).then((r) => r.json()),
-    ]).then(([pData, nData, tData]) => {
+      fetch(`/api/events/${eventId}/purchase-item-groups`, {
+        credentials: "include",
+      }).then((r) => r.json()),
+    ]).then(([pData, nData, tData, gData]) => {
       const items = (pData?.purchaseItems ?? []).map(
         (i: {
           id: number;
           name: string;
           amount: number;
           hidden?: boolean;
+          groupId?: number | null;
           prices?: { tierId: number; amount: number }[];
         }) => ({
           id: i.id,
           name: i.name,
           amount: i.amount,
           hidden: Boolean(i.hidden),
+          groupId: i.groupId ?? null,
           prices: (i.prices ?? []).map((p) => ({
             tierId: p.tierId,
             amount: p.amount,
@@ -276,9 +295,25 @@ export function useEventForm({
           sortOrder: t.sortOrder,
         })
       );
+      const groupList = (gData?.groups ?? []).map(
+        (g: {
+          id: number;
+          title: string;
+          selectionMode: string;
+          required: boolean;
+          sortOrder: number;
+        }) => ({
+          id: g.id,
+          title: g.title,
+          selectionMode: g.selectionMode === "multiple" ? "multiple" : "single",
+          required: Boolean(g.required),
+          sortOrder: g.sortOrder,
+        })
+      );
       setPurchaseItems(items);
       setNoticeItems(notices);
       setPriceTiers(tiers);
+      setGroups(groupList);
     });
   }, [mode, eventId]);
 
@@ -503,6 +538,113 @@ export function useEventForm({
     );
   };
 
+  // ===== 票種群組 =====
+  const addGroup = async () => {
+    const sortOrder = groups.length;
+    if (mode === "edit" && eventId != null) {
+      try {
+        const res = await fetch(`/api/events/${eventId}/purchase-item-groups`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            title: "新群組",
+            selectionMode: "single",
+            required: true,
+            sortOrder,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setSaveError(data.error || "新增群組失敗");
+          return;
+        }
+        setGroups((prev) => [
+          ...prev,
+          {
+            id: data.group?.id,
+            title: "新群組",
+            selectionMode: "single",
+            required: true,
+            sortOrder,
+          },
+        ]);
+      } catch {
+        setSaveError("新增群組失敗");
+      }
+      return;
+    }
+    setGroups((prev) => [
+      ...prev,
+      { title: "新群組", selectionMode: "single", required: true, sortOrder },
+    ]);
+  };
+
+  const updateGroup = <K extends keyof PurchaseItemGroupDraft>(
+    index: number,
+    field: K,
+    value: PurchaseItemGroupDraft[K]
+  ) => {
+    setGroups((prev) =>
+      prev.map((g, i) => (i === index ? { ...g, [field]: value } : g))
+    );
+  };
+
+  // edit 模式：欄位變更時把該群組存回後端
+  const persistGroup = async (index: number) => {
+    if (mode !== "edit" || eventId == null) return;
+    const group = groups[index];
+    if (group?.id == null) return;
+    try {
+      const res = await fetch(
+        `/api/events/${eventId}/purchase-item-groups/${group.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            title: group.title,
+            selectionMode: group.selectionMode,
+            required: group.required,
+          }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setSaveError(data.error || "更新群組失敗");
+    } catch {
+      setSaveError("更新群組失敗");
+    }
+  };
+
+  const removeGroup = async (index: number) => {
+    const group = groups[index];
+    if (mode === "edit" && eventId != null && group?.id != null) {
+      try {
+        const res = await fetch(
+          `/api/events/${eventId}/purchase-item-groups/${group.id}`,
+          { method: "DELETE", credentials: "include" }
+        );
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setSaveError(data.error || "刪除群組失敗");
+          return;
+        }
+      } catch {
+        setSaveError("刪除群組失敗");
+        return;
+      }
+    }
+    setGroups((prev) => prev.filter((_, i) => i !== index));
+    // 同步清掉本地項目對此群組的歸屬
+    setPurchaseItems((prev) =>
+      prev.map((item) =>
+        item.groupDraftIndex === index || (group?.id != null && item.groupId === group.id)
+          ? { ...item, groupId: null, groupDraftIndex: undefined }
+          : item
+      )
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
@@ -603,7 +745,31 @@ export function useEventForm({
         }
         const newEventId = data.event?.id;
         if (newEventId != null) {
-          // 先建立時段，取得 draftIndex → 真實 tierId 的對照
+          // 先建立群組，取得 draftIndex → 真實 groupId 的對照
+          const groupIdByDraftIndex = new Map<number, number>();
+          for (let i = 0; i < groups.length; i++) {
+            const group = groups[i];
+            const gRes = await fetch(
+              `/api/events/${newEventId}/purchase-item-groups`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                  title: group.title,
+                  selectionMode: group.selectionMode,
+                  required: group.required,
+                  sortOrder: i,
+                }),
+              }
+            );
+            const gData = await gRes.json().catch(() => ({}));
+            if (gRes.ok && gData.group?.id != null) {
+              groupIdByDraftIndex.set(i, gData.group.id);
+            }
+          }
+
+          // 再建立時段，取得 draftIndex → 真實 tierId 的對照
           const tierIdByDraftIndex = new Map<number, number>();
           for (let i = 0; i < priceTiers.length; i++) {
             const tier = priceTiers[i];
@@ -635,6 +801,11 @@ export function useEventForm({
                 return tierId != null ? { tierId, amount: p.amount } : null;
               })
               .filter((p): p is { tierId: number; amount: number } => p !== null);
+            const groupId =
+              item.groupId ??
+              (item.groupDraftIndex != null
+                ? groupIdByDraftIndex.get(item.groupDraftIndex) ?? null
+                : null);
             await fetch(`/api/events/${newEventId}/purchase-items`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -644,6 +815,7 @@ export function useEventForm({
                 amount: item.amount,
                 sortOrder: i,
                 hidden: item.hidden === true,
+                groupId,
                 prices,
               }),
             });
@@ -689,6 +861,7 @@ export function useEventForm({
     purchaseItems,
     purchaseItemHiddenUpdatingIndex,
     priceTiers,
+    groups,
     noticeItems,
     saveError,
     saving,
@@ -719,6 +892,10 @@ export function useEventForm({
     updatePriceTier,
     persistPriceTier,
     removePriceTier,
+    addGroup,
+    updateGroup,
+    persistGroup,
+    removeGroup,
     handleSubmit,
   };
 }

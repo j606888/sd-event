@@ -8,6 +8,7 @@ import type {
   PurchaseItemDraft,
   PriceTierDraft,
   ItemTierPriceDraft,
+  PurchaseItemGroupDraft,
 } from "@/hooks/use-event-form";
 
 type PurchaseItemDrawerProps = {
@@ -15,6 +16,7 @@ type PurchaseItemDrawerProps = {
   eventId?: number;
   currentItems: PurchaseItemDraft[];
   priceTiers: PriceTierDraft[];
+  groups: PurchaseItemGroupDraft[];
   onSuccess: (item: PurchaseItemDraft) => void;
   onCancel: () => void;
 };
@@ -24,6 +26,7 @@ export function PurchaseItemDrawer({
   eventId,
   currentItems,
   priceTiers,
+  groups,
   onSuccess,
   onCancel,
 }: PurchaseItemDrawerProps) {
@@ -31,8 +34,22 @@ export function PurchaseItemDrawer({
   const [amount, setAmount] = useState("");
   // 各時段價格（key 為 tier 的 id 或 draft index 的字串）
   const [tierAmounts, setTierAmounts] = useState<Record<string, string>>({});
+  // 所屬群組（key 為 group 的 id 或 draft index 的字串；空 = 未選）
+  const [groupKey, setGroupKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const useGroups = groups.length > 0;
+  const groupKeyOf = (group: PurchaseItemGroupDraft, index: number) =>
+    group.id != null ? `id-${group.id}` : `draft-${index}`;
+  /** 解析所選群組 key → { groupId } 或 { groupDraftIndex } */
+  const resolveGroup = (): { groupId?: number | null; groupDraftIndex?: number } => {
+    if (!useGroups || !groupKey) return { groupId: null };
+    if (groupKey.startsWith("id-")) return { groupId: Number(groupKey.slice(3)) };
+    if (groupKey.startsWith("draft-"))
+      return { groupDraftIndex: Number(groupKey.slice(6)) };
+    return { groupId: null };
+  };
 
   const tierKey = (tier: PriceTierDraft, index: number) =>
     tier.id != null ? `id-${tier.id}` : `draft-${index}`;
@@ -64,7 +81,12 @@ export function PurchaseItemDrawer({
       setError("請輸入有效金額（非負整數）");
       return;
     }
+    if (useGroups && !groupKey) {
+      setError("請選擇所屬群組");
+      return;
+    }
     const prices = buildPrices();
+    const group = resolveGroup();
 
     if (mode === "edit" && eventId != null) {
       setSubmitting(true);
@@ -81,6 +103,7 @@ export function PurchaseItemDrawer({
             name: trimmedName,
             amount: amountNum,
             sortOrder: currentItems.length,
+            groupId: group.groupId ?? null,
             prices: apiPrices,
           }),
         });
@@ -95,21 +118,31 @@ export function PurchaseItemDrawer({
           name: trimmedName,
           amount: amountNum,
           hidden: false,
+          groupId: group.groupId ?? null,
           prices,
         });
         setName("");
         setAmount("");
         setTierAmounts({});
+        setGroupKey("");
         onCancel();
       } catch {
         setError("新增失敗");
       }
       setSubmitting(false);
     } else {
-      onSuccess({ name: trimmedName, amount: amountNum, hidden: false, prices });
+      onSuccess({
+        name: trimmedName,
+        amount: amountNum,
+        hidden: false,
+        groupId: group.groupId ?? null,
+        groupDraftIndex: group.groupDraftIndex,
+        prices,
+      });
       setName("");
       setAmount("");
       setTierAmounts({});
+      setGroupKey("");
       onCancel();
     }
   };
@@ -126,6 +159,24 @@ export function PurchaseItemDrawer({
           onChange={(e) => setName(e.target.value)}
         />
       </div>
+      {useGroups && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="item-group">所屬群組 *</Label>
+          <select
+            id="item-group"
+            className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
+            value={groupKey}
+            onChange={(e) => setGroupKey(e.target.value)}
+          >
+            <option value="">請選擇群組</option>
+            {groups.map((group, index) => (
+              <option key={group.id ?? `draft-${index}`} value={groupKeyOf(group, index)}>
+                {group.title || "（未命名群組）"}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="item-amount">
           {priceTiers.length > 0 ? "預設金額 *（時段未填價時的 fallback）" : "金額 *"}

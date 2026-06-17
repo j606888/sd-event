@@ -68,7 +68,7 @@ export function PaymentStep({
                   <span className="text-gray-900">{event.location.name}</span>
                 </div>
               )}
-              {event.allowMultiplePurchase ? (
+              {event.allowMultiplePurchase || event.groups.length > 0 ? (
                 selectedPlans.length > 0 && (
                   <div className="flex gap-3">
                     <span className="text-gray-500">選擇方案</span>

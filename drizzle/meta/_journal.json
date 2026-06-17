@@ -36,6 +36,13 @@
       "when": 1781667075318,
       "tag": "0004_strong_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781669128113,
+      "tag": "0005_steady_mandroid",
+      "breakpoints": true
     }
   ]
 }

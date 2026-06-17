@@ -84,23 +84,21 @@ export async function GET(_request: Request, { params }: Params) {
         .then((rows) => rows[0] || null)
     : null;
 
-  // 取得多選購買項目
-  const registrationPurchaseItems = event.allowMultiplePurchase
-    ? await db
-        .select({
-          id: eventPurchaseItems.id,
-          name: eventPurchaseItems.name,
-          amount: eventPurchaseItems.amount,
-        })
-        .from(eventRegistrationPurchaseItems)
-        .innerJoin(
-          eventPurchaseItems,
-          eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
-        )
-        .where(eq(eventRegistrationPurchaseItems.registrationId, registrationId))
-    : [];
+  // 取得 join table 內的購買項目（多選 / 群組活動）。一律查詢，有列就用。
+  const registrationPurchaseItems = await db
+    .select({
+      id: eventPurchaseItems.id,
+      name: eventPurchaseItems.name,
+      amount: eventPurchaseItems.amount,
+    })
+    .from(eventRegistrationPurchaseItems)
+    .innerJoin(
+      eventPurchaseItems,
+      eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
+    )
+    .where(eq(eventRegistrationPurchaseItems.registrationId, registrationId));
 
-  const purchaseItems = event.allowMultiplePurchase && registrationPurchaseItems.length > 0
+  const purchaseItems = registrationPurchaseItems.length > 0
     ? registrationPurchaseItems
     : purchaseItem
     ? [purchaseItem]

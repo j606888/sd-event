@@ -6,6 +6,7 @@ import {
   eventRegistrations,
   eventAttendees,
   eventPurchaseItems,
+  eventPurchaseItemGroups,
   eventPriceTiers,
   eventPurchaseItemPrices,
   eventRegistrationPurchaseItems,
@@ -217,8 +218,17 @@ export async function POST(request: Request, { params }: Params) {
         ? body.attendees
         : [];
 
+    // 活動有票種群組 → 走群組模型（等同多選寫入 join table，並依群組規則驗證）
+    const groups = await db
+      .select()
+      .from(eventPurchaseItemGroups)
+      .where(eq(eventPurchaseItemGroups.eventId, eventId));
+    const useGroups = groups.length > 0;
+    // 群組活動一律走多選路徑
+    const effectiveMultiple = useGroups || event.allowMultiplePurchase;
+
     // Check if event allows multiple purchase
-    const hasPurchaseItems = event.allowMultiplePurchase
+    const hasPurchaseItems = effectiveMultiple
       ? purchaseItemIds.length > 0
       : purchaseItemId != null;
 
@@ -246,7 +256,7 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     // 驗證購買項目是否存在
-    if (event.allowMultiplePurchase) {
+    if (effectiveMultiple) {
       // Multiple selection: validate all purchase items
       if (purchaseItemIds.length === 0) {
         return NextResponse.json(
@@ -270,6 +280,48 @@ export async function POST(request: Request, { params }: Params) {
           { error: "無效的購買項目" },
           { status: 400 }
         );
+      }
+
+      // 群組活動：依群組規則做後端校驗
+      if (useGroups) {
+        const groupById = new Map(groups.map((g) => [g.id, g]));
+        const itemById = new Map(purchaseItems.map((it) => [it.id, it]));
+        // 每個選取項目都必須屬於本活動的某個群組
+        for (const id of purchaseItemIds) {
+          const it = itemById.get(id);
+          if (!it || it.groupId == null || !groupById.has(it.groupId)) {
+            return NextResponse.json({ error: "無效的購買項目" }, { status: 400 });
+          }
+        }
+        // 統計各群組被選取的數量，套用 required / selectionMode 規則
+        const countByGroup = new Map<number, number>();
+        for (const id of purchaseItemIds) {
+          const gid = itemById.get(id)!.groupId!;
+          countByGroup.set(gid, (countByGroup.get(gid) ?? 0) + 1);
+        }
+        for (const g of groups) {
+          const c = countByGroup.get(g.id) ?? 0;
+          if (g.selectionMode === "single" && c > 1) {
+            return NextResponse.json(
+              { error: `「${g.title}」僅能擇一` },
+              { status: 400 }
+            );
+          }
+          if (g.required) {
+            if (g.selectionMode === "single" && c !== 1) {
+              return NextResponse.json(
+                { error: `請於「${g.title}」選擇一項` },
+                { status: 400 }
+              );
+            }
+            if (g.selectionMode === "multiple" && c < 1) {
+              return NextResponse.json(
+                { error: `請於「${g.title}」至少選擇一項` },
+                { status: 400 }
+              );
+            }
+          }
+        }
       }
     } else {
       // Single selection: validate single purchase item
@@ -310,7 +362,7 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     // 解析當下時段價（伺服器時間），快照每個選取項目的單價並重算權威總額
-    const selectedIds = event.allowMultiplePurchase
+    const selectedIds = effectiveMultiple
       ? purchaseItemIds
       : purchaseItemId != null
         ? [purchaseItemId]
@@ -351,13 +403,14 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
-    // autoCalc 開啟時以伺服器解析價為準（Σ單價 × 參加者數），避免顯示價/收費價不一致或被竄改
+    // autoCalc（或群組活動）時以伺服器解析價為準（Σ單價 × 參加者數），避免顯示價/收費價不一致或被竄改
     const computedTotal =
       selectedIds.reduce(
         (sum: number, id: number) => sum + (unitPriceById.get(id) ?? 0),
         0
       ) * validAttendees.length;
-    const finalTotalAmount = event.autoCalcAmount ? computedTotal : totalAmount;
+    const finalTotalAmount =
+      useGroups || event.autoCalcAmount ? computedTotal : totalAmount;
 
     if (!Number.isInteger(finalTotalAmount) || finalTotalAmount <= 0) {
       return NextResponse.json({ error: "總金額計算錯誤" }, { status: 400 });
@@ -373,7 +426,7 @@ export async function POST(request: Request, { params }: Params) {
         .values({
           registrationKey,
           eventId,
-          purchaseItemId: event.allowMultiplePurchase ? null : (Number.isInteger(purchaseItemId) ? purchaseItemId : null),
+          purchaseItemId: effectiveMultiple ? null : (Number.isInteger(purchaseItemId) ? purchaseItemId : null),
           contactName,
           contactPhone,
           contactEmail,
@@ -387,8 +440,8 @@ export async function POST(request: Request, { params }: Params) {
         throw new Error("建立報名失敗");
       }
 
-      // 建立購買項目關聯（多選時）
-      if (event.allowMultiplePurchase && purchaseItemIds.length > 0) {
+      // 建立購買項目關聯（多選 / 群組時）
+      if (effectiveMultiple && purchaseItemIds.length > 0) {
         const registrationPurchaseItemValues = purchaseItemIds.map((itemId: number) => ({
           registrationId: reg.id,
           purchaseItemId: itemId,
