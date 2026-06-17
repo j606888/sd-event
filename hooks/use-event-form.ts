@@ -139,6 +139,8 @@ export function useEventForm({
     useState<number | null>(null);
   const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>([]);
   const [groups, setGroups] = useState<PurchaseItemGroupDraft[]>([]);
+  // 群組互斥配對；以群組 key（`id-<id>` / `draft-<index>`）成對表示，與 PurchaseItemsSection 一致
+  const [groupExclusions, setGroupExclusions] = useState<Array<[string, string]>>([]);
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
 
   const initializedEventIdRef = useRef<number | null>(null);
@@ -260,7 +262,10 @@ export function useEventForm({
       fetch(`/api/events/${eventId}/purchase-item-groups`, {
         credentials: "include",
       }).then((r) => r.json()),
-    ]).then(([pData, nData, tData, gData]) => {
+      fetch(`/api/events/${eventId}/group-exclusions`, {
+        credentials: "include",
+      }).then((r) => r.json()),
+    ]).then(([pData, nData, tData, gData, eData]) => {
       const items = (pData?.purchaseItems ?? []).map(
         (i: {
           id: number;
@@ -310,10 +315,17 @@ export function useEventForm({
           sortOrder: g.sortOrder,
         })
       );
+      const exclusions = (eData?.exclusions ?? []).map(
+        (e: { groupAId: number; groupBId: number }): [string, string] => [
+          `id-${e.groupAId}`,
+          `id-${e.groupBId}`,
+        ]
+      );
       setPurchaseItems(items);
       setNoticeItems(notices);
       setPriceTiers(tiers);
       setGroups(groupList);
+      setGroupExclusions(exclusions);
     });
   }, [mode, eventId]);
 
@@ -643,6 +655,59 @@ export function useEventForm({
           : item
       )
     );
+    // 同步移除任何指向此群組的互斥配對
+    const removedKey = group?.id != null ? `id-${group.id}` : `draft-${index}`;
+    setGroupExclusions((prev) => {
+      const next = prev.filter((p) => p[0] !== removedKey && p[1] !== removedKey);
+      if (next.length !== prev.length) void persistGroupExclusions(next);
+      return next;
+    });
+  };
+
+  // ---- 群組互斥（Phase 2.5）----
+  const samePair = (p: [string, string], a: string, b: string) =>
+    (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a);
+
+  const isGroupExcluded = (keyA: string, keyB: string) =>
+    groupExclusions.some((p) => samePair(p, keyA, keyB));
+
+  // edit 模式：把互斥配對（僅含已存檔群組的 `id-` key）整批 PUT 回後端
+  const persistGroupExclusions = async (pairs: Array<[string, string]>) => {
+    if (mode !== "edit" || eventId == null) return;
+    const exclusions = pairs
+      .map(([a, b]) => {
+        const ga = a.startsWith("id-") ? Number(a.slice(3)) : NaN;
+        const gb = b.startsWith("id-") ? Number(b.slice(3)) : NaN;
+        return Number.isInteger(ga) && Number.isInteger(gb)
+          ? { groupAId: ga, groupBId: gb }
+          : null;
+      })
+      .filter((x): x is { groupAId: number; groupBId: number } => x != null);
+    try {
+      const res = await fetch(`/api/events/${eventId}/group-exclusions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ exclusions }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || "更新互斥規則失敗");
+      }
+    } catch {
+      setSaveError("更新互斥規則失敗");
+    }
+  };
+
+  const toggleGroupExclusion = (keyA: string, keyB: string) => {
+    setGroupExclusions((prev) => {
+      const exists = prev.some((p) => samePair(p, keyA, keyB));
+      const next: Array<[string, string]> = exists
+        ? prev.filter((p) => !samePair(p, keyA, keyB))
+        : [...prev, [keyA, keyB]];
+      void persistGroupExclusions(next);
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -769,6 +834,29 @@ export function useEventForm({
             }
           }
 
+          // 群組互斥：把 key（`draft-<index>`）解析成真實 groupId 後整批寫入
+          const resolveExclusionKey = (key: string): number | null => {
+            if (key.startsWith("id-")) return Number(key.slice(3));
+            if (key.startsWith("draft-"))
+              return groupIdByDraftIndex.get(Number(key.slice(6))) ?? null;
+            return null;
+          };
+          const exclusionPayload = groupExclusions
+            .map(([a, b]) => {
+              const ga = resolveExclusionKey(a);
+              const gb = resolveExclusionKey(b);
+              return ga != null && gb != null ? { groupAId: ga, groupBId: gb } : null;
+            })
+            .filter((x): x is { groupAId: number; groupBId: number } => x != null);
+          if (exclusionPayload.length > 0) {
+            await fetch(`/api/events/${newEventId}/group-exclusions`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ exclusions: exclusionPayload }),
+            });
+          }
+
           // 再建立時段，取得 draftIndex → 真實 tierId 的對照
           const tierIdByDraftIndex = new Map<number, number>();
           for (let i = 0; i < priceTiers.length; i++) {
@@ -862,6 +950,7 @@ export function useEventForm({
     purchaseItemHiddenUpdatingIndex,
     priceTiers,
     groups,
+    groupExclusions,
     noticeItems,
     saveError,
     saving,
@@ -896,6 +985,8 @@ export function useEventForm({
     updateGroup,
     persistGroup,
     removeGroup,
+    isGroupExcluded,
+    toggleGroupExclusion,
     handleSubmit,
   };
 }

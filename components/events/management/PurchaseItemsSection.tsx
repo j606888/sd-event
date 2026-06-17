@@ -34,6 +34,8 @@ type PurchaseItemsSectionProps = {
   ) => void;
   onPersistGroup: (index: number) => void;
   onRemoveGroup: (index: number) => void;
+  isGroupExcluded: (keyA: string, keyB: string) => boolean;
+  onToggleGroupExclusion: (keyA: string, keyB: string) => void;
 };
 
 export function PurchaseItemsSection({
@@ -56,6 +58,8 @@ export function PurchaseItemsSection({
   onUpdateGroup,
   onPersistGroup,
   onRemoveGroup,
+  isGroupExcluded,
+  onToggleGroupExclusion,
 }: PurchaseItemsSectionProps) {
   const useGroups = groups.length > 0;
 
@@ -208,8 +212,17 @@ export function PurchaseItemsSection({
         </p>
         {groups.length > 0 && (
           <ul className="flex flex-col gap-2">
-            {groups.map((group, i) => (
-              <li key={group.id ?? `draft-${i}`} className="flex flex-wrap items-center gap-2">
+            {groups.map((group, i) => {
+              const groupKey = groupKeyOf(group, i);
+              const otherGroups = groups
+                .map((g, gi) => ({ g, gi }))
+                .filter(({ gi }) => gi !== i);
+              return (
+              <li
+                key={group.id ?? `draft-${i}`}
+                className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-2"
+              >
+                <div className="flex flex-wrap items-center gap-2">
                 <Input
                   className="min-w-[8rem] flex-1 bg-white"
                   placeholder="群組名稱（如 主票種）"
@@ -253,8 +266,32 @@ export function PurchaseItemsSection({
                 >
                   <X className="size-4" />
                 </button>
+                </div>
+                {otherGroups.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-1 text-xs text-gray-500">
+                    <span>互斥群組：</span>
+                    {otherGroups.map(({ g, gi }) => {
+                      const otherKey = groupKeyOf(g, gi);
+                      return (
+                        <label
+                          key={g.id ?? `draft-${gi}`}
+                          className="flex cursor-pointer items-center gap-1"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isGroupExcluded(groupKey, otherKey)}
+                            onChange={() => onToggleGroupExclusion(groupKey, otherKey)}
+                            className="size-3.5 rounded border-gray-300"
+                          />
+                          {g.title || "（未命名）"}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

@@ -213,6 +213,25 @@ export const eventPurchaseItemPrices = pgTable("event_purchase_item_prices", {
   index("idx_item_prices_item_id").on(t.purchaseItemId),
 ]);
 
+// ============ Event Group Exclusions (票種群組互斥：選了 A 群組即鎖住 B 群組) ============
+// 對稱關係，寫入時正規化 groupAId < groupBId 以避免 (A,B)/(B,A) 重複。
+export const eventGroupExclusions = pgTable("event_group_exclusions", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  groupAId: integer("group_a_id")
+    .notNull()
+    .references(() => eventPurchaseItemGroups.id, { onDelete: "cascade" }),
+  groupBId: integer("group_b_id")
+    .notNull()
+    .references(() => eventPurchaseItemGroups.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique("uniq_group_exclusion_pair").on(t.groupAId, t.groupBId),
+  index("idx_group_exclusions_event_id").on(t.eventId),
+]);
+
 // ============ Event Notice Items (須知項目) ============
 export const eventNoticeItems = pgTable("event_notice_items", {
   id: serial("id").primaryKey(),

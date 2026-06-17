@@ -32,6 +32,18 @@ export function ApplicationFormStep({
   onBack,
   onNext,
 }: ApplicationFormStepProps) {
+  const groupById = new Map(event.groups.map((g) => [g.id, g]));
+  // 若某互斥群組已有選取，回傳「鎖住本群組的那個群組」，否則 null
+  const getLockingGroup = (group: PublicEventData["groups"][number]) => {
+    for (const exId of group.excludesGroupIds ?? []) {
+      const other = groupById.get(exId);
+      if (other && (formData.selectedByGroup[exId]?.length ?? 0) > 0) {
+        return other;
+      }
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-gray-400">
       <div className="mx-auto max-w-lg bg-white">
@@ -88,15 +100,25 @@ export function ApplicationFormStep({
           {event.groups.length > 0 ? (
             // 群組模式：依群組規則渲染（single=radio、multiple=checkbox）
             event.groups.map((group) => {
-              const selected = formData.selectedByGroup[group.id] ?? [];
+              const lockingGroup = getLockingGroup(group);
+              const locked = lockingGroup != null;
+              const selected = locked ? [] : formData.selectedByGroup[group.id] ?? [];
               const isSingle = group.selectionMode === "single";
-              const setGroupSelection = (ids: number[]) =>
-                onFormFieldChange("selectedByGroup", {
-                  ...formData.selectedByGroup,
-                  [group.id]: ids,
-                });
+              // 選了會觸發互斥的項目時，一併清空被本群組鎖住的其他群組
+              const setGroupSelection = (ids: number[]) => {
+                const next = { ...formData.selectedByGroup, [group.id]: ids };
+                if (ids.length > 0) {
+                  for (const exId of group.excludesGroupIds ?? []) {
+                    next[exId] = [];
+                  }
+                }
+                onFormFieldChange("selectedByGroup", next);
+              };
               return (
-                <div key={group.id} className="space-y-3">
+                <div
+                  key={group.id}
+                  className={`space-y-3 ${locked ? "opacity-50" : ""}`}
+                >
                   <h2 className="font-semibold text-gray-900">
                     {group.title}
                     {group.required ? (
@@ -106,6 +128,11 @@ export function ApplicationFormStep({
                         （選填）
                       </span>
                     )}
+                    {locked && (
+                      <span className="ml-2 text-xs font-normal text-gray-400">
+                        （已包含於「{lockingGroup!.title}」）
+                      </span>
+                    )}
                   </h2>
                   <div className="space-y-2">
                     {group.items.map((item) => {
@@ -113,7 +140,11 @@ export function ApplicationFormStep({
                       return (
                         <label
                           key={item.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
+                          className={`flex items-center gap-3 p-3 rounded-lg border ${
+                            locked
+                              ? "cursor-not-allowed border-gray-200"
+                              : "cursor-pointer hover:bg-gray-50"
+                          } ${
                             isSelected ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"
                           }`}
                         >
@@ -121,6 +152,7 @@ export function ApplicationFormStep({
                             type={isSingle ? "radio" : "checkbox"}
                             name={`group-${group.id}`}
                             checked={isSelected}
+                            disabled={locked}
                             onChange={() => {
                               if (isSingle) {
                                 setGroupSelection([item.id]);
@@ -149,7 +181,7 @@ export function ApplicationFormStep({
                       );
                     })}
                     {/* 選填 + 擇一群組：提供「不需要」選項以清除選取 */}
-                    {isSingle && !group.required && (
+                    {isSingle && !group.required && !locked && (
                       <label
                         className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
                           selected.length === 0

@@ -7,6 +7,7 @@ import {
   eventAttendees,
   eventPurchaseItems,
   eventPurchaseItemGroups,
+  eventGroupExclusions,
   eventPriceTiers,
   eventPurchaseItemPrices,
   eventRegistrationPurchaseItems,
@@ -320,6 +321,24 @@ export async function POST(request: Request, { params }: Params) {
                 { status: 400 }
               );
             }
+          }
+        }
+        // 跨群組互斥：互斥配對的兩個群組不可同時有選取
+        const exclusions = await db
+          .select({
+            groupAId: eventGroupExclusions.groupAId,
+            groupBId: eventGroupExclusions.groupBId,
+          })
+          .from(eventGroupExclusions)
+          .where(eq(eventGroupExclusions.eventId, eventId));
+        for (const { groupAId, groupBId } of exclusions) {
+          if ((countByGroup.get(groupAId) ?? 0) > 0 && (countByGroup.get(groupBId) ?? 0) > 0) {
+            const a = groupById.get(groupAId);
+            const b = groupById.get(groupBId);
+            return NextResponse.json(
+              { error: `「${a?.title ?? ""}」與「${b?.title ?? ""}」不可同時選擇` },
+              { status: 400 }
+            );
           }
         }
       }

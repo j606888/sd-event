@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { PublicEventData, EventPurchaseItem } from "@/types/event";
+import type { PublicEventData, EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
 import type { FormData, Participant } from "@/components/events/registration/event-application-types";
 import { INITIAL_FORM_DATA } from "@/components/events/registration/event-application-types";
 import { createRegistration } from "@/lib/api/create-registration";
@@ -27,6 +27,12 @@ export function useEventApplicationForm(event: PublicEventData) {
 
   // 活動有群組 → 走群組模型；否則沿用舊的 single / multiple 欄位
   const useGroups = event.groups.length > 0;
+
+  // 群組被互斥鎖住：其互斥對象已有選取（鎖住時本群組視為無需選取）
+  const isGroupLocked = (g: EventPurchaseItemGroup) =>
+    (g.excludesGroupIds ?? []).some(
+      (exId) => (formData.selectedByGroup[exId]?.length ?? 0) > 0
+    );
 
   const selectedPlan = event.purchaseItems.find(
     (item) => item.id === formData.selectedPlanId
@@ -134,6 +140,7 @@ export function useEventApplicationForm(event: PublicEventData) {
   const canProceedToStep2 = event.noticeItems.length === 0 || agreedToTerms;
   // 群組模式：逐群組驗證 required / selectionMode
   const groupsSatisfied = event.groups.every((g) => {
+    if (isGroupLocked(g)) return true;
     const sel = formData.selectedByGroup[g.id] ?? [];
     if (g.required) {
       return g.selectionMode === "single" ? sel.length === 1 : sel.length >= 1;

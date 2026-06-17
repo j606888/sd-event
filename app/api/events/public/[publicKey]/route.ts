@@ -9,6 +9,7 @@ import {
   eventPurchaseItemGroups,
   eventPriceTiers,
   eventPurchaseItemPrices,
+  eventGroupExclusions,
   eventNoticeItems,
 } from "@/db/schema";
 import { and, eq, asc, inArray } from "drizzle-orm";
@@ -45,6 +46,7 @@ export async function GET(_request: Request, { params }: Params) {
     noticeItems,
     priceTiers,
     groups,
+    exclusions,
   ] = await Promise.all([
     event.locationId
       ? db
@@ -95,6 +97,13 @@ export async function GET(_request: Request, { params }: Params) {
       .from(eventPurchaseItemGroups)
       .where(eq(eventPurchaseItemGroups.eventId, event.id))
       .orderBy(asc(eventPurchaseItemGroups.sortOrder)),
+    db
+      .select({
+        groupAId: eventGroupExclusions.groupAId,
+        groupBId: eventGroupExclusions.groupBId,
+      })
+      .from(eventGroupExclusions)
+      .where(eq(eventGroupExclusions.eventId, event.id)),
     ]);
 
   // 解析當下生效時段（伺服器時間），把每個項目的 amount 換成該時段的有效價。
@@ -133,6 +142,14 @@ export async function GET(_request: Request, { params }: Params) {
     arr.push(item);
     itemsByGroup.set(item.groupId, arr);
   }
+  // 互斥配對為對稱關係，雙向展開成每個群組的 excludesGroupIds
+  const excludesByGroup = new Map<number, Set<number>>();
+  for (const { groupAId, groupBId } of exclusions) {
+    if (!excludesByGroup.has(groupAId)) excludesByGroup.set(groupAId, new Set());
+    if (!excludesByGroup.has(groupBId)) excludesByGroup.set(groupBId, new Set());
+    excludesByGroup.get(groupAId)!.add(groupBId);
+    excludesByGroup.get(groupBId)!.add(groupAId);
+  }
   const groupsWithItems = groups.map((g) => ({
     id: g.id,
     title: g.title,
@@ -140,6 +157,7 @@ export async function GET(_request: Request, { params }: Params) {
     required: g.required,
     sortOrder: g.sortOrder,
     items: itemsByGroup.get(g.id) ?? [],
+    excludesGroupIds: Array.from(excludesByGroup.get(g.id) ?? []),
   }));
 
   return NextResponse.json({

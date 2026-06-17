@@ -93,6 +93,8 @@ export function EventForm({
     updateGroup,
     persistGroup,
     removeGroup,
+    isGroupExcluded,
+    toggleGroupExclusion,
     handleSubmit,
   } = useEventForm({ mode, teamId, eventId, initialData, onSaveSuccess });
 
@@ -233,6 +235,8 @@ export function EventForm({
           onUpdateGroup={updateGroup}
           onPersistGroup={persistGroup}
           onRemoveGroup={removeGroup}
+          isGroupExcluded={isGroupExcluded}
+          onToggleGroupExclusion={toggleGroupExclusion}
         />
         <NoticeItemsSection
           items={noticeItems}

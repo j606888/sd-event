@@ -43,6 +43,13 @@
       "when": 1781669128113,
       "tag": "0005_steady_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781677651562,
+      "tag": "0006_lame_morgan_stark",
+      "breakpoints": true
     }
   ]
 }

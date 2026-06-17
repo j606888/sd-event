@@ -42,6 +42,8 @@ export type EventPurchaseItemGroup = {
   required: boolean;
   sortOrder: number;
   items: EventPurchaseItem[];
+  /** 與此群組互斥的群組 id（對稱、雙向展開）；選了任一方即鎖住另一方 */
+  excludesGroupIds?: number[];
 };
 
 export type EventNoticeItem = {

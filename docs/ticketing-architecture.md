@@ -161,20 +161,25 @@ tierName    text? // 報名當下生效的時段名稱（純記錄用）
 
 **報名建立**：依群組規則做後端驗證，全部選項寫入 join table。
 
-### Phase 3 — 跨群組規則 / 條件加購 / 折扣（待實作）
+### Phase 2.5 — 跨群組互斥（Cross-Group Mutual Exclusion）✅ 已完成
+
+> 實作摘要：新增**對稱配對表** `eventGroupExclusions`（`eventId` / `groupAId` / `groupBId`，寫入時正規化
+> `groupAId < groupBId`、`unique(groupAId, groupBId)`，群組刪除以 FK cascade 清除）。新增 group-exclusions
+> 路由（`app/api/events/[eventId]/group-exclusions/`，GET + replace-all PUT）；public-event 為每個 group 補
+> 雙向展開的 `excludesGroupIds[]`；報名建立在既有 per-group 校驗迴圈後加互斥檢查（互斥兩群組不可同時有選取 → 400）。
+> 報名端 `ApplicationFormStep` 對被鎖群組**灰掉 + 不可點 + 提示「已包含於『X』」**並清空其已選，
+> `use-event-application-form` 的 `groupsSatisfied` 跳過被鎖群組；管理端 `PurchaseItemsSection` 每個群組附
+> 「互斥群組」多選 checkbox，`use-event-form` 以群組 key（`id-<id>` / `draft-<index>`）成對保存，
+> create 流程於 `groupIdByDraftIndex` 建好後解析寫入、edit 流程即時 replace-all PUT。
+> 採**全有全無**沿用 Phase 2 路徑：無群組或未設互斥的活動完全不受影響。
+
+目前群組的 `required` / `selectionMode` 只管**群組內**。Bachata Festival（套票群組 single + 單堂課 multiple +
+Party 群組）若無此規則，使用者可**同時**勾「全餐雙日 $2800」**又**勾單堂 A/B/C + Party，總額被加總成 $5200，
+造成重複付費。本階段以對稱的「群組↔群組互斥」解決：選了互斥群組任一項即鎖住另一群組（前端灰掉並清空、後端校驗擋下）。
+
+### Phase 3 — 條件加購 / 折扣引擎（待實作）
 
 第一版加購用固定價或獨立項目。日後可在群組/項目上加「加購價隨主票而變」的規則層。
-
-**Phase 2 實測後發現、優先度最高的缺口 —— 跨群組互斥（建議當 Phase 2.5 先做）：**
-
-目前群組的 `required` / `selectionMode` 只管**群組內**，沒有「選了 A 群組就鎖住 B 群組」的跨群組規則。
-以 Bachata Festival 為例（套票群組 single + 單堂課群組 multiple + Party 群組），使用者可以**同時**勾
-「全餐雙日 $2800」**又**勾單堂 A/B/C + Party，總額被加總成 $5200 —— 系統不擋，造成重複付費；
-「套票已含 Party」也擋不住再加買 Party 單購。
-
-建議方案（比完整折扣引擎小很多）：在 `eventPurchaseItemGroups` 加一個輕量的「互斥」關聯
-（如 `excludesGroupId` 或群組間 mutual-exclusion 表），前端：選了互斥群組的項目即清空/禁用另一群組；
-後端：報名建立時校驗互斥群組不可同時有選取。
 
 **完整 Phase 3（折扣 / 條件加購引擎，更後面再做）：**
 「雙堂免費加 Party」這類「加購價隨已選主票而變」的條件規則層；折扣自動推導。
