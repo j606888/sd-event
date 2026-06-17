@@ -4,10 +4,12 @@ import {
   events,
   eventPurchaseItems,
   eventPurchaseItemPrices,
+  eventRegistrations,
+  eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 /** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
 function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
@@ -67,9 +69,58 @@ export async function GET(_request: Request, { params }: Params) {
     pricesByItem.set(row.purchaseItemId, arr);
   }
 
+  // 每個項目目前綁定的「未隱藏」報名數，供管理 UI 判斷可否刪除（零報名才可刪）
+  const soldCountByItem = new Map<number, number>();
+  if (itemIds.length > 0) {
+    const multiCounts = await db
+      .select({
+        purchaseItemId: eventRegistrationPurchaseItems.purchaseItemId,
+        n: sql<number>`cast(count(*) as int)`,
+      })
+      .from(eventRegistrationPurchaseItems)
+      .innerJoin(
+        eventRegistrations,
+        eq(eventRegistrationPurchaseItems.registrationId, eventRegistrations.id)
+      )
+      .where(
+        and(
+          inArray(eventRegistrationPurchaseItems.purchaseItemId, itemIds),
+          eq(eventRegistrations.eventId, eventId),
+          eq(eventRegistrations.hidden, false)
+        )
+      )
+      .groupBy(eventRegistrationPurchaseItems.purchaseItemId);
+    for (const row of multiCounts) {
+      soldCountByItem.set(row.purchaseItemId, Number(row.n));
+    }
+
+    const legacyCounts = await db
+      .select({
+        purchaseItemId: eventRegistrations.purchaseItemId,
+        n: sql<number>`cast(count(*) as int)`,
+      })
+      .from(eventRegistrations)
+      .where(
+        and(
+          inArray(eventRegistrations.purchaseItemId, itemIds),
+          eq(eventRegistrations.eventId, eventId),
+          eq(eventRegistrations.hidden, false)
+        )
+      )
+      .groupBy(eventRegistrations.purchaseItemId);
+    for (const row of legacyCounts) {
+      if (row.purchaseItemId == null) continue;
+      soldCountByItem.set(
+        row.purchaseItemId,
+        (soldCountByItem.get(row.purchaseItemId) ?? 0) + Number(row.n)
+      );
+    }
+  }
+
   const purchaseItems = list.map((item) => ({
     ...item,
     prices: pricesByItem.get(item.id) ?? [],
+    soldCount: soldCountByItem.get(item.id) ?? 0,
   }));
 
   return NextResponse.json({ purchaseItems });

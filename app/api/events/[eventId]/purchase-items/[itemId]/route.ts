@@ -4,10 +4,41 @@ import {
   events,
   eventPurchaseItems,
   eventPurchaseItemPrices,
+  eventRegistrations,
+  eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+
+/** 計算某購買項目目前綁定的「未隱藏」報名數（新模式 + 舊單選模式合計） */
+async function countActiveRegistrations(eventId: number, itemId: number) {
+  const [multi] = await db
+    .select({ n: sql<number>`cast(count(*) as int)` })
+    .from(eventRegistrationPurchaseItems)
+    .innerJoin(
+      eventRegistrations,
+      eq(eventRegistrationPurchaseItems.registrationId, eventRegistrations.id)
+    )
+    .where(
+      and(
+        eq(eventRegistrationPurchaseItems.purchaseItemId, itemId),
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.hidden, false)
+      )
+    );
+  const [legacy] = await db
+    .select({ n: sql<number>`cast(count(*) as int)` })
+    .from(eventRegistrations)
+    .where(
+      and(
+        eq(eventRegistrations.purchaseItemId, itemId),
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.hidden, false)
+      )
+    );
+  return Number(multi?.n ?? 0) + Number(legacy?.n ?? 0);
+}
 
 /** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
 function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
@@ -121,4 +152,48 @@ export async function PATCH(request: Request, { params }: Params) {
   return NextResponse.json({
     purchaseItem: replacePrices ? { ...updated, prices } : updated,
   });
+}
+
+/** 刪除購買項目。僅在尚無未隱藏報名綁定時允許（否則回 409，請改用隱藏）。 */
+export async function DELETE(_request: Request, { params }: Params) {
+  const authError = await requireAuth();
+  if (authError) return authError;
+
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+
+  const { eventId: eventIdStr, itemId: itemIdStr } = await params;
+  const eventId = Number(eventIdStr);
+  const itemId = Number(itemIdStr);
+  if (!Number.isInteger(eventId) || !Number.isInteger(itemId)) {
+    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+  }
+
+  const access = await getEventAndCheckAccess(eventId, session.userId);
+  if ("error" in access) return access.error;
+
+  const activeCount = await countActiveRegistrations(eventId, itemId);
+  if (activeCount > 0) {
+    return NextResponse.json(
+      { error: "已有人報名此項目，無法刪除（可改為隱藏）" },
+      { status: 409 }
+    );
+  }
+
+  // eventPurchaseItemPrices 透過 FK cascade 一併移除
+  const [deleted] = await db
+    .delete(eventPurchaseItems)
+    .where(
+      and(
+        eq(eventPurchaseItems.id, itemId),
+        eq(eventPurchaseItems.eventId, eventId)
+      )
+    )
+    .returning();
+
+  if (!deleted) {
+    return NextResponse.json({ error: "找不到購買項目" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,14 +13,13 @@ import type {
 
 type PurchaseItemsSectionProps = {
   items: PurchaseItemDraft[];
-  allowMultiple: boolean;
   autoCalcAmount: boolean;
   priceTiers: PriceTierDraft[];
   groups: PurchaseItemGroupDraft[];
-  onAllowMultipleChange: (value: boolean) => void;
   onAutoCalcAmountChange: (value: boolean) => void;
   onAddClick: () => void;
-  onRemove: (index: number) => void;
+  onDeleteItem: (index: number) => void;
+  itemDeletingIndex: number | null;
   onSetItemHidden: (index: number, hidden: boolean) => void;
   itemHiddenUpdatingIndex: number | null;
   onAddTier: () => void;
@@ -40,14 +40,13 @@ type PurchaseItemsSectionProps = {
 
 export function PurchaseItemsSection({
   items,
-  allowMultiple,
   autoCalcAmount,
   priceTiers,
   groups,
-  onAllowMultipleChange,
   onAutoCalcAmountChange,
   onAddClick,
-  onRemove,
+  onDeleteItem,
+  itemDeletingIndex,
   onSetItemHidden,
   itemHiddenUpdatingIndex,
   onAddTier,
@@ -63,7 +62,13 @@ export function PurchaseItemsSection({
 }: PurchaseItemsSectionProps) {
   const useGroups = groups.length > 0;
 
-  // 把每個項目的原始 index 一併帶上，方便 onRemove / onSetItemHidden 操作
+  // 進階選項預設收合；若活動已設定群組則自動展開。使用者手動切換後以 override 為準。
+  // 完全由 render 推導，避免 effect / ref 連鎖（亦相容群組非同步載入）。
+  const [advancedOverride, setAdvancedOverride] = useState<boolean | null>(null);
+  const advancedOpen = advancedOverride ?? useGroups;
+  const toggleAdvanced = () => setAdvancedOverride(!advancedOpen);
+
+  // 把每個項目的原始 index 一併帶上，方便 onDeleteItem / onSetItemHidden 操作
   const indexedItems = items.map((item, index) => ({ item, index }));
   const groupKeyOf = (group: PurchaseItemGroupDraft, groupIndex: number) =>
     group.id != null ? `id-${group.id}` : `draft-${groupIndex}`;
@@ -73,72 +78,70 @@ export function PurchaseItemsSection({
     return null;
   };
 
-  const renderItemRow = (item: PurchaseItemDraft, i: number) => (
-    <li
-      key={item.id ?? i}
-      className="flex flex-wrap items-center justify-between gap-2 text-sm"
-    >
-      <span className={item.hidden ? "text-gray-400" : "text-gray-700"}>
-        {item.name} — ${item.amount}
-        {item.hidden ? (
-          <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
-        ) : null}
-        {item.prices && item.prices.length > 0 ? (
-          <span className="ml-2 text-xs text-gray-400">
-            （
-            {item.prices
-              .map((p) => {
-                const tier =
-                  priceTiers.find((t) => t.id != null && t.id === p.tierId) ??
-                  (p.tierDraftIndex != null ? priceTiers[p.tierDraftIndex] : undefined);
-                return `${tier?.name ?? "時段"} ${p.amount}`;
-              })
-              .join(" / ")}
-            ）
-          </span>
-        ) : null}
-      </span>
-      <div className="flex shrink-0 items-center gap-2">
-        {item.id == null ? (
-          <>
+  const renderItemRow = (item: PurchaseItemDraft, i: number) => {
+    const sold = item.soldCount ?? 0;
+    const canDelete = sold === 0;
+    return (
+      <li
+        key={item.id ?? i}
+        className="flex flex-wrap items-center justify-between gap-2 text-sm"
+      >
+        <span className={item.hidden ? "text-gray-400" : "text-gray-700"}>
+          {item.name} — ${item.amount}
+          {item.hidden ? (
+            <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
+          ) : null}
+          {item.prices && item.prices.length > 0 ? (
+            <span className="ml-2 text-xs text-gray-400">
+              （
+              {item.prices
+                .map((p) => {
+                  const tier =
+                    priceTiers.find((t) => t.id != null && t.id === p.tierId) ??
+                    (p.tierDraftIndex != null ? priceTiers[p.tierDraftIndex] : undefined);
+                  return `${tier?.name ?? "時段"} ${p.amount}`;
+                })
+                .join(" / ")}
+              ）
+            </span>
+          ) : null}
+          {!canDelete ? (
+            <span className="ml-2 text-xs text-gray-400">已 {sold} 人報名</span>
+          ) : null}
+        </span>
+        <div className="flex shrink-0 items-center gap-3">
+          {canDelete ? (
             <button
               type="button"
+              disabled={itemDeletingIndex === i}
+              onClick={() => onDeleteItem(i)}
+              className="text-red-500 hover:underline disabled:opacity-50"
+              aria-label="刪除項目"
+            >
+              {itemDeletingIndex === i ? "刪除中…" : "刪除"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={itemHiddenUpdatingIndex === i}
               onClick={() => onSetItemHidden(i, !item.hidden)}
-              className="text-gray-500 hover:underline"
+              className="text-gray-500 hover:underline disabled:opacity-50"
               aria-label={item.hidden ? "在報名表顯示" : "從報名表隱藏"}
             >
-              {item.hidden ? "在報名表顯示" : "從報名表隱藏"}
+              {itemHiddenUpdatingIndex === i
+                ? "更新中…"
+                : item.hidden
+                  ? "在報名表顯示"
+                  : "從報名表隱藏"}
             </button>
-            <button
-              type="button"
-              onClick={() => onRemove(i)}
-              className="text-red-500 hover:underline"
-              aria-label="移除"
-            >
-              移除
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            disabled={itemHiddenUpdatingIndex === i}
-            onClick={() => onSetItemHidden(i, !item.hidden)}
-            className="text-gray-500 hover:underline disabled:opacity-50"
-            aria-label={item.hidden ? "在報名表顯示" : "從報名表隱藏"}
-          >
-            {itemHiddenUpdatingIndex === i
-              ? "更新中…"
-              : item.hidden
-                ? "在報名表顯示"
-                : "從報名表隱藏"}
-          </button>
-        )}
-      </div>
-    </li>
-  );
+          )}
+        </div>
+      </li>
+    );
+  };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {/* 票價時段：早鳥 / 一般 / 現場，依當下日期自動套用 */}
       <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
         <div className="flex items-center justify-between">
@@ -161,7 +164,10 @@ export function PurchaseItemsSection({
         {priceTiers.length > 0 && (
           <ul className="flex flex-col gap-2">
             {priceTiers.map((tier, i) => (
-              <li key={tier.id ?? `draft-${i}`} className="flex items-center gap-2">
+              <li
+                key={tier.id ?? `draft-${i}`}
+                className="flex items-center gap-2"
+              >
                 <Input
                   className="flex-1 bg-white"
                   placeholder="時段名稱（如 早鳥）"
@@ -191,145 +197,20 @@ export function PurchaseItemsSection({
         )}
       </div>
 
-      {/* 票種群組：擇一 / 複選 / 是否必選，報名頁依群組規則渲染 */}
-      <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-        <div className="flex items-center justify-between">
-          <Label>票種群組（選填）</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={onAddGroup}
-          >
-            <Plus className="size-4" />
-            新增群組
-          </Button>
-        </div>
-        <p className="text-xs text-gray-500">
-          建立群組後，每個購買項目須歸屬一個群組，報名頁依群組規則渲染（擇一＝radio、複選＝checkbox）並自動算金額。
-          使用群組時上方「開放多選 / 自動填寫金額」改由各群組規則決定。
-        </p>
-        {groups.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {groups.map((group, i) => {
-              const groupKey = groupKeyOf(group, i);
-              const otherGroups = groups
-                .map((g, gi) => ({ g, gi }))
-                .filter(({ gi }) => gi !== i);
-              return (
-              <li
-                key={group.id ?? `draft-${i}`}
-                className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-2"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  className="min-w-[8rem] flex-1 bg-white"
-                  placeholder="群組名稱（如 主票種）"
-                  value={group.title}
-                  onChange={(e) => onUpdateGroup(i, "title", e.target.value)}
-                  onBlur={() => onPersistGroup(i)}
-                />
-                <select
-                  className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
-                  value={group.selectionMode}
-                  onChange={(e) => {
-                    onUpdateGroup(
-                      i,
-                      "selectionMode",
-                      e.target.value === "multiple" ? "multiple" : "single"
-                    );
-                    onPersistGroup(i);
-                  }}
-                  aria-label="選擇模式"
-                >
-                  <option value="single">擇一</option>
-                  <option value="multiple">複選</option>
-                </select>
-                <label className="flex cursor-pointer items-center gap-1 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={group.required}
-                    onChange={(e) => {
-                      onUpdateGroup(i, "required", e.target.checked);
-                      onPersistGroup(i);
-                    }}
-                    className="size-4 rounded border-gray-300"
-                  />
-                  必選
-                </label>
-                <button
-                  type="button"
-                  onClick={() => onRemoveGroup(i)}
-                  className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
-                  aria-label="移除群組"
-                >
-                  <X className="size-4" />
-                </button>
-                </div>
-                {otherGroups.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-1 text-xs text-gray-500">
-                    <span>互斥群組：</span>
-                    {otherGroups.map(({ g, gi }) => {
-                      const otherKey = groupKeyOf(g, gi);
-                      return (
-                        <label
-                          key={g.id ?? `draft-${gi}`}
-                          className="flex cursor-pointer items-center gap-1"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isGroupExcluded(groupKey, otherKey)}
-                            onChange={() => onToggleGroupExclusion(groupKey, otherKey)}
-                            className="size-3.5 rounded border-gray-300"
-                          />
-                          {g.title || "（未命名）"}
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      <div className="flex items-start justify-between">
+      {/* 購買項目清單 */}
+      <div className="flex items-center justify-between">
         <Label>購買項目</Label>
-        {!useGroups && (
-          <div className="flex flex-col gap-2">
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={allowMultiple}
-                onChange={(e) => onAllowMultipleChange(e.target.checked)}
-                className="size-4 rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-600">開放多選</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={autoCalcAmount}
-                onChange={(e) => onAutoCalcAmountChange(e.target.checked)}
-                className="size-4 rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-600">自動填寫金額</span>
-            </label>
-          </div>
-        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          onClick={onAddClick}
+        >
+          <Plus className="size-4" />
+          新增項目
+        </Button>
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        className="w-fit gap-2"
-        onClick={onAddClick}
-      >
-        <Plus className="size-4" />
-        新增項目
-      </Button>
 
       {items.length > 0 &&
         (useGroups ? (
@@ -352,7 +233,9 @@ export function PurchaseItemsSection({
                   </p>
                   {groupItems.length > 0 ? (
                     <ul className="flex flex-col gap-2">
-                      {groupItems.map(({ item, index }) => renderItemRow(item, index))}
+                      {groupItems.map(({ item, index }) =>
+                        renderItemRow(item, index)
+                      )}
                     </ul>
                   ) : (
                     <p className="text-xs text-gray-400">尚無項目</p>
@@ -367,9 +250,13 @@ export function PurchaseItemsSection({
               if (ungrouped.length === 0) return null;
               return (
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
-                  <p className="mb-2 text-sm font-medium text-amber-700">未分組（請指派群組）</p>
+                  <p className="mb-2 text-sm font-medium text-amber-700">
+                    未分組（請指派群組）
+                  </p>
                   <ul className="flex flex-col gap-2">
-                    {ungrouped.map(({ item, index }) => renderItemRow(item, index))}
+                    {ungrouped.map(({ item, index }) =>
+                      renderItemRow(item, index)
+                    )}
                   </ul>
                 </div>
               );
@@ -380,6 +267,164 @@ export function PurchaseItemsSection({
             {items.map((item, i) => renderItemRow(item, i))}
           </ul>
         ))}
+
+      {/* 進階選項：票種群組、互斥規則、多選 — 一般 Party 不需要設定 */}
+      <div className="rounded-md border border-gray-200 bg-gray-50">
+        <button
+          type="button"
+          onClick={toggleAdvanced}
+          aria-expanded={advancedOpen}
+          className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+        >
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-gray-700">進階選項</span>
+            <span className="text-xs text-gray-500">
+              票種群組、互斥規則 — 一般 Party 不需要設定
+            </span>
+          </span>
+          <ChevronDown
+            className={`size-5 shrink-0 text-gray-400 transition-transform motion-reduce:transition-none ${
+              advancedOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {advancedOpen && (
+          <div className="flex flex-col gap-3 border-t border-gray-200 p-3">
+            {/* 購買規則（使用群組時改由各群組規則決定） */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm">購買規則</Label>
+              {useGroups ? (
+                <p className="text-xs text-gray-500">
+                  已使用票種群組，金額計算改由各群組規則決定。
+                </p>
+              ) : (
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!autoCalcAmount}
+                    onChange={(e) => onAutoCalcAmountChange(!e.target.checked)}
+                    className="size-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-600">
+                    使用者自行填寫金額（關閉自動加總）
+                  </span>
+                </label>
+              )}
+            </div>
+
+            {/* 票種群組：擇一 / 複選 / 是否必選，報名頁依群組規則渲染 */}
+            <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3">
+              <div className="flex items-center justify-between">
+                <Label>票種群組</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={onAddGroup}
+                >
+                  <Plus className="size-4" />
+                  新增群組
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                建立群組後，每個購買項目須歸屬一個群組，報名頁依群組規則渲染（擇一＝radio、複選＝checkbox）並自動算金額。
+              </p>
+              {groups.length > 0 && (
+                <ul className="flex flex-col gap-2">
+                  {groups.map((group, i) => {
+                    const groupKey = groupKeyOf(group, i);
+                    const otherGroups = groups
+                      .map((g, gi) => ({ g, gi }))
+                      .filter(({ gi }) => gi !== i);
+                    return (
+                      <li
+                        key={group.id ?? `draft-${i}`}
+                        className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-2"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input
+                            className="min-w-[8rem] flex-1 bg-white"
+                            placeholder="群組名稱（如 主票種）"
+                            value={group.title}
+                            onChange={(e) =>
+                              onUpdateGroup(i, "title", e.target.value)
+                            }
+                            onBlur={() => onPersistGroup(i)}
+                          />
+                          <select
+                            className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                            value={group.selectionMode}
+                            onChange={(e) => {
+                              onUpdateGroup(
+                                i,
+                                "selectionMode",
+                                e.target.value === "multiple"
+                                  ? "multiple"
+                                  : "single"
+                              );
+                              onPersistGroup(i);
+                            }}
+                            aria-label="選擇模式"
+                          >
+                            <option value="single">擇一</option>
+                            <option value="multiple">複選</option>
+                          </select>
+                          <label className="flex cursor-pointer items-center gap-1 text-sm text-gray-600">
+                            <input
+                              type="checkbox"
+                              checked={group.required}
+                              onChange={(e) => {
+                                onUpdateGroup(i, "required", e.target.checked);
+                                onPersistGroup(i);
+                              }}
+                              className="size-4 rounded border-gray-300"
+                            />
+                            必選
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveGroup(i)}
+                            className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
+                            aria-label="移除群組"
+                          >
+                            <X className="size-4" />
+                          </button>
+                        </div>
+                        {otherGroups.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-1 text-xs text-gray-500">
+                            <span>互斥群組：</span>
+                            {otherGroups.map(({ g, gi }) => {
+                              const otherKey = groupKeyOf(g, gi);
+                              return (
+                                <label
+                                  key={g.id ?? `draft-${gi}`}
+                                  className="flex cursor-pointer items-center gap-1"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isGroupExcluded(groupKey, otherKey)}
+                                    onChange={() =>
+                                      onToggleGroupExclusion(groupKey, otherKey)
+                                    }
+                                    className="size-3.5 rounded border-gray-300"
+                                  />
+                                  {g.title || "（未命名）"}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

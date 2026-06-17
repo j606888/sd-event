@@ -26,6 +26,8 @@ export type PurchaseItemDraft = {
   hidden?: boolean;
   /** 各時段價（可空 = 全部用 amount fallback） */
   prices?: ItemTierPriceDraft[];
+  /** 已綁定的未隱藏報名數（已儲存項目由後端帶入）；0 或未定義＝可刪除 */
+  soldCount?: number;
   /** 所屬票種群組（已儲存群組）；null = 未分組 */
   groupId?: number | null;
   /** create 模式群組尚無 id 時，暫referer 草稿群組 index */
@@ -118,7 +120,8 @@ export function useEventForm({
 }: UseEventFormParams) {
   const [drawer, setDrawer] = useState<DrawerType>(null);
   const [allowMultiple, setAllowMultiple] = useState(false);
-  const [autoCalcAmount, setAutoCalcAmount] = useState(false);
+  // 金額預設自動加總；編輯模式由 init effect 以 initialData.autoCalcAmount 覆寫
+  const [autoCalcAmount, setAutoCalcAmount] = useState(true);
   const [locationId, setLocationId] = useState<string>("");
   const [organizerId, setOrganizerId] = useState<string>("");
   const [bankInfoId, setBankInfoId] = useState<string>("");
@@ -137,7 +140,18 @@ export function useEventForm({
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([]);
   const [purchaseItemHiddenUpdatingIndex, setPurchaseItemHiddenUpdatingIndex] =
     useState<number | null>(null);
-  const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>([]);
+  const [purchaseItemDeletingIndex, setPurchaseItemDeletingIndex] =
+    useState<number | null>(null);
+  // 新增活動預設帶兩個票價區間（超早鳥／早鳥），可自行填日期或按 X 移除；
+  // 編輯模式從 [] 起始，由載入 effect 從 API 回填
+  const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>(
+    mode === "create"
+      ? [
+          { name: "超早鳥", endsAt: "", sortOrder: 0 },
+          { name: "早鳥", endsAt: "", sortOrder: 1 },
+        ]
+      : []
+  );
   const [groups, setGroups] = useState<PurchaseItemGroupDraft[]>([]);
   // 群組互斥配對；以群組 key（`id-<id>` / `draft-<index>`）成對表示，與 PurchaseItemsSection 一致
   const [groupExclusions, setGroupExclusions] = useState<Array<[string, string]>>([]);
@@ -273,6 +287,7 @@ export function useEventForm({
           amount: number;
           hidden?: boolean;
           groupId?: number | null;
+          soldCount?: number;
           prices?: { tierId: number; amount: number }[];
         }) => ({
           id: i.id,
@@ -280,6 +295,7 @@ export function useEventForm({
           amount: i.amount,
           hidden: Boolean(i.hidden),
           groupId: i.groupId ?? null,
+          soldCount: i.soldCount ?? 0,
           prices: (i.prices ?? []).map((p) => ({
             tierId: p.tierId,
             amount: p.amount,
@@ -415,10 +431,32 @@ export function useEventForm({
     setDrawer(null);
   };
 
-  const removePurchaseItem = (index: number) => {
+  // 刪除購買項目：草稿直接本地移除；已儲存且零報名時呼叫後端刪除（後端會再次把關）
+  const deletePurchaseItem = async (index: number) => {
     const item = purchaseItems[index];
-    if (item.id != null) return;
-    setPurchaseItems((prev) => prev.filter((_, i) => i !== index));
+    if (item.id == null) {
+      setPurchaseItems((prev) => prev.filter((_, i) => i !== index));
+      return;
+    }
+    if (mode !== "edit" || eventId == null) return;
+    setPurchaseItemDeletingIndex(index);
+    setSaveError(null);
+    try {
+      const res = await fetch(
+        `/api/events/${eventId}/purchase-items/${item.id}`,
+        { method: "DELETE", credentials: "include" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || "刪除購買項目失敗");
+        return;
+      }
+      setPurchaseItems((prev) => prev.filter((_, i) => i !== index));
+    } catch {
+      setSaveError("刪除購買項目失敗");
+    } finally {
+      setPurchaseItemDeletingIndex(null);
+    }
   };
 
   const removeNoticeItem = (index: number) => {
@@ -948,6 +986,7 @@ export function useEventForm({
     isUploadingCover,
     purchaseItems,
     purchaseItemHiddenUpdatingIndex,
+    purchaseItemDeletingIndex,
     priceTiers,
     groups,
     groupExclusions,
@@ -974,7 +1013,7 @@ export function useEventForm({
     handleBankInfoSuccess,
     handlePurchaseItemSuccess,
     handleNoticeItemSuccess,
-    removePurchaseItem,
+    deletePurchaseItem,
     removeNoticeItem,
     setPurchaseItemHidden,
     addPriceTier,

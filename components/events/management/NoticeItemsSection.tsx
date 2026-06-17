@@ -2,7 +2,6 @@
 
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import type { NoticeItemDraft } from "@/hooks/use-event-form";
 
 type NoticeItemsSectionProps = {
@@ -18,7 +17,6 @@ export function NoticeItemsSection({
 }: NoticeItemsSectionProps) {
   return (
     <div className="flex flex-col gap-2">
-      <Label>須知項目(選填)</Label>
       <Button
         type="button"
         variant="outline"

@@ -12,7 +12,6 @@ import { LocationSelect } from "./LocationSelect";
 import { OrganizerSelect } from "./OrganizerSelect";
 import { BankInfoSelect } from "./BankInfoSelect";
 import { PurchaseItemsSection } from "./PurchaseItemsSection";
-import { NoticeItemsSection } from "./NoticeItemsSection";
 import { LocationDrawer } from "./LocationDrawer";
 import { OrganizerDrawer } from "./OrganizerDrawer";
 import { BankInfoDrawer } from "./BankInfoDrawer";
@@ -21,6 +20,14 @@ import { NoticeItemDrawer } from "./NoticeItemDrawer";
 import { useEventForm } from "@/hooks/use-event-form";
 
 export type { EventFormInitialData } from "@/hooks/use-event-form";
+
+type SectionId = "basic" | "items" | "contact";
+
+const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: "basic", label: "基本資訊" },
+  { id: "items", label: "販售項目" },
+  { id: "contact", label: "主辦 & 收款" },
+];
 
 type EventFormProps = {
   mode: "create" | "edit";
@@ -43,7 +50,6 @@ export function EventForm({
 }: EventFormProps) {
   const {
     drawer,
-    allowMultiple,
     autoCalcAmount,
     locationId,
     organizerId,
@@ -59,6 +65,7 @@ export function EventForm({
     previewUrl,
     purchaseItems,
     purchaseItemHiddenUpdatingIndex,
+    purchaseItemDeletingIndex,
     priceTiers,
     groups,
     noticeItems,
@@ -70,7 +77,6 @@ export function EventForm({
     setLocationId,
     setOrganizerId,
     setBankInfoId,
-    setAllowMultiple,
     setAutoCalcAmount,
     handleStartAtChange,
     handleFileSelect,
@@ -82,8 +88,7 @@ export function EventForm({
     handleBankInfoSuccess,
     handlePurchaseItemSuccess,
     handleNoticeItemSuccess,
-    removePurchaseItem,
-    removeNoticeItem,
+    deletePurchaseItem,
     setPurchaseItemHidden,
     addPriceTier,
     updatePriceTier,
@@ -99,14 +104,54 @@ export function EventForm({
   } = useEventForm({ mode, teamId, eventId, initialData, onSaveSuccess });
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<SectionId>("basic");
   const coverSrc = previewUrl || coverUrl || "";
+
+  // 送出前若必填欄位缺漏，先切到含該欄位的 Tab，讓使用者看得到錯誤
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!title.trim() || !locationId) {
+      setActiveSection("basic");
+    } else if (!organizerId || !bankInfoId) {
+      setActiveSection("contact");
+    }
+    handleSubmit(e);
+  };
 
   return (
     <div className="w-full">
-      <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-5" onSubmit={onSubmit}>
         {saveError && (
-          <p className="text-sm text-red-500">{saveError}</p>
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {saveError}
+          </p>
         )}
+
+        {/* 分段切換：基本資訊 / 販售項目 / 主辦 & 收款 */}
+        <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1" role="tablist">
+          {SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={activeSection === s.id}
+              onClick={() => setActiveSection(s.id)}
+              className={`rounded-md px-2 py-2 text-sm font-medium transition-colors ${
+                activeSection === s.id
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 基本資訊 */}
+        <div
+          className={`flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5 ${
+            activeSection === "basic" ? "" : "hidden"
+          }`}
+        >
         <div className="flex flex-col gap-2">
           <Label htmlFor="title">標題</Label>
           <Input
@@ -215,16 +260,23 @@ export function EventForm({
           onValueChange={setLocationId}
           onAddClick={openDrawer("location")}
         />
+        </div>
+
+        {/* 販售項目 */}
+        <div
+          className={`flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5 ${
+            activeSection === "items" ? "" : "hidden"
+          }`}
+        >
         <PurchaseItemsSection
           items={purchaseItems}
-          allowMultiple={allowMultiple}
           autoCalcAmount={autoCalcAmount}
           priceTiers={priceTiers}
           groups={groups}
-          onAllowMultipleChange={setAllowMultiple}
           onAutoCalcAmountChange={setAutoCalcAmount}
           onAddClick={openDrawer("purchaseItem")}
-          onRemove={removePurchaseItem}
+          onDeleteItem={deletePurchaseItem}
+          itemDeletingIndex={purchaseItemDeletingIndex}
           onSetItemHidden={setPurchaseItemHidden}
           itemHiddenUpdatingIndex={purchaseItemHiddenUpdatingIndex}
           onAddTier={addPriceTier}
@@ -238,11 +290,14 @@ export function EventForm({
           isGroupExcluded={isGroupExcluded}
           onToggleGroupExclusion={toggleGroupExclusion}
         />
-        <NoticeItemsSection
-          items={noticeItems}
-          onAddClick={openDrawer("notice")}
-          onRemove={removeNoticeItem}
-        />
+        </div>
+
+        {/* 主辦 & 收款 */}
+        <div
+          className={`flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5 ${
+            activeSection === "contact" ? "" : "hidden"
+          }`}
+        >
         <OrganizerSelect
           value={organizerId}
           organizers={organizers}
@@ -255,7 +310,9 @@ export function EventForm({
           onValueChange={setBankInfoId}
           onAddClick={openDrawer("bank")}
         />
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        </div>
+
+        <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
           {mode === "create" && (
             <Button type="button" variant="outline" asChild className="flex-1 min-w-[100px]">
               <Link href="/events">取消</Link>

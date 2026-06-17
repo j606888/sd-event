@@ -1,7 +1,6 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -20,6 +19,8 @@ type BankInfoSelectProps = {
   onAddClick: () => void;
 };
 
+const ADD_VALUE = "__add__";
+
 export function BankInfoSelect({
   value,
   bankInfos,
@@ -30,6 +31,10 @@ export function BankInfoSelect({
   const safeValue = value ?? ""
 
   const onValueChange2 = (val: string) => {
+    if (val === ADD_VALUE) {
+      onAddClick();
+      return;
+    }
     if (!val || val.trim() === "") return
 
     onValueChange(val ?? "");
@@ -37,32 +42,30 @@ export function BankInfoSelect({
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor="bank">銀行資訊 *</Label>
-      <div className="flex gap-2">
-        <Select
-          value={safeValue}
-          onValueChange={onValueChange2}
-        >
-          <SelectTrigger id="bank" className="flex-1 min-w-0">
-            <SelectValue placeholder="選擇銀行資訊" />
-          </SelectTrigger>
-          <SelectContent>
-            {bankInfos.map((bank) => (
-              <SelectItem key={bank.id} value={String(bank.id)}>
-                {bank.bankName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={onAddClick}
-          aria-label="新增銀行資訊"
-        >
-          <Plus className="size-4" />
-        </Button>
-      </div>
+      <Select
+        value={safeValue}
+        onValueChange={onValueChange2}
+      >
+        <SelectTrigger id="bank" className="w-full min-w-0">
+          <SelectValue placeholder="選擇銀行資訊" />
+        </SelectTrigger>
+        <SelectContent>
+          {bankInfos.map((bank) => (
+            <SelectItem key={bank.id} value={String(bank.id)}>
+              {bank.bankName}
+            </SelectItem>
+          ))}
+          <SelectItem
+            value={ADD_VALUE}
+            className="mt-1 border-t border-gray-100 pl-3 font-medium text-[#5295BC] focus:text-[#5295BC]"
+          >
+            <span className="flex items-center gap-1.5">
+              <Plus className="size-4" />
+              新增銀行資訊
+            </span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }
