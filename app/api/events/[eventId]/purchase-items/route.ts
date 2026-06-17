@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { events, eventPurchaseItems, teamMembers } from "@/db/schema";
+import {
+  events,
+  eventPurchaseItems,
+  eventPurchaseItemPrices,
+} from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+
+/** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
+function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((p) => ({ tierId: Number(p?.tierId), amount: Math.floor(Number(p?.amount)) }))
+    .filter(
+      (p) => Number.isInteger(p.tierId) && Number.isInteger(p.amount) && p.amount >= 0
+    );
+}
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -37,7 +51,28 @@ export async function GET(_request: Request, { params }: Params) {
     .from(eventPurchaseItems)
     .where(eq(eventPurchaseItems.eventId, eventId));
 
-  return NextResponse.json({ purchaseItems: list });
+  // 一併帶出各項目的時段價，供管理 UI 回填
+  const itemIds = list.map((i) => i.id);
+  const priceRows =
+    itemIds.length > 0
+      ? await db
+          .select()
+          .from(eventPurchaseItemPrices)
+          .where(inArray(eventPurchaseItemPrices.purchaseItemId, itemIds))
+      : [];
+  const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
+  for (const row of priceRows) {
+    const arr = pricesByItem.get(row.purchaseItemId) ?? [];
+    arr.push({ tierId: row.tierId, amount: row.amount });
+    pricesByItem.set(row.purchaseItemId, arr);
+  }
+
+  const purchaseItems = list.map((item) => ({
+    ...item,
+    prices: pricesByItem.get(item.id) ?? [],
+  }));
+
+  return NextResponse.json({ purchaseItems });
 }
 
 /** 新增購買項目 */
@@ -65,15 +100,29 @@ export async function POST(request: Request, { params }: Params) {
 
   const sortOrder = Number.isInteger(body.sortOrder) ? body.sortOrder : 0;
   const hidden = body.hidden === true;
+  const prices = parsePrices(body.prices);
 
-  const [item] = await db
-    .insert(eventPurchaseItems)
-    .values({ eventId, name, amount, sortOrder, hidden })
-    .returning();
+  const item = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(eventPurchaseItems)
+      .values({ eventId, name, amount, sortOrder, hidden })
+      .returning();
+    if (!created) return null;
+    if (prices.length > 0) {
+      await tx.insert(eventPurchaseItemPrices).values(
+        prices.map((p) => ({
+          purchaseItemId: created.id,
+          tierId: p.tierId,
+          amount: p.amount,
+        }))
+      );
+    }
+    return created;
+  });
 
   if (!item) {
     return NextResponse.json({ error: "新增失敗" }, { status: 500 });
   }
 
-  return NextResponse.json({ purchaseItem: item });
+  return NextResponse.json({ purchaseItem: { ...item, prices } });
 }

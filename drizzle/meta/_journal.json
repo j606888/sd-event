@@ -29,6 +29,13 @@
       "when": 1780194298481,
       "tag": "0003_wet_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781667075318,
+      "tag": "0004_strong_princess_powerful",
+      "breakpoints": true
     }
   ]
 }

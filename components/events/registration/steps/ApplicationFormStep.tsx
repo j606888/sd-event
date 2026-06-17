@@ -126,7 +126,14 @@ export function ApplicationFormStep({
                     />
                     <div className="flex-1">
                       <div className="font-medium text-gray-900">{item.name}</div>
-                      <div className="text-sm text-gray-600">${item.amount}</div>
+                      <div className="text-sm text-gray-600">
+                        ${item.amount}
+                        {event.activeTier ? (
+                          <span className="ml-1 text-xs text-gray-400">
+                            （{event.activeTier.name}）
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </label>
                 );

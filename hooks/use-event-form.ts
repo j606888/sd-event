@@ -11,15 +11,43 @@ export type DrawerType =
   | "organizer"
   | "bank";
 
+/** 項目於某時段的價格；create 模式 tier 尚無 id，用 tierDraftIndex 暫referer */
+export type ItemTierPriceDraft = {
+  tierId?: number;
+  tierDraftIndex?: number;
+  amount: number;
+};
+
 export type PurchaseItemDraft = {
   id?: number;
   name: string;
   amount: number;
   /** 不在公開報名表顯示（已儲存項目由後端同步；新建項目僅存於表單狀態） */
   hidden?: boolean;
+  /** 各時段價（可空 = 全部用 amount fallback） */
+  prices?: ItemTierPriceDraft[];
+};
+
+/** 票價時段草稿；endsAt 為 "YYYY-MM-DD"（空 = fallback 段，永不過期） */
+export type PriceTierDraft = {
+  id?: number;
+  name: string;
+  endsAt: string;
+  sortOrder: number;
 };
 
 export type NoticeItemDraft = { id?: number; content: string };
+
+/** ISO 時間轉成 date input 的 "YYYY-MM-DD"（當地） */
+function toDateInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export type EventFormInitialData = {
   id: number;
@@ -96,6 +124,7 @@ export function useEventForm({
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([]);
   const [purchaseItemHiddenUpdatingIndex, setPurchaseItemHiddenUpdatingIndex] =
     useState<number | null>(null);
+  const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>([]);
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
 
   const initializedEventIdRef = useRef<number | null>(null);
@@ -211,13 +240,26 @@ export function useEventForm({
       fetch(`/api/events/${eventId}/notice-items`, {
         credentials: "include",
       }).then((r) => r.json()),
-    ]).then(([pData, nData]) => {
+      fetch(`/api/events/${eventId}/price-tiers`, {
+        credentials: "include",
+      }).then((r) => r.json()),
+    ]).then(([pData, nData, tData]) => {
       const items = (pData?.purchaseItems ?? []).map(
-        (i: { id: number; name: string; amount: number; hidden?: boolean }) => ({
+        (i: {
+          id: number;
+          name: string;
+          amount: number;
+          hidden?: boolean;
+          prices?: { tierId: number; amount: number }[];
+        }) => ({
           id: i.id,
           name: i.name,
           amount: i.amount,
           hidden: Boolean(i.hidden),
+          prices: (i.prices ?? []).map((p) => ({
+            tierId: p.tierId,
+            amount: p.amount,
+          })),
         })
       );
       const notices = (nData?.noticeItems ?? []).map(
@@ -226,8 +268,17 @@ export function useEventForm({
           content: i.content ?? "",
         })
       );
+      const tiers = (tData?.priceTiers ?? []).map(
+        (t: { id: number; name: string; endsAt: string | null; sortOrder: number }) => ({
+          id: t.id,
+          name: t.name,
+          endsAt: toDateInput(t.endsAt),
+          sortOrder: t.sortOrder,
+        })
+      );
       setPurchaseItems(items);
       setNoticeItems(notices);
+      setPriceTiers(tiers);
     });
   }, [mode, eventId]);
 
@@ -365,6 +416,93 @@ export function useEventForm({
     }
   };
 
+  // ===== 票價時段 =====
+  const addPriceTier = async () => {
+    const sortOrder = priceTiers.length;
+    if (mode === "edit" && eventId != null) {
+      try {
+        const res = await fetch(`/api/events/${eventId}/price-tiers`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name: "新時段", endsAt: "", sortOrder }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setSaveError(data.error || "新增時段失敗");
+          return;
+        }
+        setPriceTiers((prev) => [
+          ...prev,
+          { id: data.priceTier?.id, name: "新時段", endsAt: "", sortOrder },
+        ]);
+      } catch {
+        setSaveError("新增時段失敗");
+      }
+      return;
+    }
+    setPriceTiers((prev) => [...prev, { name: "新時段", endsAt: "", sortOrder }]);
+  };
+
+  const updatePriceTier = (
+    index: number,
+    field: "name" | "endsAt",
+    value: string
+  ) => {
+    setPriceTiers((prev) =>
+      prev.map((t, i) => (i === index ? { ...t, [field]: value } : t))
+    );
+  };
+
+  // edit 模式：欄位失焦時把該時段變更存回後端
+  const persistPriceTier = async (index: number) => {
+    if (mode !== "edit" || eventId == null) return;
+    const tier = priceTiers[index];
+    if (tier?.id == null) return;
+    try {
+      const res = await fetch(`/api/events/${eventId}/price-tiers/${tier.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: tier.name, endsAt: tier.endsAt }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setSaveError(data.error || "更新時段失敗");
+    } catch {
+      setSaveError("更新時段失敗");
+    }
+  };
+
+  const removePriceTier = async (index: number) => {
+    const tier = priceTiers[index];
+    if (mode === "edit" && eventId != null && tier?.id != null) {
+      try {
+        const res = await fetch(
+          `/api/events/${eventId}/price-tiers/${tier.id}`,
+          { method: "DELETE", credentials: "include" }
+        );
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setSaveError(data.error || "刪除時段失敗");
+          return;
+        }
+      } catch {
+        setSaveError("刪除時段失敗");
+        return;
+      }
+    }
+    setPriceTiers((prev) => prev.filter((_, i) => i !== index));
+    // 同步移除本地草稿項目中參照到此時段的價格
+    setPurchaseItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        prices: (item.prices ?? []).filter(
+          (p) => p.tierDraftIndex !== index && p.tierId !== tier?.id
+        ),
+      }))
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
@@ -465,8 +603,38 @@ export function useEventForm({
         }
         const newEventId = data.event?.id;
         if (newEventId != null) {
+          // 先建立時段，取得 draftIndex → 真實 tierId 的對照
+          const tierIdByDraftIndex = new Map<number, number>();
+          for (let i = 0; i < priceTiers.length; i++) {
+            const tier = priceTiers[i];
+            const tRes = await fetch(`/api/events/${newEventId}/price-tiers`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                name: tier.name,
+                endsAt: tier.endsAt || null,
+                sortOrder: i,
+              }),
+            });
+            const tData = await tRes.json().catch(() => ({}));
+            if (tRes.ok && tData.priceTier?.id != null) {
+              tierIdByDraftIndex.set(i, tData.priceTier.id);
+            }
+          }
+
           for (let i = 0; i < purchaseItems.length; i++) {
             const item = purchaseItems[i];
+            const prices = (item.prices ?? [])
+              .map((p) => {
+                const tierId =
+                  p.tierId ??
+                  (p.tierDraftIndex != null
+                    ? tierIdByDraftIndex.get(p.tierDraftIndex)
+                    : undefined);
+                return tierId != null ? { tierId, amount: p.amount } : null;
+              })
+              .filter((p): p is { tierId: number; amount: number } => p !== null);
             await fetch(`/api/events/${newEventId}/purchase-items`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -476,6 +644,7 @@ export function useEventForm({
                 amount: item.amount,
                 sortOrder: i,
                 hidden: item.hidden === true,
+                prices,
               }),
             });
           }
@@ -519,6 +688,7 @@ export function useEventForm({
     isUploadingCover,
     purchaseItems,
     purchaseItemHiddenUpdatingIndex,
+    priceTiers,
     noticeItems,
     saveError,
     saving,
@@ -545,6 +715,10 @@ export function useEventForm({
     removePurchaseItem,
     removeNoticeItem,
     setPurchaseItemHidden,
+    addPriceTier,
+    updatePriceTier,
+    persistPriceTier,
+    removePriceTier,
     handleSubmit,
   };
 }

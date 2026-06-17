@@ -6,13 +6,16 @@ import {
   eventRegistrations,
   eventAttendees,
   eventPurchaseItems,
+  eventPriceTiers,
+  eventPurchaseItemPrices,
   eventRegistrationPurchaseItems,
   teamMembers,
 } from "@/db/schema";
 import { sendRegistrationSuccessEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, desc, count, or, like, and, inArray, sql } from "drizzle-orm";
+import { resolveActiveTier, getItemUnitPrice } from "@/lib/pricing";
+import { eq, desc, count, or, like, and, inArray, asc, sql } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -306,6 +309,60 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
+    // 解析當下時段價（伺服器時間），快照每個選取項目的單價並重算權威總額
+    const selectedIds = event.allowMultiplePurchase
+      ? purchaseItemIds
+      : purchaseItemId != null
+        ? [purchaseItemId]
+        : [];
+
+    const [selectedItems, tiers, priceRows] = await Promise.all([
+      selectedIds.length > 0
+        ? db
+            .select({ id: eventPurchaseItems.id, amount: eventPurchaseItems.amount })
+            .from(eventPurchaseItems)
+            .where(inArray(eventPurchaseItems.id, selectedIds))
+        : Promise.resolve([] as { id: number; amount: number }[]),
+      db
+        .select()
+        .from(eventPriceTiers)
+        .where(eq(eventPriceTiers.eventId, eventId))
+        .orderBy(asc(eventPriceTiers.sortOrder)),
+      selectedIds.length > 0
+        ? db
+            .select()
+            .from(eventPurchaseItemPrices)
+            .where(inArray(eventPurchaseItemPrices.purchaseItemId, selectedIds))
+        : Promise.resolve([] as { purchaseItemId: number; tierId: number; amount: number }[]),
+    ]);
+
+    const activeTier = resolveActiveTier(tiers, new Date());
+    const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
+    for (const row of priceRows) {
+      const arr = pricesByItem.get(row.purchaseItemId) ?? [];
+      arr.push({ tierId: row.tierId, amount: row.amount });
+      pricesByItem.set(row.purchaseItemId, arr);
+    }
+    const unitPriceById = new Map<number, number>();
+    for (const item of selectedItems) {
+      unitPriceById.set(
+        item.id,
+        getItemUnitPrice(item.amount, pricesByItem.get(item.id) ?? [], activeTier?.id ?? null)
+      );
+    }
+
+    // autoCalc 開啟時以伺服器解析價為準（Σ單價 × 參加者數），避免顯示價/收費價不一致或被竄改
+    const computedTotal =
+      selectedIds.reduce(
+        (sum: number, id: number) => sum + (unitPriceById.get(id) ?? 0),
+        0
+      ) * validAttendees.length;
+    const finalTotalAmount = event.autoCalcAmount ? computedTotal : totalAmount;
+
+    if (!Number.isInteger(finalTotalAmount) || finalTotalAmount <= 0) {
+      return NextResponse.json({ error: "總金額計算錯誤" }, { status: 400 });
+    }
+
     const registrationKey = generateRegistrationKey();
 
     // 建立報名記錄（在 transaction 中確保原子性）
@@ -321,7 +378,7 @@ export async function POST(request: Request, { params }: Params) {
           contactPhone,
           contactEmail,
           paymentMethod,
-          totalAmount,
+          totalAmount: finalTotalAmount,
           paymentStatus: "pending",
         })
         .returning();
@@ -336,6 +393,8 @@ export async function POST(request: Request, { params }: Params) {
           registrationId: reg.id,
           purchaseItemId: itemId,
           quantity: 1, // Default quantity, can be extended later
+          unitAmount: unitPriceById.get(itemId) ?? null,
+          tierName: activeTier?.name ?? null,
         }));
         await tx.insert(eventRegistrationPurchaseItems).values(registrationPurchaseItemValues);
       }

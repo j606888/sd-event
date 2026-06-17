@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { events, eventPurchaseItems } from "@/db/schema";
+import {
+  events,
+  eventPurchaseItems,
+  eventPurchaseItemPrices,
+} from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { and, eq } from "drizzle-orm";
+
+/** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
+function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((p) => ({ tierId: Number(p?.tierId), amount: Math.floor(Number(p?.amount)) }))
+    .filter(
+      (p) => Number.isInteger(p.tierId) && Number.isInteger(p.amount) && p.amount >= 0
+    );
+}
 
 type Params = { params: Promise<{ eventId: string; itemId: string }> };
 
@@ -16,7 +30,7 @@ async function getEventAndCheckAccess(eventId: number, userId: number) {
   return { event };
 }
 
-/** 更新購買項目（例如報名表是否顯示） */
+/** 更新購買項目（hidden / 名稱 / 金額 / 各時段價）。提供哪個欄位就更新哪個。 */
 export async function PATCH(request: Request, { params }: Params) {
   const authError = await requireAuth();
   if (authError) return authError;
@@ -35,24 +49,69 @@ export async function PATCH(request: Request, { params }: Params) {
   if ("error" in access) return access.error;
 
   const body = await request.json().catch(() => ({}));
-  if (typeof body.hidden !== "boolean") {
-    return NextResponse.json({ error: "請提供 hidden（布林值）" }, { status: 400 });
+
+  const updates: {
+    hidden?: boolean;
+    name?: string;
+    amount?: number;
+    updatedAt: Date;
+  } = { updatedAt: new Date() };
+
+  if (typeof body.hidden === "boolean") updates.hidden = body.hidden;
+  if (typeof body.name === "string") {
+    const trimmed = body.name.trim();
+    if (!trimmed) {
+      return NextResponse.json({ error: "名稱不可為空" }, { status: 400 });
+    }
+    updates.name = trimmed;
+  }
+  if (body.amount !== undefined) {
+    const amount = Math.floor(Number(body.amount));
+    if (!Number.isInteger(amount) || amount < 0) {
+      return NextResponse.json({ error: "金額需為非負整數" }, { status: 400 });
+    }
+    updates.amount = amount;
   }
 
-  const [updated] = await db
-    .update(eventPurchaseItems)
-    .set({ hidden: body.hidden, updatedAt: new Date() })
-    .where(
-      and(
-        eq(eventPurchaseItems.id, itemId),
-        eq(eventPurchaseItems.eventId, eventId)
+  const replacePrices = "prices" in body;
+  const prices = replacePrices ? parsePrices(body.prices) : [];
+
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(eventPurchaseItems)
+      .set(updates)
+      .where(
+        and(
+          eq(eventPurchaseItems.id, itemId),
+          eq(eventPurchaseItems.eventId, eventId)
+        )
       )
-    )
-    .returning();
+      .returning();
+    if (!row) return null;
+
+    // 提供 prices 時，整批取代該項目的時段價（含移除未列出的時段）
+    if (replacePrices) {
+      await tx
+        .delete(eventPurchaseItemPrices)
+        .where(eq(eventPurchaseItemPrices.purchaseItemId, itemId));
+      if (prices.length > 0) {
+        await tx.insert(eventPurchaseItemPrices).values(
+          prices.map((p) => ({
+            purchaseItemId: itemId,
+            tierId: p.tierId,
+            amount: p.amount,
+          }))
+        );
+      }
+    }
+    return row;
+  });
 
   if (!updated) {
     return NextResponse.json({ error: "找不到購買項目" }, { status: 404 });
   }
 
-  return NextResponse.json({ purchaseItem: updated });
+  return NextResponse.json({
+    purchaseItem: replacePrices ? { ...updated, prices } : updated,
+  });
 }

@@ -7,6 +7,7 @@ import { formatEventDate, getEventDateLabel, getEventTimeRange } from "@/lib/for
 import type { PublicEventData } from "@/types/event";
 import { Clock, MapPin } from "lucide-react";
 import { siInstagram, siLine, siFacebook } from "simple-icons";
+import { isRenderableImageSrc } from "@/lib/utils";
 
 type EventDetailsStepProps = {
   event: PublicEventData;
@@ -26,7 +27,7 @@ export function EventDetailsStep({
   return (
     <div className="min-h-screen bg-gray-400 p-4">
       <div className="mx-auto max-w-lg bg-white rounded-lg overflow-hidden">
-        {event.coverUrl && (
+        {isRenderableImageSrc(event.coverUrl) && (
           <div className="relative w-full">
             <Image
               src={event.coverUrl}
@@ -105,7 +106,7 @@ export function EventDetailsStep({
             <div className="space-y-2 pb-6 border-b border-gray-200">
               <h2 className="font-semibold text-gray-900">主辦單位</h2>
               <div className="flex items-center gap-3">
-                {event.organizer.photoUrl && (
+                {isRenderableImageSrc(event.organizer.photoUrl) && (
                   <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100">
                     <Image
                       src={event.organizer.photoUrl}

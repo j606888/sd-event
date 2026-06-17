@@ -1,35 +1,97 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { PurchaseItemDraft } from "@/hooks/use-event-form";
+import type { PurchaseItemDraft, PriceTierDraft } from "@/hooks/use-event-form";
 
 type PurchaseItemsSectionProps = {
   items: PurchaseItemDraft[];
   allowMultiple: boolean;
   autoCalcAmount: boolean;
+  priceTiers: PriceTierDraft[];
   onAllowMultipleChange: (value: boolean) => void;
   onAutoCalcAmountChange: (value: boolean) => void;
   onAddClick: () => void;
   onRemove: (index: number) => void;
   onSetItemHidden: (index: number, hidden: boolean) => void;
   itemHiddenUpdatingIndex: number | null;
+  onAddTier: () => void;
+  onUpdateTier: (index: number, field: "name" | "endsAt", value: string) => void;
+  onPersistTier: (index: number) => void;
+  onRemoveTier: (index: number) => void;
 };
 
 export function PurchaseItemsSection({
   items,
   allowMultiple,
   autoCalcAmount,
+  priceTiers,
   onAllowMultipleChange,
   onAutoCalcAmountChange,
   onAddClick,
   onRemove,
   onSetItemHidden,
   itemHiddenUpdatingIndex,
+  onAddTier,
+  onUpdateTier,
+  onPersistTier,
+  onRemoveTier,
 }: PurchaseItemsSectionProps) {
   return (
     <div className="flex flex-col gap-2">
+      {/* 票價時段：早鳥 / 一般 / 現場，依當下日期自動套用 */}
+      <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+        <div className="flex items-center justify-between">
+          <Label>票價時段（選填）</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={onAddTier}
+          >
+            <Plus className="size-4" />
+            新增時段
+          </Button>
+        </div>
+        <p className="text-xs text-gray-500">
+          設定後可在每個購買項目填各時段價格，報名頁會依「當下日期」自動套用。
+          最後一個時段截止日留空＝永不過期（作為一般／現場價）。
+        </p>
+        {priceTiers.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {priceTiers.map((tier, i) => (
+              <li key={tier.id ?? `draft-${i}`} className="flex items-center gap-2">
+                <Input
+                  className="flex-1 bg-white"
+                  placeholder="時段名稱（如 早鳥）"
+                  value={tier.name}
+                  onChange={(e) => onUpdateTier(i, "name", e.target.value)}
+                  onBlur={() => onPersistTier(i)}
+                />
+                <Input
+                  className="w-40 bg-white"
+                  type="date"
+                  value={tier.endsAt}
+                  onChange={(e) => onUpdateTier(i, "endsAt", e.target.value)}
+                  onBlur={() => onPersistTier(i)}
+                  aria-label="截止日期"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemoveTier(i)}
+                  className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
+                  aria-label="移除時段"
+                >
+                  <X className="size-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <div className="flex items-start justify-between">
         <Label>購買項目</Label>
         <div className="flex flex-col gap-2">
@@ -70,6 +132,20 @@ export function PurchaseItemsSection({
                 {item.name} — ${item.amount}
                 {item.hidden ? (
                   <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
+                ) : null}
+                {item.prices && item.prices.length > 0 ? (
+                  <span className="ml-2 text-xs text-gray-400">
+                    （
+                    {item.prices
+                      .map((p) => {
+                        const tier =
+                          priceTiers.find((t) => t.id != null && t.id === p.tierId) ??
+                          (p.tierDraftIndex != null ? priceTiers[p.tierDraftIndex] : undefined);
+                        return `${tier?.name ?? "時段"} ${p.amount}`;
+                      })
+                      .join(" / ")}
+                    ）
+                  </span>
                 ) : null}
               </span>
               <div className="flex shrink-0 items-center gap-2">

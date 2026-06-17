@@ -59,6 +59,7 @@ export function EventForm({
     previewUrl,
     purchaseItems,
     purchaseItemHiddenUpdatingIndex,
+    priceTiers,
     noticeItems,
     saveError,
     saving,
@@ -83,6 +84,10 @@ export function EventForm({
     removePurchaseItem,
     removeNoticeItem,
     setPurchaseItemHidden,
+    addPriceTier,
+    updatePriceTier,
+    persistPriceTier,
+    removePriceTier,
     handleSubmit,
   } = useEventForm({ mode, teamId, eventId, initialData, onSaveSuccess });
 
@@ -207,12 +212,17 @@ export function EventForm({
           items={purchaseItems}
           allowMultiple={allowMultiple}
           autoCalcAmount={autoCalcAmount}
+          priceTiers={priceTiers}
           onAllowMultipleChange={setAllowMultiple}
           onAutoCalcAmountChange={setAutoCalcAmount}
           onAddClick={openDrawer("purchaseItem")}
           onRemove={removePurchaseItem}
           onSetItemHidden={setPurchaseItemHidden}
           itemHiddenUpdatingIndex={purchaseItemHiddenUpdatingIndex}
+          onAddTier={addPriceTier}
+          onUpdateTier={updatePriceTier}
+          onPersistTier={persistPriceTier}
+          onRemoveTier={removePriceTier}
         />
         <NoticeItemsSection
           items={noticeItems}
@@ -281,6 +291,7 @@ export function EventForm({
               mode={mode}
               eventId={eventId}
               currentItems={purchaseItems}
+              priceTiers={priceTiers}
               onSuccess={handlePurchaseItemSuccess}
               onCancel={closeDrawer}
             />

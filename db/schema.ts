@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   index,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // ============ Enums ============
@@ -157,6 +158,39 @@ export const eventPurchaseItems = pgTable("event_purchase_items", {
   index("idx_purchase_items_event_id").on(t.eventId),
 ]);
 
+// ============ Event Price Tiers (票價時段，如 早鳥 / 一般 / 現場) ============
+export const eventPriceTiers = pgTable("event_price_tiers", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  /** 此時段截止時間（含）；最後一段（fallback，如「現場/一般」）為 null = 永不過期 */
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_price_tiers_event_id").on(t.eventId),
+]);
+
+// ============ Event Purchase Item Prices (購買項目於各時段的價格) ============
+export const eventPurchaseItemPrices = pgTable("event_purchase_item_prices", {
+  id: serial("id").primaryKey(),
+  purchaseItemId: integer("purchase_item_id")
+    .notNull()
+    .references(() => eventPurchaseItems.id, { onDelete: "cascade" }),
+  tierId: integer("tier_id")
+    .notNull()
+    .references(() => eventPriceTiers.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique("uniq_item_tier").on(t.purchaseItemId, t.tierId),
+  index("idx_item_prices_item_id").on(t.purchaseItemId),
+]);
+
 // ============ Event Notice Items (須知項目) ============
 export const eventNoticeItems = pgTable("event_notice_items", {
   id: serial("id").primaryKey(),
@@ -210,6 +244,10 @@ export const eventRegistrationPurchaseItems = pgTable(
     registrationId: integer("registration_id").notNull(),
     purchaseItemId: integer("purchase_item_id").notNull(),
     quantity: integer("quantity").notNull().default(1),
+    /** 報名當下解析出的單價（含時段）快照；舊資料為 null */
+    unitAmount: integer("unit_amount"),
+    /** 報名當下生效的時段名稱（純記錄用）；無時段或舊資料為 null */
+    tierName: text("tier_name"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [

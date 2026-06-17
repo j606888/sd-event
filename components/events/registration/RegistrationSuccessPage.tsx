@@ -6,6 +6,7 @@ import { Clock, MapPin, Wallet, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
+import { isRenderableImageSrc } from "@/lib/utils";
 import { siInstagram, siLine, siFacebook } from "simple-icons";
 import { PendingPaymentHeader } from "./headers/PendingPaymentHeader";
 import { ReportedPaymentHeader } from "./headers/ReportedPaymentHeader";
@@ -172,7 +173,7 @@ export function RegistrationSuccessPage({
           <div className="px-4 py-6 bg-white border-t border-gray-200">
             <h3 className="font-semibold text-gray-900 mb-3">主辦單位</h3>
             <div className="flex items-center gap-3">
-              {event.organizer.photoUrl && (
+              {isRenderableImageSrc(event.organizer.photoUrl) && (
                 <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 shrink-0">
                   <Image
                     src={event.organizer.photoUrl}

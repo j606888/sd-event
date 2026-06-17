@@ -29,6 +29,7 @@ export type EventBankInfo = {
 export type EventPurchaseItem = {
   id: number;
   name: string;
+  /** 當下生效時段的有效價（由公開 API 依伺服器時間解析後填入） */
   amount: number;
 };
 
@@ -49,6 +50,8 @@ export type PublicEventData = {
   status: string;
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
+  /** 當下生效的票價時段（無時段時為 null），purchaseItems[].amount 已依此解析 */
+  activeTier: { name: string } | null;
   location: EventLocation | null;
   organizer: EventOrganizer | null;
   bankInfo: EventBankInfo | null;

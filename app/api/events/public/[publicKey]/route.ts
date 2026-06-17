@@ -6,9 +6,12 @@ import {
   organizers,
   bankInfos,
   eventPurchaseItems,
+  eventPriceTiers,
+  eventPurchaseItemPrices,
   eventNoticeItems,
 } from "@/db/schema";
-import { and, eq, asc } from "drizzle-orm";
+import { and, eq, asc, inArray } from "drizzle-orm";
+import { resolveActiveTier, getItemUnitPrice } from "@/lib/pricing";
 
 type Params = { params: Promise<{ publicKey: string }> };
 
@@ -33,7 +36,8 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   // Fetch related data
-  const [location, organizer, bankInfo, purchaseItems, noticeItems] = await Promise.all([
+  const [location, organizer, bankInfo, purchaseItems, noticeItems, priceTiers] =
+    await Promise.all([
     event.locationId
       ? db
           .select()
@@ -73,7 +77,40 @@ export async function GET(_request: Request, { params }: Params) {
       .from(eventNoticeItems)
       .where(eq(eventNoticeItems.eventId, event.id))
       .orderBy(asc(eventNoticeItems.sortOrder)),
-  ]);
+    db
+      .select()
+      .from(eventPriceTiers)
+      .where(eq(eventPriceTiers.eventId, event.id))
+      .orderBy(asc(eventPriceTiers.sortOrder)),
+    ]);
+
+  // 解析當下生效時段（伺服器時間），把每個項目的 amount 換成該時段的有效價。
+  const activeTier = resolveActiveTier(priceTiers, new Date());
+  let itemsWithPrice = purchaseItems;
+  if (activeTier) {
+    const itemIds = purchaseItems.map((i) => i.id);
+    const priceRows =
+      itemIds.length > 0
+        ? await db
+            .select()
+            .from(eventPurchaseItemPrices)
+            .where(inArray(eventPurchaseItemPrices.purchaseItemId, itemIds))
+        : [];
+    const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
+    for (const row of priceRows) {
+      const arr = pricesByItem.get(row.purchaseItemId) ?? [];
+      arr.push({ tierId: row.tierId, amount: row.amount });
+      pricesByItem.set(row.purchaseItemId, arr);
+    }
+    itemsWithPrice = purchaseItems.map((item) => ({
+      ...item,
+      amount: getItemUnitPrice(
+        item.amount,
+        pricesByItem.get(item.id) ?? [],
+        activeTier.id
+      ),
+    }));
+  }
 
   return NextResponse.json({
     event: {
@@ -81,7 +118,8 @@ export async function GET(_request: Request, { params }: Params) {
       location,
       organizer,
       bankInfo,
-      purchaseItems,
+      purchaseItems: itemsWithPrice,
+      activeTier: activeTier ? { name: activeTier.name } : null,
       noticeItems,
     },
   });
