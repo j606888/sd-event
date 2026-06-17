@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
 import { UploadDropzone } from "@/lib/uploadthing";
 import { useCurrentTeam } from "@/hooks/use-current-team";
+import { isRenderableImageSrc } from "@/lib/utils";
 
 type Organizer = {
   id: number;
@@ -160,7 +161,7 @@ export default function EventOrganizersPage() {
               onClick={() => openEditDrawer(org)}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              {org.photoUrl ? (
+              {isRenderableImageSrc(org.photoUrl) ? (
                 <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-gray-100">
                   <Image
                     src={org.photoUrl}
@@ -197,7 +198,7 @@ export default function EventOrganizersPage() {
           )}
           <div className="flex flex-col gap-2">
             <Label>主辦方照片</Label>
-            {formPhotoUrl ? (
+            {isRenderableImageSrc(formPhotoUrl) ? (
               <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div className="relative aspect-square w-full max-w-[200px] mx-auto overflow-hidden rounded-lg bg-gray-100">
                   <Image
@@ -219,6 +220,7 @@ export default function EventOrganizersPage() {
             ) : (
               <UploadDropzone
                 endpoint="organizerPhoto"
+                config={{ mode: "auto" }}
                 onClientUploadComplete={(res) => {
                   const first = res?.[0];
                   const url =
@@ -234,10 +236,10 @@ export default function EventOrganizersPage() {
                 }}
                 appearance={{
                   container:
-                    "rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8 ut-ready:border-[#5295BC]",
+                    "rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8",
                   label: "text-gray-500",
                   button:
-                    "ut-uploading:bg-[#5295BC] ut-ready:bg-[#5295BC] ut-uploading:after:bg-[#4285A5]",
+                    "bg-[#5295BC] text-white rounded-md px-4 py-2 text-sm font-medium after:bg-[#4285A5]",
                 }}
               />
             )}
