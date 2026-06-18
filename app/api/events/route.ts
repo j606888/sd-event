@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { events, eventRegistrations, teamMembers, eventLocations, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { isEventType } from "@/lib/event-templates";
 import { eq, inArray, desc, count, and } from "drizzle-orm";
 
 function generatePublicKey(): string {
@@ -130,6 +131,7 @@ export async function POST(request: Request) {
   const forbidden = await requireTeamMember(teamId, session.userId);
   if (forbidden) return forbidden;
 
+  const type = isEventType(body.type) ? body.type : "Party";
   const startAt = body.startAt ? new Date(body.startAt) : new Date();
   const endAt = body.endAt ? new Date(body.endAt) : new Date();
   const description = typeof body.description === "string" ? body.description : null;
@@ -148,6 +150,7 @@ export async function POST(request: Request) {
       teamId,
       userId: session.userId,
       title,
+      type,
       description,
       coverUrl,
       startAt,

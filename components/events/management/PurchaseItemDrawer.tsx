@@ -17,7 +17,10 @@ type PurchaseItemDrawerProps = {
   currentItems: PurchaseItemDraft[];
   priceTiers: PriceTierDraft[];
   groups: PurchaseItemGroupDraft[];
+  /** 有值＝編輯既有項目（帶入原值）；無值＝新增 */
+  editingItem?: { item: PurchaseItemDraft; index: number };
   onSuccess: (item: PurchaseItemDraft) => void;
+  onUpdated?: (index: number, item: PurchaseItemDraft) => void;
   onCancel: () => void;
 };
 
@@ -27,15 +30,43 @@ export function PurchaseItemDrawer({
   currentItems,
   priceTiers,
   groups,
+  editingItem,
   onSuccess,
+  onUpdated,
   onCancel,
 }: PurchaseItemDrawerProps) {
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
+  const isEditing = editingItem != null;
+
+  const tierKeyForPrice = (price: {
+    tierId?: number;
+    tierDraftIndex?: number;
+  }): string | null => {
+    if (price.tierId != null) return `id-${price.tierId}`;
+    if (price.tierDraftIndex != null) return `draft-${price.tierDraftIndex}`;
+    return null;
+  };
+
+  const [name, setName] = useState(editingItem?.item.name ?? "");
+  const [amount, setAmount] = useState(
+    editingItem != null ? String(editingItem.item.amount) : ""
+  );
   // 各時段價格（key 為 tier 的 id 或 draft index 的字串）
-  const [tierAmounts, setTierAmounts] = useState<Record<string, string>>({});
+  const [tierAmounts, setTierAmounts] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const p of editingItem?.item.prices ?? []) {
+      const k = tierKeyForPrice(p);
+      if (k) init[k] = String(p.amount);
+    }
+    return init;
+  });
   // 所屬群組（key 為 group 的 id 或 draft index 的字串；空 = 未選）
-  const [groupKey, setGroupKey] = useState("");
+  const [groupKey, setGroupKey] = useState(() => {
+    const it = editingItem?.item;
+    if (!it) return "";
+    if (it.groupId != null) return `id-${it.groupId}`;
+    if (it.groupDraftIndex != null) return `draft-${it.groupDraftIndex}`;
+    return "";
+  });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -87,6 +118,59 @@ export function PurchaseItemDrawer({
     }
     const prices = buildPrices();
     const group = resolveGroup();
+
+    // ===== 編輯既有項目 =====
+    if (isEditing && editingItem) {
+      const idx = editingItem.index;
+      const existing = editingItem.item;
+      const nextDraft: PurchaseItemDraft = {
+        id: existing.id,
+        name: trimmedName,
+        amount: amountNum,
+        hidden: existing.hidden ?? false,
+        soldCount: existing.soldCount,
+        groupId: group.groupId ?? null,
+        groupDraftIndex: group.groupDraftIndex,
+        prices,
+      };
+      // 已儲存項目（edit-event 模式）：先打 PATCH 再回傳
+      if (existing.id != null && eventId != null) {
+        setSubmitting(true);
+        try {
+          const apiPrices = prices
+            .filter((p) => p.tierId != null)
+            .map((p) => ({ tierId: p.tierId, amount: p.amount }));
+          const res = await fetch(
+            `/api/events/${eventId}/purchase-items/${existing.id}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                name: trimmedName,
+                amount: amountNum,
+                groupId: group.groupId ?? null,
+                prices: apiPrices,
+              }),
+            }
+          );
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setError(data.error || "更新失敗");
+            setSubmitting(false);
+            return;
+          }
+          onUpdated?.(idx, nextDraft);
+        } catch {
+          setError("更新失敗");
+        }
+        setSubmitting(false);
+        return;
+      }
+      // 草稿項目（create 模式）：本地取代
+      onUpdated?.(idx, nextDraft);
+      return;
+    }
 
     if (mode === "edit" && eventId != null) {
       setSubmitting(true);
@@ -223,7 +307,13 @@ export function PurchaseItemDrawer({
           className="bg-gray-900 text-white hover:bg-gray-800"
           disabled={submitting}
         >
-          {submitting ? "新增中…" : "新增"}
+          {isEditing
+            ? submitting
+              ? "儲存中…"
+              : "儲存"
+            : submitting
+              ? "新增中…"
+              : "新增"}
         </Button>
       </div>
     </form>

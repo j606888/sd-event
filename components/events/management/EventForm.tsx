@@ -18,6 +18,7 @@ import { BankInfoDrawer } from "./BankInfoDrawer";
 import { PurchaseItemDrawer } from "./PurchaseItemDrawer";
 import { NoticeItemDrawer } from "./NoticeItemDrawer";
 import { useEventForm } from "@/hooks/use-event-form";
+import { EVENT_TYPES, type EventType } from "@/lib/event-templates";
 
 export type { EventFormInitialData } from "@/hooks/use-event-form";
 
@@ -34,6 +35,8 @@ type EventFormProps = {
   teamId: number;
   eventId?: number;
   initialData?: import("@/hooks/use-event-form").EventFormInitialData;
+  /** create 模式的初始類型（由建立頁的範本選擇器帶入） */
+  initialType?: EventType;
   submitLabel: string;
   onSaveSuccess?: () => void;
   renderExtraActions?: React.ReactNode;
@@ -44,12 +47,16 @@ export function EventForm({
   teamId,
   eventId,
   initialData,
+  initialType,
   submitLabel,
   onSaveSuccess,
   renderExtraActions,
 }: EventFormProps) {
   const {
     drawer,
+    type,
+    setType,
+    applyTemplate,
     autoCalcAmount,
     locationId,
     organizerId,
@@ -66,6 +73,7 @@ export function EventForm({
     purchaseItems,
     purchaseItemHiddenUpdatingIndex,
     purchaseItemDeletingIndex,
+    editingItemIndex,
     priceTiers,
     groups,
     noticeItems,
@@ -87,6 +95,9 @@ export function EventForm({
     handleOrganizerSuccess,
     handleBankInfoSuccess,
     handlePurchaseItemSuccess,
+    handlePurchaseItemUpdated,
+    openPurchaseItemAdder,
+    openPurchaseItemEditor,
     handleNoticeItemSuccess,
     deletePurchaseItem,
     setPurchaseItemHidden,
@@ -101,7 +112,20 @@ export function EventForm({
     isGroupExcluded,
     toggleGroupExclusion,
     handleSubmit,
-  } = useEventForm({ mode, teamId, eventId, initialData, onSaveSuccess });
+  } = useEventForm({ mode, teamId, eventId, initialData, initialType, onSaveSuccess });
+
+  // 切換活動類型：create 模式會以新範本覆蓋販售項目（需確認）；edit 模式僅變更類型
+  const handleTypeChange = (next: EventType) => {
+    if (next === type) return;
+    if (mode === "create") {
+      const ok = window.confirm(
+        "切換類型會以新範本覆蓋目前的票價時段、群組與購買項目設定，確定要切換嗎？"
+      );
+      if (!ok) return;
+      applyTemplate(next);
+    }
+    setType(next);
+  };
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("basic");
@@ -152,6 +176,31 @@ export function EventForm({
             activeSection === "basic" ? "" : "hidden"
           }`}
         >
+        <div className="flex flex-col gap-2">
+          <Label>活動類型</Label>
+          <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
+            {EVENT_TYPES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={type === t.value}
+                onClick={() => handleTypeChange(t.value)}
+                className={`rounded-md px-2 py-2 text-sm font-medium transition-colors ${
+                  type === t.value
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {mode === "create" && (
+            <p className="text-xs text-gray-400">
+              {EVENT_TYPES.find((t) => t.value === type)?.description}
+            </p>
+          )}
+        </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="title">標題</Label>
           <Input
@@ -274,7 +323,8 @@ export function EventForm({
           priceTiers={priceTiers}
           groups={groups}
           onAutoCalcAmountChange={setAutoCalcAmount}
-          onAddClick={openDrawer("purchaseItem")}
+          onAddClick={openPurchaseItemAdder}
+          onEditItem={openPurchaseItemEditor}
           onDeleteItem={deletePurchaseItem}
           itemDeletingIndex={purchaseItemDeletingIndex}
           onSetItemHidden={setPurchaseItemHidden}
@@ -336,13 +386,17 @@ export function EventForm({
           subtitle={
             drawer === "location" || drawer === "organizer" || drawer === "bank"
               ? "New"
-              : "New Item"
+              : drawer === "purchaseItem" && editingItemIndex != null
+                ? "Edit Item"
+                : "New Item"
           }
           title={
             drawer === "location"
               ? "新增活動地點"
               : drawer === "purchaseItem"
-                ? "新增購買項目"
+                ? editingItemIndex != null
+                  ? "編輯購買項目"
+                  : "新增購買項目"
                 : drawer === "notice"
                   ? "新增須知項目"
                   : drawer === "organizer"
@@ -364,7 +418,13 @@ export function EventForm({
               currentItems={purchaseItems}
               priceTiers={priceTiers}
               groups={groups}
+              editingItem={
+                editingItemIndex != null
+                  ? { item: purchaseItems[editingItemIndex], index: editingItemIndex }
+                  : undefined
+              }
               onSuccess={handlePurchaseItemSuccess}
+              onUpdated={handlePurchaseItemUpdated}
               onCancel={closeDrawer}
             />
           )}

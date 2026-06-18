@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useUploadThing } from "@/lib/uploadthing";
+import { getEventTemplate, type EventType } from "@/lib/event-templates";
 
 export type DrawerType =
   | null
@@ -67,6 +68,7 @@ function toDateInput(iso: string | null | undefined): string {
 export type EventFormInitialData = {
   id: number;
   teamId: number;
+  type: EventType;
   title: string;
   description: string | null;
   coverUrl: string | null;
@@ -120,6 +122,8 @@ type UseEventFormParams = {
   teamId: number;
   eventId?: number;
   initialData?: EventFormInitialData;
+  /** create 模式的初始類型，決定預填的購買項目範本 */
+  initialType?: EventType;
   onSaveSuccess?: () => void;
 };
 
@@ -128,9 +132,11 @@ export function useEventForm({
   teamId,
   eventId,
   initialData,
+  initialType,
   onSaveSuccess,
 }: UseEventFormParams) {
   const [drawer, setDrawer] = useState<DrawerType>(null);
+  const [type, setType] = useState<EventType>(initialType ?? "Party");
   const [allowMultiple, setAllowMultiple] = useState(false);
   // 金額預設自動加總；編輯模式由 init effect 以 initialData.autoCalcAmount 覆寫
   const [autoCalcAmount, setAutoCalcAmount] = useState(true);
@@ -149,24 +155,30 @@ export function useEventForm({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>([]);
+  // 新增活動依所選類型預填購買項目範本（時段／群組／項目／互斥），可自行增刪修改；
+  // 編輯模式皆從空起始，由載入 effect 從 API 回填
+  const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>(() =>
+    mode === "create" ? getEventTemplate(initialType ?? "Party").purchaseItems : []
+  );
   const [purchaseItemHiddenUpdatingIndex, setPurchaseItemHiddenUpdatingIndex] =
     useState<number | null>(null);
   const [purchaseItemDeletingIndex, setPurchaseItemDeletingIndex] =
     useState<number | null>(null);
-  // 新增活動預設帶兩個票價區間（超早鳥／早鳥），可自行填日期或按 X 移除；
-  // 編輯模式從 [] 起始，由載入 effect 從 API 回填
-  const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>(
-    mode === "create"
-      ? [
-          { name: "超早鳥", endsAt: "", sortOrder: 0 },
-          { name: "早鳥", endsAt: "", sortOrder: 1 },
-        ]
-      : []
+  // 目前正在編輯的購買項目 index（null = 抽屜為「新增」模式）
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>(() =>
+    mode === "create" ? getEventTemplate(initialType ?? "Party").priceTiers : []
   );
-  const [groups, setGroups] = useState<PurchaseItemGroupDraft[]>([]);
+  const [groups, setGroups] = useState<PurchaseItemGroupDraft[]>(() =>
+    mode === "create" ? getEventTemplate(initialType ?? "Party").groups : []
+  );
   // 群組互斥配對；以群組 key（`id-<id>` / `draft-<index>`）成對表示，與 PurchaseItemsSection 一致
-  const [groupExclusions, setGroupExclusions] = useState<Array<[string, string]>>([]);
+  const [groupExclusions, setGroupExclusions] = useState<Array<[string, string]>>(
+    () =>
+      mode === "create"
+        ? getEventTemplate(initialType ?? "Party").groupExclusions
+        : []
+  );
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
 
   const initializedEventIdRef = useRef<number | null>(null);
@@ -246,6 +258,7 @@ export function useEventForm({
     }
     if (initializedEventIdRef.current === initialData.id) return;
 
+    setType(initialData.type);
     setTitle(initialData.title);
     setDescription(initialData.description ?? "");
     setCoverUrl(initialData.coverUrl);
@@ -363,6 +376,19 @@ export function useEventForm({
 
   const closeDrawer = () => {
     setDrawer(null);
+    setEditingItemIndex(null);
+  };
+
+  // 開啟「新增購買項目」抽屜（確保非編輯模式）
+  const openPurchaseItemAdder = () => {
+    setEditingItemIndex(null);
+    setDrawer("purchaseItem");
+  };
+
+  // 開啟「編輯購買項目」抽屜（帶入指定 index 的項目）
+  const openPurchaseItemEditor = (index: number) => {
+    setEditingItemIndex(index);
+    setDrawer("purchaseItem");
   };
 
   const handleStartAtChange = (value: string) => {
@@ -437,6 +463,22 @@ export function useEventForm({
     setPurchaseItems((prev) => [...prev, item]);
     setDrawer(null);
   };
+
+  // 編輯後取代指定 index 的項目（草稿本地取代；已存項目由抽屜先打 API 再回傳新值）
+  const handlePurchaseItemUpdated = (index: number, item: PurchaseItemDraft) => {
+    setPurchaseItems((prev) => prev.map((row, i) => (i === index ? item : row)));
+    setDrawer(null);
+    setEditingItemIndex(null);
+  };
+
+  // 套用某類型範本：以範本覆寫時段／群組／項目／互斥（create 模式換類型用，會蓋掉現有 draft）
+  const applyTemplate = useCallback((nextType: EventType) => {
+    const tpl = getEventTemplate(nextType);
+    setPriceTiers(tpl.priceTiers);
+    setGroups(tpl.groups);
+    setPurchaseItems(tpl.purchaseItems);
+    setGroupExclusions(tpl.groupExclusions);
+  }, []);
 
   const handleNoticeItemSuccess = (item: NoticeItemDraft) => {
     setNoticeItems((prev) => [...prev, item]);
@@ -814,6 +856,7 @@ export function useEventForm({
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
+            type,
             title: trimmedTitle,
             description: description.trim() || null,
             coverUrl: finalCoverUrl || null,
@@ -840,6 +883,7 @@ export function useEventForm({
           credentials: "include",
           body: JSON.stringify({
             teamId,
+            type,
             title: trimmedTitle,
             description: description.trim() || undefined,
             coverUrl: finalCoverUrl || undefined,
@@ -981,6 +1025,7 @@ export function useEventForm({
   return {
     // State reads
     drawer,
+    type,
     allowMultiple,
     autoCalcAmount,
     locationId,
@@ -999,6 +1044,7 @@ export function useEventForm({
     purchaseItems,
     purchaseItemHiddenUpdatingIndex,
     purchaseItemDeletingIndex,
+    editingItemIndex,
     priceTiers,
     groups,
     groupExclusions,
@@ -1006,6 +1052,8 @@ export function useEventForm({
     saveError,
     saving,
     // Simple setters
+    setType,
+    applyTemplate,
     setTitle,
     setDescription,
     setEndAt,
@@ -1024,6 +1072,9 @@ export function useEventForm({
     handleOrganizerSuccess,
     handleBankInfoSuccess,
     handlePurchaseItemSuccess,
+    handlePurchaseItemUpdated,
+    openPurchaseItemAdder,
+    openPurchaseItemEditor,
     handleNoticeItemSuccess,
     deletePurchaseItem,
     removeNoticeItem,

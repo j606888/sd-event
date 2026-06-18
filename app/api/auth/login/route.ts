@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "信箱或密碼錯誤" },
+        { error: "此信箱尚未註冊" },
         { status: 401 }
       );
     }
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     const ok = await verifyPassword(password, user.encryptedPassword);
     if (!ok) {
       return NextResponse.json(
-        { error: "信箱或密碼錯誤" },
+        { error: "密碼錯誤" },
         { status: 401 }
       );
     }

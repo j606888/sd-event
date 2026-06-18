@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ type PurchaseItemsSectionProps = {
   groups: PurchaseItemGroupDraft[];
   onAutoCalcAmountChange: (value: boolean) => void;
   onAddClick: () => void;
+  onEditItem: (index: number) => void;
   onDeleteItem: (index: number) => void;
   itemDeletingIndex: number | null;
   onSetItemHidden: (index: number, hidden: boolean) => void;
@@ -45,6 +46,7 @@ export function PurchaseItemsSection({
   groups,
   onAutoCalcAmountChange,
   onAddClick,
+  onEditItem,
   onDeleteItem,
   itemDeletingIndex,
   onSetItemHidden,
@@ -81,34 +83,54 @@ export function PurchaseItemsSection({
   const renderItemRow = (item: PurchaseItemDraft, i: number) => {
     const sold = item.soldCount ?? 0;
     const canDelete = sold === 0;
+    const canEdit = sold === 0;
+    const itemBody = (
+      <>
+        {item.name} — ${item.amount}
+        {item.hidden ? (
+          <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
+        ) : null}
+        {item.prices && item.prices.length > 0 ? (
+          <span className="ml-2 text-xs text-gray-400">
+            （
+            {item.prices
+              .map((p) => {
+                const tier =
+                  priceTiers.find((t) => t.id != null && t.id === p.tierId) ??
+                  (p.tierDraftIndex != null ? priceTiers[p.tierDraftIndex] : undefined);
+                return `${tier?.name ?? "時段"} ${p.amount}`;
+              })
+              .join(" / ")}
+            ）
+          </span>
+        ) : null}
+        {!canDelete ? (
+          <span className="ml-2 text-xs text-gray-400">已 {sold} 人報名</span>
+        ) : null}
+      </>
+    );
     return (
       <li
         key={item.id ?? i}
         className="flex flex-wrap items-center justify-between gap-2 text-sm"
       >
-        <span className={item.hidden ? "text-gray-400" : "text-gray-700"}>
-          {item.name} — ${item.amount}
-          {item.hidden ? (
-            <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
-          ) : null}
-          {item.prices && item.prices.length > 0 ? (
-            <span className="ml-2 text-xs text-gray-400">
-              （
-              {item.prices
-                .map((p) => {
-                  const tier =
-                    priceTiers.find((t) => t.id != null && t.id === p.tierId) ??
-                    (p.tierDraftIndex != null ? priceTiers[p.tierDraftIndex] : undefined);
-                  return `${tier?.name ?? "時段"} ${p.amount}`;
-                })
-                .join(" / ")}
-              ）
-            </span>
-          ) : null}
-          {!canDelete ? (
-            <span className="ml-2 text-xs text-gray-400">已 {sold} 人報名</span>
-          ) : null}
-        </span>
+        {canEdit ? (
+          <button
+            type="button"
+            onClick={() => onEditItem(i)}
+            className={`group -mx-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-gray-100 ${
+              item.hidden ? "text-gray-400" : "text-gray-700"
+            }`}
+            aria-label={`編輯 ${item.name}`}
+          >
+            <span>{itemBody}</span>
+            <Pencil className="size-3.5 shrink-0 text-gray-300 group-hover:text-gray-500" />
+          </button>
+        ) : (
+          <span className={item.hidden ? "text-gray-400" : "text-gray-700"}>
+            {itemBody}
+          </span>
+        )}
         <div className="flex shrink-0 items-center gap-3">
           {canDelete ? (
             <button
@@ -268,18 +290,26 @@ export function PurchaseItemsSection({
           </ul>
         ))}
 
-      {/* 進階選項：票種群組、互斥規則、多選 — 一般 Party 不需要設定 */}
-      <div className="rounded-md border border-gray-200 bg-gray-50">
+      {/* 分隔線：把「主要設定」與「進階設定」明顯分層 */}
+      <div className="mt-2 flex items-center gap-3 text-xs font-medium text-gray-400">
+        <span className="h-px flex-1 bg-gray-200" />
+        進階設定
+        <span className="h-px flex-1 bg-gray-200" />
+      </div>
+
+      {/* 進階：票種群組、互斥規則 — 白底齒輪卡片，與上方灰底購買項目區隔 */}
+      <div className="rounded-md border border-gray-200 bg-white shadow-sm">
         <button
           type="button"
           onClick={toggleAdvanced}
           aria-expanded={advancedOpen}
-          className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+          className="flex w-full items-center gap-3 px-3 py-3 text-left"
         >
-          <span className="flex flex-col">
-            <span className="text-sm font-medium text-gray-700">進階選項</span>
+          <Settings2 className="size-5 shrink-0 text-gray-500" />
+          <span className="flex flex-1 flex-col">
+            <span className="text-sm font-medium text-gray-800">票種群組與規則</span>
             <span className="text-xs text-gray-500">
-              票種群組、互斥規則 — 一般 Party 不需要設定
+              把購買項目分組並設定擇一／複選／互斥規則。多數活動（一般 Party）不需要。
             </span>
           </span>
           <ChevronDown
@@ -314,7 +344,7 @@ export function PurchaseItemsSection({
             </div>
 
             {/* 票種群組：擇一 / 複選 / 是否必選，報名頁依群組規則渲染 */}
-            <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3">
+            <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
               <div className="flex items-center justify-between">
                 <Label>票種群組</Label>
                 <Button
@@ -341,7 +371,7 @@ export function PurchaseItemsSection({
                     return (
                       <li
                         key={group.id ?? `draft-${i}`}
-                        className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-2"
+                        className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-2"
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <Input

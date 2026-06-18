@@ -1,12 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { EventType } from "@/lib/event-templates";
 
 export type EventData = {
   id: number;
   publicKey: string;
   teamId: number;
   userId: number;
+  type: EventType;
   title: string;
   description: string | null;
   coverUrl: string | null;

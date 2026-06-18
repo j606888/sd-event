@@ -5,7 +5,6 @@ import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
-import "@uploadthing/react/styles.css";
 import "./globals.css";
 
 const nunito = Nunito({

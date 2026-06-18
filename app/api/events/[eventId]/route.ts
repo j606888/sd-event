@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { events, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { isEventType, type EventType } from "@/lib/event-templates";
 import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -65,6 +66,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const body = await request.json().catch(() => ({}));
   const updates: Partial<{
     title: string;
+    type: EventType;
     description: string | null;
     coverUrl: string | null;
     startAt: Date;
@@ -78,6 +80,7 @@ export async function PATCH(request: Request, { params }: Params) {
   }> = {};
 
   if (typeof body.title === "string" && body.title.trim()) updates.title = body.title.trim();
+  if (isEventType(body.type)) updates.type = body.type;
   if (body.description !== undefined) updates.description = body.description === null ? null : String(body.description);
   if (body.coverUrl !== undefined) updates.coverUrl = body.coverUrl === null ? null : String(body.coverUrl);
   if (body.startAt != null) updates.startAt = new Date(body.startAt);

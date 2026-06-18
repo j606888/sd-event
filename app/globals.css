@@ -1,6 +1,11 @@
+/* Declare layer order so UploadThing's bundled (Tailwind v3) stylesheet
+   sits BELOW our own utilities — otherwise its unlayered `.flex`, `.hidden`,
+   etc. win the cascade and break responsive variants like `lg:hidden`. */
+@layer uploadthing, theme, base, components, utilities;
+
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import "@uploadthing/react/styles.css" layer(uploadthing);
 
 @custom-variant dark (&:is(.dark *));
 
