@@ -76,7 +76,7 @@ export function RegistrationsList({
             placeholder="搜尋名稱、電話、Email"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white border border-gray-300 focus-visible:border-brand"
           />
           {searchQuery.length > 0 && (
             <button
