@@ -260,7 +260,7 @@ export default function EntryVoucherPage() {
                       href={data.event.location.googleMapUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#5295BC] mt-1 inline-block text-xs"
+                      className="text-brand mt-1 inline-block text-xs"
                     >
                       導航 &gt;
                     </a>

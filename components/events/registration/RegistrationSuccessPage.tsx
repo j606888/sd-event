@@ -73,7 +73,7 @@ export function RegistrationSuccessPage({
                     href={event.location.googleMapUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-[#5295BC] mt-1 inline-block"
+                    className="text-sm text-brand mt-1 inline-block"
                   >
                     導航&gt;
                   </a>
@@ -112,7 +112,7 @@ export function RegistrationSuccessPage({
           <div className="px-4 py-6 bg-white border-t border-gray-200">
             <Button
               asChild
-              className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+              className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
             >
               <Link href={`/entry-voucher/${registrationKey}`}>
                 開啟入場憑證
@@ -156,7 +156,7 @@ export function RegistrationSuccessPage({
                     {/* 右側：動作按鈕 */}
                     <Button
                       asChild
-                      className="flex-1 bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 rounded-xl text-base font-bold transition-all active:scale-[0.97]"
+                      className="flex-1 bg-brand text-white hover:bg-brand-hover h-12 rounded-xl text-base font-bold transition-all active:scale-[0.97]"
                     >
                       <Link href={`/report-payment/${registrationKey}`}>
                         {paymentStatus === "rejected" ? "重新回報" : "回報付款"}

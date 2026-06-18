@@ -126,7 +126,7 @@ export default function EventBankPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 max-w-3xl mx-auto w-full">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">銀行資訊</h1>
         <Button onClick={openDrawer} className="gap-2">
@@ -149,7 +149,7 @@ export default function EventBankPage() {
               onClick={() => openEditDrawer(bank)}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              <Landmark className="size-5 shrink-0 text-[#5295BC]" />
+              <Landmark className="size-5 shrink-0 text-brand" />
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{bank.bankName}</p>
                 <p className="text-sm text-gray-500">
@@ -203,7 +203,7 @@ export default function EventBankPage() {
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
               取消
             </Button>
-            <Button type="submit" className="bg-gray-900 text-white hover:bg-gray-800">
+            <Button type="submit" className="bg-primary text-white hover:bg-brand-hover">
               {editingBankInfoId ? "更新" : "新增"}
             </Button>
           </div>

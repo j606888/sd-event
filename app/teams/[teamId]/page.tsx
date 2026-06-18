@@ -213,7 +213,7 @@ export default function TeamDetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 max-w-3xl mx-auto w-full">
       <div className="mb-6 flex items-center gap-4">
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{team.name}</h1>
@@ -244,7 +244,7 @@ export default function TeamDetailPage() {
                   key={member.userId}
                   className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4"
                 >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#5295BC]/15 text-sm font-semibold text-[#5295BC]">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15 text-sm font-semibold text-brand">
                     {member.user.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -350,7 +350,7 @@ export default function TeamDetailPage() {
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
               取消
             </Button>
-            <Button type="submit" className="bg-gray-900 text-white hover:bg-gray-800">
+            <Button type="submit" className="bg-primary text-white hover:bg-brand-hover">
               邀請
             </Button>
           </div>

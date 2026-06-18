@@ -35,7 +35,7 @@ export function EventListRow({ event, registrationCount = 0 }: EventListRowProps
   return (
     <Link
       href={`/events/${event.id}`}
-      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition-colors hover:border-[#5295BC]/40 hover:bg-[#5295BC]/[0.03] sm:gap-4 sm:px-4"
+      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition-colors hover:border-brand/40 hover:bg-brand/[0.03] sm:gap-4 sm:px-4"
     >
       {/* Thumbnail */}
       <div className="relative hidden h-12 w-20 shrink-0 overflow-hidden rounded-md bg-gray-100 sm:block">
@@ -48,8 +48,8 @@ export function EventListRow({ event, registrationCount = 0 }: EventListRowProps
             sizes="80px"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">
-            無封面
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-leader to-follower font-display text-base font-semibold text-white">
+            {event.title?.trim().charAt(0) || "♪"}
           </div>
         )}
       </div>

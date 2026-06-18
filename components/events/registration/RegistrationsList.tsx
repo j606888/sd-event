@@ -99,7 +99,7 @@ export function RegistrationsList({
             <Filter className="w-4 h-4" />
           </Button>
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#5295BC] text-[10px] font-semibold text-white">
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white">
               {activeFilterCount}
             </span>
           )}
@@ -130,7 +130,7 @@ export function RegistrationsList({
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     paymentFilter === opt.value
                       ? opt.value === "all"
-                        ? "bg-[#5295BC] text-white"
+                        ? "bg-brand text-white"
                         : "bg-sky-50 text-sky-700 border border-sky-200"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
@@ -151,7 +151,7 @@ export function RegistrationsList({
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     checkInFilter === opt.value
                       ? opt.value === "all"
-                        ? "bg-[#5295BC] text-white"
+                        ? "bg-brand text-white"
                         : "bg-sky-50 text-sky-700 border border-sky-200"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
@@ -172,7 +172,7 @@ export function RegistrationsList({
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     hiddenFilter === opt.value
                       ? opt.value === "non_hidden"
-                        ? "bg-[#5295BC] text-white"
+                        ? "bg-brand text-white"
                         : "bg-sky-50 text-sky-700 border border-sky-200"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}

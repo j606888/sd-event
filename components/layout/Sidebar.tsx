@@ -125,10 +125,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
       >
         {/* Header - 固定高度 */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-6">
-          <span
-            className="text-xl font-bold text-[#5295BC]"
-            style={{ fontFamily: "var(--font-nunito)" }}
-          >
+          <span className="font-display text-xl font-bold text-brand">
             SD Event
           </span>
           <button
@@ -147,7 +144,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
             <Select value={currentTeamId} onValueChange={handleTeamChange}>
               <SelectTrigger className="w-full border-gray-100 bg-white shadow-sm h-auto py-3 px-3 cursor-pointer hover:bg-gray-50">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#5295BC]/15 text-sm font-bold text-[#5295BC]">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-sm font-bold text-brand">
                     {teamInitial}
                   </div>
                   <SelectValue className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
@@ -166,7 +163,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
                     return (
                       <SelectItem key={t.id} value={String(t.id)}>
                         <div className="flex items-center gap-2">
-                          <div className="flex size-6 shrink-0 items-center justify-center rounded bg-[#5295BC]/15 text-xs font-bold text-[#5295BC]">
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded bg-brand/15 text-xs font-bold text-brand">
                             {initial}
                           </div>
                           <span className={isSelected ? "font-semibold" : ""}>{t.name}</span>
@@ -186,7 +183,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
               setTeamName("");
               setCreateError(null);
             }}
-            className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-[#5295BC] hover:opacity-80 transition-opacity"
+            className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-brand hover:opacity-80 transition-opacity"
           >
             <Plus className="size-3.5" />
             建立新團隊
@@ -267,7 +264,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
             </Button>
             <Button 
               type="submit" 
-              className="bg-gray-900 text-white hover:bg-gray-800"
+              className="bg-primary text-white hover:bg-brand-hover"
               disabled={creating}
             >
               {creating ? "建立中..." : "建立"}
@@ -286,7 +283,7 @@ function SidebarLink({ href, icon: Icon, label, active, onClick }: any) {
       href={href}
       onClick={onClick}
       className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${active
-          ? "bg-[#5295BC] text-white shadow-md shadow-blue-100"
+          ? "bg-brand text-white shadow-md shadow-blue-100"
           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
         }`}
     >

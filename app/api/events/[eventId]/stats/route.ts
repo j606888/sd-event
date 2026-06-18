@@ -59,6 +59,7 @@ export async function GET(_request: Request, { params }: Params) {
   if (registrationIds.length === 0) {
     return NextResponse.json({
       roleCounts: { Leader: 0, Follower: 0, "Not sure": 0 },
+      checkedInRoleCounts: { Leader: 0, Follower: 0, "Not sure": 0 },
       totalAttendees: 0,
       checkedInCount: 0,
       paymentAmountTotals: {
@@ -84,8 +85,12 @@ export async function GET(_request: Request, { params }: Params) {
   const totalAttendees = attendeeStats.reduce((s, r) => s + Number(r.total), 0);
   const checkedInCount = attendeeStats.reduce((s, r) => s + Number(r.checkedInCount), 0);
   const roleCounts: Record<string, number> = { Leader: 0, Follower: 0, "Not sure": 0 };
+  const checkedInRoleCounts: Record<string, number> = { Leader: 0, Follower: 0, "Not sure": 0 };
   for (const row of attendeeStats) {
-    if (row.role in roleCounts) roleCounts[row.role] = Number(row.total);
+    if (row.role in roleCounts) {
+      roleCounts[row.role] = Number(row.total);
+      checkedInRoleCounts[row.role] = Number(row.checkedInCount);
+    }
   }
 
   // Query 2: Payment amount totals via GROUP BY.
@@ -231,6 +236,7 @@ export async function GET(_request: Request, { params }: Params) {
 
   return NextResponse.json({
     roleCounts,
+    checkedInRoleCounts,
     totalAttendees,
     checkedInCount,
     paymentAmountTotals,

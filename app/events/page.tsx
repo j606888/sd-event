@@ -67,7 +67,7 @@ export default function EventsPage() {
     return (
       <div className="min-h-screen p-6">
         <p className="text-red-500">{error}</p>
-        <Link href="/login" className="mt-2 inline-block text-[#5295BC] underline">
+        <Link href="/login" className="mt-2 inline-block text-brand underline">
           前往登入
         </Link>
       </div>
@@ -101,15 +101,15 @@ export default function EventsPage() {
   }).filter((g) => g.items.length > 0);
 
   return (
-    <div className="flex-1 p-4 md:p-6">
+    <div className="mx-auto w-full max-w-5xl flex-1 p-4 md:p-6">
       {/* Header with title and create button */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+        <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
           所有活動
         </h1>
         <Link
           href="/events/new"
-          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#5295BC] text-white text-sm font-medium hover:opacity-90 shadow-sm"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:opacity-90 shadow-sm"
           aria-label="建立新活動"
         >
           <Plus className="size-4" />
@@ -148,7 +148,7 @@ export default function EventsPage() {
       {events.length > 0 && (
         <Link
           href="/events/new"
-          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-[#5295BC] text-white shadow-lg hover:opacity-90 z-10"
+          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-brand text-white shadow-lg hover:opacity-90 z-10"
           aria-label="建立新活動"
         >
           <Plus className="size-8" />

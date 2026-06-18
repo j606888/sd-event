@@ -12,7 +12,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 type Params = {
   params: Promise<{ eventId: string; registrationId: string }>;
@@ -172,7 +172,15 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const body = await request.json().catch(() => ({}));
 
-  const updates: Partial<{ paymentStatus: string; hidden: boolean; updatedAt: Date }> = {
+  const updates: Partial<{
+    paymentStatus: string;
+    hidden: boolean;
+    contactName: string;
+    contactPhone: string | null;
+    contactEmail: string | null;
+    totalAmount: number;
+    updatedAt: Date;
+  }> = {
     updatedAt: new Date(),
   };
 
@@ -187,12 +195,112 @@ export async function PATCH(request: Request, { params }: Params) {
     updates.hidden = body.hidden;
   }
 
-  if (updates.paymentStatus !== undefined || updates.hidden !== undefined) {
-    const [updated] = await db
-      .update(eventRegistrations)
-      .set(updates)
-      .where(eq(eventRegistrations.id, registrationId))
-      .returning();
+  // ----- 主辦端編輯欄位 -----
+  if (typeof body.contactName === "string" && body.contactName.trim()) {
+    updates.contactName = body.contactName.trim();
+  }
+
+  if (typeof body.contactPhone === "string") {
+    updates.contactPhone = body.contactPhone.trim() || null;
+  }
+
+  if (typeof body.contactEmail === "string") {
+    const email = body.contactEmail.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: "請提供有效的 email" }, { status: 400 });
+    }
+    updates.contactEmail = email || null;
+  }
+
+  if (body.totalAmount !== undefined) {
+    const amount = Number(body.totalAmount);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return NextResponse.json({ error: "請提供有效的總金額" }, { status: 400 });
+    }
+    updates.totalAmount = amount;
+  }
+
+  // ----- 參加者編輯（新增 / 修改 / 刪除，保留既有入場狀態） -----
+  let attendeeEdits:
+    | { id?: number; name: string; role: string }[]
+    | null = null;
+  if (Array.isArray(body.attendees)) {
+    const cleaned = body.attendees
+      .map((a: { id?: unknown; name?: unknown; role?: unknown }) => ({
+        id: Number.isInteger(a.id) ? (a.id as number) : undefined,
+        name: typeof a.name === "string" ? a.name.trim() : "",
+        role: typeof a.role === "string" ? a.role : "",
+      }))
+      .filter(
+        (a: { name: string; role: string }) =>
+          a.name && ["Leader", "Follower", "Not sure"].includes(a.role)
+      );
+    if (cleaned.length === 0) {
+      return NextResponse.json(
+        { error: "請提供至少一位有效的參加者（姓名與角色）" },
+        { status: 400 }
+      );
+    }
+    attendeeEdits = cleaned;
+  }
+
+  const hasRegUpdates =
+    updates.paymentStatus !== undefined ||
+    updates.hidden !== undefined ||
+    updates.contactName !== undefined ||
+    updates.contactPhone !== undefined ||
+    updates.contactEmail !== undefined ||
+    updates.totalAmount !== undefined;
+
+  if (hasRegUpdates || attendeeEdits) {
+    const updated = await db.transaction(async (tx) => {
+      let row = registration;
+      if (hasRegUpdates) {
+        const [r] = await tx
+          .update(eventRegistrations)
+          .set(updates)
+          .where(eq(eventRegistrations.id, registrationId))
+          .returning();
+        if (r) row = r;
+      }
+
+      if (attendeeEdits) {
+        const existing = await tx
+          .select({ id: eventAttendees.id })
+          .from(eventAttendees)
+          .where(eq(eventAttendees.registrationId, registrationId));
+        const existingIds = new Set(existing.map((e) => e.id));
+        const keptIds = new Set<number>();
+
+        for (const a of attendeeEdits) {
+          if (a.id != null && existingIds.has(a.id)) {
+            // 更新既有參加者（保留 checkedIn / checkedInAt）
+            await tx
+              .update(eventAttendees)
+              .set({ name: a.name, role: a.role, updatedAt: new Date() })
+              .where(eq(eventAttendees.id, a.id));
+            keptIds.add(a.id);
+          } else {
+            // 新增參加者
+            await tx
+              .insert(eventAttendees)
+              .values({ registrationId, name: a.name, role: a.role });
+          }
+        }
+
+        // 刪除不在清單中的既有參加者
+        const toDelete = existing
+          .map((e) => e.id)
+          .filter((id) => !keptIds.has(id));
+        if (toDelete.length > 0) {
+          await tx
+            .delete(eventAttendees)
+            .where(inArray(eventAttendees.id, toDelete));
+        }
+      }
+
+      return row;
+    });
 
     // When creator confirms payment, send notification email to contact
     // （現場現金報名可能沒有 email，此時略過寄信）

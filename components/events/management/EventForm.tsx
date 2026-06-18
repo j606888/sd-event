@@ -371,7 +371,7 @@ export function EventForm({
           {renderExtraActions}
           <Button
             type="submit"
-            className="flex-1 min-w-[100px] bg-gray-900 text-white hover:bg-gray-800"
+            className="flex-1 min-w-[100px] bg-primary text-white hover:bg-brand-hover"
             disabled={saving}
           >
             {saving ? (mode === "edit" ? "更新中…" : "儲存中…") : submitLabel}

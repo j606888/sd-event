@@ -1,9 +1,9 @@
 "use client";
 
 const ROLE_STYLES: Record<string, string> = {
-  Leader: "bg-green-100 text-green-700",
-  Follower: "bg-gray-100 text-gray-700",
-  "Not sure": "bg-blue-100 text-blue-700",
+  Leader: "bg-leader/10 text-leader",
+  Follower: "bg-follower/10 text-follower",
+  "Not sure": "bg-gray-100 text-gray-600",
 };
 
 const DEFAULT_STYLE = ROLE_STYLES["Not sure"];

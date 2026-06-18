@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { formatEventDate, getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
 import type { PublicEventData } from "@/types/event";
-import { Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, Disc3 } from "lucide-react";
 import { siInstagram, siLine, siFacebook } from "simple-icons";
 import { isRenderableImageSrc } from "@/lib/utils";
 
@@ -24,10 +24,12 @@ export function EventDetailsStep({
   canProceed,
   onNext,
 }: EventDetailsStepProps) {
+  const hasCover = isRenderableImageSrc(event.coverUrl);
+
   return (
-    <div className="min-h-screen bg-gray-400 p-4">
-      <div className="mx-auto max-w-lg bg-white rounded-lg overflow-hidden">
-        {isRenderableImageSrc(event.coverUrl) && (
+    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+      <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
+        {hasCover ? (
           <div className="relative w-full">
             <Image
               src={event.coverUrl}
@@ -39,9 +41,20 @@ export function EventDetailsStep({
               sizes="100vw"
             />
           </div>
+        ) : (
+          <div className="relative flex h-36 items-end overflow-hidden bg-gradient-to-br from-leader to-follower p-5">
+            <Disc3 className="absolute -right-2 -top-2 size-24 text-white/15" />
+            <h1 className="font-display text-2xl font-bold text-white drop-shadow-sm">
+              {event.title}
+            </h1>
+          </div>
         )}
-        <div className="p-4 space-y-6">
-          <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
+        <div className="space-y-6 p-5">
+          {hasCover && (
+            <h1 className="font-display text-2xl font-semibold text-ink">
+              {event.title}
+            </h1>
+          )}
           <div className="space-y-3 border-b border-gray-200 pb-6">
             <div className="flex items-center gap-4">
               <Clock className="w-6 h-6 text-gray-500 shrink-0" />
@@ -70,7 +83,7 @@ export function EventDetailsStep({
                       href={event.location.googleMapUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-[#5295BC] mt-1 inline-block"
+                      className="text-sm text-brand mt-1 inline-block"
                     >
                       導航 &gt;
                     </a>
@@ -87,7 +100,7 @@ export function EventDetailsStep({
 
           {event.purchaseItems.length > 0 && (
             <div className="space-y-2 pb-6 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">方案介紹</h2>
+              <h2 className="font-display text-base font-semibold text-ink">方案介紹</h2>
               <div className="space-y-2">
                 {event.purchaseItems.map((item) => (
                   <div
@@ -95,7 +108,9 @@ export function EventDetailsStep({
                     className="flex items-center justify-between text-[15px]"
                   >
                     <div className="text-gray-900">{item.name}</div>
-                    <div className="text-gray-900">${item.amount}</div>
+                    <div className="font-display font-semibold text-ink tabular-nums">
+                      ${item.amount}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -104,7 +119,7 @@ export function EventDetailsStep({
 
           {event.organizer && (
             <div className="space-y-2 pb-6 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">主辦單位</h2>
+              <h2 className="font-display text-base font-semibold text-ink">主辦單位</h2>
               <div className="flex items-center gap-3">
                 {isRenderableImageSrc(event.organizer.photoUrl) && (
                   <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100">
@@ -157,7 +172,7 @@ export function EventDetailsStep({
 
           {event.noticeItems.length > 0 && (
             <div className="space-y-2">
-              <h2 className="font-semibold text-gray-900">報名須知</h2>
+              <h2 className="font-display text-base font-semibold text-ink">報名須知</h2>
               <ol className="list-decimal list-inside space-y-2 text-[15px] text-gray-800">
                 {event.noticeItems.map((notice) => (
                   <li key={notice.id}>{notice.content}</li>
@@ -172,7 +187,7 @@ export function EventDetailsStep({
                 type="checkbox"
                 checked={agreedToTerms}
                 onChange={(e) => onAgreedToTermsChange(e.target.checked)}
-                className="mt-0.5 w-4 h-4 text-[#5295BC] border-gray-300 rounded focus:ring-[#5295BC]"
+                className="mt-0.5 w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
               />
               <span className="text-[15px] text-gray-700">我已閱讀並同意報名須知</span>
             </label>
@@ -181,7 +196,7 @@ export function EventDetailsStep({
           <Button
             onClick={onNext}
             disabled={!canProceed}
-            className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+            className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
           >
             報名活動
           </Button>

@@ -8,6 +8,11 @@ import type { PublicEventData } from "@/types/event";
 import type { FormData, Participant } from "../event-application-types";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
+const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
+  Leader: "Leader",
+  Follower: "Follower",
+  "Not sure": "還不確定",
+};
 
 type ApplicationFormStepProps = {
   event: PublicEventData;
@@ -45,16 +50,16 @@ export function ApplicationFormStep({
   };
 
   return (
-    <div className="min-h-screen bg-gray-400">
-      <div className="mx-auto max-w-lg bg-white">
-        <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+      <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3">
           <button
             onClick={onBack}
             className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h1 className="flex-1 text-lg font-semibold text-gray-900">
+          <h1 className="flex-1 font-display text-lg font-semibold text-ink">
             選擇方案 & 人數
           </h1>
         </div>
@@ -145,7 +150,7 @@ export function ApplicationFormStep({
                               ? "cursor-not-allowed border-gray-200"
                               : "cursor-pointer hover:bg-gray-50"
                           } ${
-                            isSelected ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"
+                            isSelected ? "bg-gray-50 border-brand" : "border-gray-200"
                           }`}
                         >
                           <input
@@ -164,7 +169,7 @@ export function ApplicationFormStep({
                                 );
                               }
                             }}
-                            className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                            className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
                           />
                           <div className="flex-1">
                             <div className="font-medium text-gray-900">{item.name}</div>
@@ -185,7 +190,7 @@ export function ApplicationFormStep({
                       <label
                         className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
                           selected.length === 0
-                            ? "bg-gray-50 border-[#5295BC]"
+                            ? "bg-gray-50 border-brand"
                             : "border-gray-200"
                         }`}
                       >
@@ -194,7 +199,7 @@ export function ApplicationFormStep({
                           name={`group-${group.id}`}
                           checked={selected.length === 0}
                           onChange={() => setGroupSelection([])}
-                          className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                          className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
                         />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">不需要</div>
@@ -218,7 +223,7 @@ export function ApplicationFormStep({
                     <label
                       key={item.id}
                       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
-                        isSelected ? "bg-gray-50 border-[#5295BC]" : "border-gray-200"
+                        isSelected ? "bg-gray-50 border-brand" : "border-gray-200"
                       }`}
                     >
                       <input
@@ -243,7 +248,7 @@ export function ApplicationFormStep({
                             }
                           }
                         }}
-                        className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                        className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
                       />
                       <div className="flex-1">
                         <div className="font-medium text-gray-900">{item.name}</div>
@@ -273,7 +278,7 @@ export function ApplicationFormStep({
                   className="border border-gray-200 rounded-lg p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="px-3 py-1 bg-[#5295BC] text-white rounded text-sm font-medium">
+                    <div className="px-3 py-1 bg-brand text-white rounded text-sm font-medium">
                       參加者 {index + 1}
                     </div>
                     {formData.participants.length > 1 && (
@@ -298,24 +303,33 @@ export function ApplicationFormStep({
                   </div>
                   <div>
                     <Label>角色</Label>
-                    <div className="flex gap-4 mt-2">
-                      {ROLES.map((role) => (
-                        <label
-                          key={role}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <input
-                            type="radio"
-                            name={`role-${participant.id}`}
-                            checked={participant.role === role}
-                            onChange={() =>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {ROLES.map((role) => {
+                        const selected = participant.role === role;
+                        const selectedClass =
+                          role === "Leader"
+                            ? "border-leader bg-leader/10 text-leader"
+                            : role === "Follower"
+                              ? "border-follower bg-follower/10 text-follower"
+                              : "border-gray-400 bg-gray-100 text-gray-700";
+                        return (
+                          <button
+                            type="button"
+                            key={role}
+                            onClick={() =>
                               onUpdateParticipant(participant.id, "role", role)
                             }
-                            className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
-                          />
-                          <span className="text-sm text-gray-700">{role}</span>
-                        </label>
-                      ))}
+                            aria-pressed={selected}
+                            className={`rounded-lg border px-2 py-2.5 text-sm font-medium transition-colors ${
+                              selected
+                                ? selectedClass
+                                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                            }`}
+                          >
+                            {ROLE_LABELS[role]}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -324,7 +338,7 @@ export function ApplicationFormStep({
             <Button
               onClick={onAddParticipant}
               variant="outline"
-              className="w-full border-[#5295BC] text-[#5295BC] hover:bg-[#5295BC]/10"
+              className="w-full border-brand text-brand hover:bg-brand/10"
             >
               <Plus className="w-4 h-4" />
               增加參加者
@@ -354,7 +368,7 @@ export function ApplicationFormStep({
           <Button
             onClick={onNext}
             disabled={!canProceed}
-            className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+            className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
           >
             選擇付款方式
           </Button>

@@ -48,7 +48,7 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm hover:border-[#5295BC]/30 hover:shadow-md transition-all duration-200 overflow-hidden"
+      className="flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm hover:border-brand/30 hover:shadow-md transition-all duration-200 overflow-hidden"
     >
       {/* Image with status badge */}
       <div className="relative w-full aspect-video overflow-hidden bg-gray-100">
@@ -61,8 +61,10 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-gray-400">
-            <span className="text-sm">無封面</span>
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-leader to-follower">
+            <span className="font-display text-4xl font-semibold text-white/90">
+              {event.title?.trim().charAt(0) || "♪"}
+            </span>
           </div>
         )}
         {/* Status badge */}
@@ -123,7 +125,7 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
           <span className="text-sm text-gray-500">
             {registrationCount} 人報名
           </span>
-          <span className="text-sm font-medium text-[#5295BC]">
+          <span className="text-sm font-medium text-brand">
             管理
           </span>
         </div>

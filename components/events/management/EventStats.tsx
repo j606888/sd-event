@@ -1,14 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from "recharts";
+import { RoleBalanceMeter } from "@/components/events/RoleBalanceMeter";
 
 type RoleCounts = {
   Leader: number;
@@ -18,6 +12,7 @@ type RoleCounts = {
 
 type StatsData = {
   roleCounts: RoleCounts;
+  checkedInRoleCounts: RoleCounts;
   totalAttendees: number;
   checkedInCount: number;
   paymentAmountTotals: {
@@ -39,13 +34,16 @@ const ROLE_LABELS: Record<keyof RoleCounts, string> = {
   "Not sure": "尚未確定",
 };
 
-const COLORS = ["#5295BC", "#ED8E8E", "#B4B4B4"];
+const COLORS = ["#3e7cb1", "#e0765c", "#b4b4b4"];
 
 type EventStatsProps = {
   eventId: string;
 };
 
 export function EventStats({ eventId }: EventStatsProps) {
+  const [balanceMode, setBalanceMode] = useState<"registered" | "checkedIn">(
+    "registered"
+  );
   const { data, isLoading, error } = useQuery({
     queryKey: ["eventStats", eventId],
     queryFn: async () => {
@@ -78,18 +76,18 @@ export function EventStats({ eventId }: EventStatsProps) {
 
   const {
     roleCounts,
+    checkedInRoleCounts,
     totalAttendees,
     checkedInCount,
     paymentAmountTotals,
     purchaseItemSummary,
   } = data;
-  const chartData = (Object.entries(roleCounts) as [keyof RoleCounts, number][]).map(
-    ([role, value], index) => ({
-      name: ROLE_LABELS[role],
-      value,
-      fill: COLORS[index % COLORS.length],
-    })
-  ).filter((d) => d.value > 0);
+
+  // Lead/Follow 平衡：可切換「報名」與「已入場」兩種視角
+  const balanceCounts =
+    balanceMode === "checkedIn" ? checkedInRoleCounts ?? roleCounts : roleCounts;
+  const leaderN = balanceCounts.Leader;
+  const followerN = balanceCounts.Follower;
 
   return (
     <div className="space-y-6">
@@ -97,59 +95,92 @@ export function EventStats({ eventId }: EventStatsProps) {
         統計僅包含「未隱藏」的報名資料。
       </div>
 
+      {/* Signature: Leader / Follower balance — the hero stat for a dance event */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-display text-base font-semibold text-ink">舞伴平衡</h3>
+          <div className="flex rounded-full bg-gray-100 p-0.5 text-xs">
+            {(
+              [
+                { value: "registered", label: "報名" },
+                { value: "checkedIn", label: "已入場" },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setBalanceMode(opt.value)}
+                className={`rounded-full px-3 py-1 font-medium transition-colors ${
+                  balanceMode === opt.value
+                    ? "bg-white text-ink shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <RoleBalanceMeter
+          leader={leaderN}
+          follower={followerN}
+          notSure={balanceCounts["Not sure"]}
+          size="lg"
+        />
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="text-sm text-gray-500">總參加人數</div>
-          <div className="text-2xl font-semibold text-gray-900">{totalAttendees}</div>
+          <div className="font-display text-3xl font-semibold text-ink">{totalAttendees}</div>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="text-sm text-gray-500">已入場</div>
-          <div className="text-2xl font-semibold text-gray-900">{checkedInCount}</div>
+          <div className="font-display text-3xl font-semibold text-ink">{checkedInCount}</div>
         </div>
       </div>
 
-
-      {/* Role breakdown */}
+      {/* Role breakdown — proportion of all three roles */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-4">角色分布</h3>
+        <h3 className="mb-4 text-sm font-medium text-gray-700">角色分布</h3>
         {totalAttendees === 0 ? (
-          <p className="text-sm text-gray-500 py-8 text-center">尚無參加者資料</p>
+          <p className="py-8 text-center text-sm text-gray-500">尚無參加者資料</p>
         ) : (
           <>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    label={({ name, value }) => `${name} ${value}`}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={entry.name} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number | undefined) => [`${value ?? 0} 人`, "人數"]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex h-3 w-full overflow-hidden rounded-full bg-gray-100">
+              {(Object.entries(roleCounts) as [keyof RoleCounts, number][]).map(
+                ([role, count], index) =>
+                  count > 0 ? (
+                    <div
+                      key={role}
+                      title={`${ROLE_LABELS[role]} ${count}`}
+                      style={{
+                        width: `${(count / totalAttendees) * 100}%`,
+                        backgroundColor: COLORS[index % COLORS.length],
+                      }}
+                    />
+                  ) : null
+              )}
             </div>
             <ul className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-              {(Object.entries(roleCounts) as [keyof RoleCounts, number][]).map(([role, count]) => (
-                <li
-                  key={role}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <span className="text-gray-700">{ROLE_LABELS[role]}</span>
-                  <span className="font-medium text-gray-900">{count} 人</span>
-                </li>
-              ))}
+              {(Object.entries(roleCounts) as [keyof RoleCounts, number][]).map(
+                ([role, count], index) => (
+                  <li
+                    key={role}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span className="flex items-center gap-2 text-gray-700">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      {ROLE_LABELS[role]}
+                    </span>
+                    <span className="font-medium text-gray-900">{count} 人</span>
+                  </li>
+                )
+              )}
             </ul>
           </>
         )}

@@ -213,7 +213,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                           key={item.id}
                           className={`flex items-center gap-3 rounded-lg border p-2.5 ${
                             locked ? "cursor-not-allowed border-gray-200" : "cursor-pointer hover:bg-gray-50"
-                          } ${isSelected ? "border-[#5295BC] bg-gray-50" : "border-gray-200"}`}
+                          } ${isSelected ? "border-brand bg-gray-50" : "border-gray-200"}`}
                         >
                           <input
                             type={isSingle ? "radio" : "checkbox"}
@@ -230,7 +230,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                                     : [...selected, item.id]
                                 );
                             }}
-                            className="h-4 w-4 text-[#5295BC]"
+                            className="h-4 w-4 text-brand"
                           />
                           <span className="flex-1 text-sm text-gray-900">{item.name}</span>
                           <span className="text-sm text-gray-600">${item.amount}</span>
@@ -240,7 +240,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                     {isSingle && !group.required && !locked && (
                       <label
                         className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer hover:bg-gray-50 ${
-                          selected.length === 0 ? "border-[#5295BC] bg-gray-50" : "border-gray-200"
+                          selected.length === 0 ? "border-brand bg-gray-50" : "border-gray-200"
                         }`}
                       >
                         <input
@@ -248,7 +248,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                           name={`walkin-group-${group.id}`}
                           checked={selected.length === 0}
                           onChange={() => setGroupSelection(group, [])}
-                          className="h-4 w-4 text-[#5295BC]"
+                          className="h-4 w-4 text-brand"
                         />
                         <span className="flex-1 text-sm text-gray-900">不需要</span>
                       </label>
@@ -265,7 +265,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                   <label
                     key={item.id}
                     className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer hover:bg-gray-50 ${
-                      isSelected ? "border-[#5295BC] bg-gray-50" : "border-gray-200"
+                      isSelected ? "border-brand bg-gray-50" : "border-gray-200"
                     }`}
                   >
                     <input
@@ -283,7 +283,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                           setSelectedPlanIds([]);
                         }
                       }}
-                      className="h-4 w-4 text-[#5295BC]"
+                      className="h-4 w-4 text-brand"
                     />
                     <span className="flex-1 text-sm text-gray-900">{item.name}</span>
                     <span className="text-sm text-gray-600">${item.amount}</span>
@@ -324,7 +324,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                         name={`walkin-role-${p.id}`}
                         checked={p.role === role}
                         onChange={() => updateParticipant(p.id, "role", role)}
-                        className="h-4 w-4 text-[#5295BC]"
+                        className="h-4 w-4 text-brand"
                       />
                       {role}
                     </label>
@@ -336,7 +336,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
               type="button"
               variant="outline"
               onClick={addParticipant}
-              className="w-full gap-1.5 border-[#5295BC] text-[#5295BC] hover:bg-[#5295BC]/10"
+              className="w-full gap-1.5 border-brand text-brand hover:bg-brand/10"
             >
               <Plus className="h-4 w-4" />
               增加參加者
@@ -376,7 +376,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
               type="checkbox"
               checked={autoCheckIn}
               onChange={(e) => setAutoCheckIn(e.target.checked)}
-              className="h-4 w-4 text-[#5295BC]"
+              className="h-4 w-4 text-brand"
             />
             建立後立即報到（標記為已入場）
           </label>
@@ -391,7 +391,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
               type="button"
               onClick={handleSubmit}
               disabled={createWalkIn.isPending}
-              className="bg-[#5295BC] text-white hover:bg-[#4285A5]"
+              className="bg-brand text-white hover:bg-brand-hover"
             >
               {createWalkIn.isPending ? "建立中…" : "確認報名（現金）"}
             </Button>

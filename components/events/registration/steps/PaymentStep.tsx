@@ -37,24 +37,24 @@ export function PaymentStep({
   onSubmit,
 }: PaymentStepProps) {
   return (
-    <div className="min-h-screen bg-gray-400">
-      <div className="mx-auto max-w-lg bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+      <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
 
-        <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3">
           <button
             onClick={onBack}
             className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h1 className="flex-1 text-lg font-semibold text-gray-900">
+          <h1 className="flex-1 font-display text-lg font-semibold text-ink">
             選擇付款方式
           </h1>
         </div>
 
         <div className="px-4 py-6 space-y-6 bg-white">
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900">{event.title}</h2>
+            <h2 className="font-display text-xl font-semibold text-ink">{event.title}</h2>
             <div className="space-y-2 text-sm">
               <div className="flex gap-3">
                 <span className="text-gray-500">時間</span>
@@ -133,7 +133,7 @@ export function PaymentStep({
                     name="paymentMethod"
                     checked={formData.paymentMethod === method}
                     onChange={() => onPaymentMethodChange(method)}
-                    className="w-4 h-4 text-[#5295BC] border-gray-300 focus:ring-[#5295BC]"
+                    className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
                   />
                   <span className="text-gray-900">{method}</span>
                 </label>
@@ -190,7 +190,7 @@ export function PaymentStep({
                 href={`https://line.me/ti/p/${event.organizer.lineId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-[#5295BC] border border-[#5295BC] hover:bg-[#5295BC]/10"
+                className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-brand border border-brand hover:bg-brand/10"
               >
                 開啟 Line 好友
               </a>
@@ -204,7 +204,7 @@ export function PaymentStep({
           <Button
             onClick={onSubmit}
             disabled={!formData.paymentMethod || submitting}
-            className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+            className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
           >
             {submitting ? "處理中…" : "確認報名"}
           </Button>

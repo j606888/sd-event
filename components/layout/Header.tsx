@@ -25,8 +25,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       <div className="flex flex-col flex-1 items-start px-2">
         <Link
           href="/events"
-          className="shrink-0 font-extrabold text-[#5295BC]"
-          style={{ fontFamily: "var(--font-nunito)" }}
+          className="shrink-0 font-display text-lg font-bold text-brand"
         >
           SD Event
         </Link>

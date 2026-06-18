@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 
 export function ConfirmedPaymentHeader() {
-  const brandBlue = "#5295BC";
+  const brandBlue = "#3e7cb1";
 
   return (
     <div className="p-4 text-center">
@@ -18,7 +18,7 @@ export function ConfirmedPaymentHeader() {
         <div className="flex justify-center mb-6">
           <div className="relative">
             {/* 外圈光暈 */}
-            <div className="w-20 h-20 rounded-full bg-[#5295BC]/10 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
               {/* 核心圓圈 */}
               <div 
                 className="w-14 h-14 rounded-full shadow-lg shadow-blue-100 flex items-center justify-center"

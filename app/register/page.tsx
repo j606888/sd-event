@@ -49,7 +49,7 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center">
     <main className="w-full flex-1 max-w-md p-4 flex flex-col items-center justify-between">
-      <h1 className="text-[28px] font-extrabold text-[#5295BC] mb-8 self-start" style={{ fontFamily: 'var(--font-nunito)' }}>
+      <h1 className="text-[28px] font-extrabold text-brand mb-8 self-start" style={{ fontFamily: 'var(--font-nunito)' }}>
         SD Event.
       </h1>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col items-center justify-center w-full gap-6">
@@ -80,7 +80,7 @@ const RegisterPage = () => {
           </Button>
           <p className="text-gray-600 text-sm">
             已經有帳號了?{" "}
-            <Link href="/login" className="text-[#5295BC] font-medium underline">
+            <Link href="/login" className="text-brand font-medium underline">
               登入
             </Link>
           </p>

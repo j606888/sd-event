@@ -237,7 +237,7 @@ export function ReportPaymentPage({
                     variant="outline"
                     size="sm"
                     onClick={() => handleCopy(bankInfo.account!, "bank")}
-                    className="h-8 text-[#5295BC] border-[#5295BC] hover:bg-[#5295BC]/10"
+                    className="h-8 text-brand border-brand hover:bg-brand/10"
                   >
                     {copiedText === "bank" ? (
                       <>
@@ -265,7 +265,7 @@ export function ReportPaymentPage({
               href={`https://line.me/ti/p/${organizer.lineId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-[#5295BC] border border-[#5295BC] hover:bg-[#5295BC]/10"
+              className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-brand border border-brand hover:bg-brand/10"
             >
               開啟 Line 好友
             </a>
@@ -295,7 +295,7 @@ export function ReportPaymentPage({
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 cursor-pointer hover:border-[#5295BC] transition-colors">
+            <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 cursor-pointer hover:border-brand transition-colors">
               <Upload className="w-8 h-8 text-gray-400" />
               <span className="text-sm text-gray-500">點擊選擇圖片或拖放圖片到此處</span>
               <input
@@ -336,7 +336,7 @@ export function ReportPaymentPage({
             isUploading ||
             (!selectedFile && !paymentScreenshotUrl && !paymentNote.trim())
           }
-          className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+          className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
         >
           {uploading || isUploading
             ? "上傳中…"

@@ -121,7 +121,7 @@ export function OrganizerDrawer({
         </Button>
         <Button
           type="submit"
-          className="bg-gray-900 text-white hover:bg-gray-800"
+          className="bg-primary text-white hover:bg-brand-hover"
           disabled={submitting}
         >
           {submitting ? "新增中…" : "新增"}

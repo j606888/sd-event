@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, CheckCircle2, Eye, EyeOff, QrCode, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Eye, EyeOff, QrCode, X, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
@@ -21,6 +21,7 @@ type RegistrationDetailProps = {
   onStatusUpdate: (status: "confirmed") => Promise<void>;
   onHiddenToggle?: (hidden: boolean) => Promise<void>;
   onCheckIn: (attendeeId: number) => Promise<void>;
+  onEdit?: () => void;
 };
 
 export function RegistrationDetailSkeleton({ onBack }: { onBack: () => void }) {
@@ -97,6 +98,7 @@ export function RegistrationDetail({
   onStatusUpdate,
   onHiddenToggle,
   onCheckIn,
+  onEdit,
 }: RegistrationDetailProps) {
   const [updating, setUpdating] = useState(false);
   const [hiddenUpdating, setHiddenUpdating] = useState(false);
@@ -190,28 +192,42 @@ export function RegistrationDetail({
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-gray-500">{formatTimestamp(registration.createdAt)}</span>
-          {onHiddenToggle && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={hiddenUpdating}
-              onClick={handleHiddenToggle}
-              className="gap-1.5 shrink-0 text-amber-700 border-amber-200 hover:bg-amber-50"
-            >
-              {registration.hidden ? (
-                <>
-                  <Eye className="w-4 h-4" />
-                  {hiddenUpdating ? "處理中…" : "取消隱藏"}
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-4 h-4" />
-                  {hiddenUpdating ? "處理中…" : "標記為隱藏"}
-                </>
-              )}
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {onEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onEdit}
+                className="gap-1.5"
+              >
+                <Pencil className="w-4 h-4" />
+                編輯
+              </Button>
+            )}
+            {onHiddenToggle && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={hiddenUpdating}
+                onClick={handleHiddenToggle}
+                className="gap-1.5 text-amber-700 border-amber-200 hover:bg-amber-50"
+              >
+                {registration.hidden ? (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    {hiddenUpdating ? "處理中…" : "取消隱藏"}
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-4 h-4" />
+                    {hiddenUpdating ? "處理中…" : "標記為隱藏"}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -344,7 +360,7 @@ export function RegistrationDetail({
         <Button
           onClick={handleConfirm}
           disabled={updating}
-          className="w-full bg-[#5295BC] text-white hover:bg-[#4285A5] h-12 text-base font-medium"
+          className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
         >
           {updating ? "處理中…" : "標記為已完成"}
         </Button>

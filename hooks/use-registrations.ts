@@ -96,6 +96,8 @@ export function useUpdateRegistration(eventId: string) {
       queryClient.invalidateQueries({
         queryKey: ["registration", eventId, registrationId],
       });
+      // 編輯可能變更角色/人數/付款狀態，連動統計
+      queryClient.invalidateQueries({ queryKey: ["eventStats", eventId] });
     },
   });
 }
