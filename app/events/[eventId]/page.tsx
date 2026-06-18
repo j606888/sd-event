@@ -145,6 +145,22 @@ export default function EventDetailPage() {
         <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-900">
           {event.title}
         </h1>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            const url = `${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.publicKey}`;
+            navigator.clipboard.writeText(url).then(() => {
+              setShareCopied(true);
+              setTimeout(() => setShareCopied(false), 2000);
+            });
+          }}
+        >
+          <Share2 className="size-4" />
+          {shareCopied ? "已複製連結" : "分享表單"}
+        </Button>
         <Link
           href="/events"
           className="flex items-center justify-center text-gray-600 hover:underline"
@@ -195,24 +211,6 @@ export default function EventDetailPage() {
             submitLabel="更新表單"
             onSaveSuccess={() =>
               queryClient.invalidateQueries({ queryKey: ["event", eventId] })
-            }
-            renderExtraActions={
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => {
-                  const url = `${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.publicKey}`;
-                  navigator.clipboard.writeText(url).then(() => {
-                    setShareCopied(true);
-                    setTimeout(() => setShareCopied(false), 2000);
-                  });
-                }}
-              >
-                <Share2 className="size-4" />
-                {shareCopied ? "已複製連結" : "分享表單"}
-              </Button>
             }
           />
         )}
