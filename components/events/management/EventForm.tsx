@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LocationSelect } from "./LocationSelect";
 import { OrganizerSelect } from "./OrganizerSelect";
 import { BankInfoSelect } from "./BankInfoSelect";
@@ -177,24 +184,39 @@ export function EventForm({
           }`}
         >
         <div className="flex flex-col gap-2">
-          <Label>活動類型</Label>
-          <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
-            {EVENT_TYPES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                aria-pressed={type === t.value}
-                onClick={() => handleTypeChange(t.value)}
-                className={`rounded-md px-2 py-2 text-sm font-medium transition-colors ${
-                  type === t.value
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-900"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <Label htmlFor="eventType">活動類型</Label>
+          {mode === "create" ? (
+            <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
+              {EVENT_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  aria-pressed={type === t.value}
+                  onClick={() => handleTypeChange(t.value)}
+                  className={`rounded-md px-2 py-2 text-sm font-medium transition-colors ${
+                    type === t.value
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Select value={type} onValueChange={(v) => handleTypeChange(v as EventType)}>
+              <SelectTrigger id="eventType" className="w-full min-w-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EVENT_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {mode === "create" && (
             <p className="text-xs text-gray-400">
               {EVENT_TYPES.find((t) => t.value === type)?.description}
