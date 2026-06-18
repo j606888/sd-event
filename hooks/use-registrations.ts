@@ -3,6 +3,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PaymentFilter, HiddenFilter, CheckInFilter } from "@/lib/registration-list-filters";
 import type { Registration, RegistrationDetailData } from "@/types/registration";
+import {
+  createWalkInRegistration,
+  type CreateWalkInBody,
+} from "@/lib/api/create-walk-in";
 
 export type { Registration, RegistrationDetailData };
 
@@ -92,6 +96,18 @@ export function useUpdateRegistration(eventId: string) {
       queryClient.invalidateQueries({
         queryKey: ["registration", eventId, registrationId],
       });
+    },
+  });
+}
+
+export function useCreateWalkIn(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateWalkInBody) =>
+      createWalkInRegistration(Number(eventId), body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["registrations", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["eventStats", eventId] });
     },
   });
 }

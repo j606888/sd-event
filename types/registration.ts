@@ -82,15 +82,19 @@ export type PurchaseItem = {
   amount: number;
 };
 
+/** 報名來源："online"（公開表單）| "walk_in"（現場由主辦建立） */
+export type RegistrationSource = "online" | "walk_in";
+
 /** Registration row in list view */
 export type Registration = {
   id: number;
   registrationKey: string;
   contactName: string;
-  contactPhone: string;
-  contactEmail: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
   totalAmount: number;
   paymentStatus: PaymentStatus;
+  source?: RegistrationSource | string;
   attendeeCount: number;
   checkedInCount?: number;
   hidden?: boolean;
@@ -102,11 +106,12 @@ export type RegistrationDetailData = {
   id: number;
   registrationKey: string;
   contactName: string;
-  contactPhone: string;
-  contactEmail: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
   paymentMethod: string | null;
   totalAmount: number;
   paymentStatus: PaymentStatus;
+  source?: RegistrationSource | string;
   paymentScreenshotUrl: string | null;
   paymentNote: string | null;
   hidden?: boolean;

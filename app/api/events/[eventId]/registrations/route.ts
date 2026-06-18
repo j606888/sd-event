@@ -16,7 +16,7 @@ import {
 import { sendRegistrationSuccessEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { resolveActiveTier, getItemUnitPrice } from "@/lib/pricing";
+import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { eq, desc, count, or, like, and, inArray, asc, sql } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -114,6 +114,7 @@ export async function GET(request: Request, { params }: Params) {
       contactPhone: eventRegistrations.contactPhone,
       contactEmail: eventRegistrations.contactEmail,
       paymentMethod: eventRegistrations.paymentMethod,
+      source: eventRegistrations.source,
       totalAmount: eventRegistrations.totalAmount,
       paymentStatus: eventRegistrations.paymentStatus,
       paymentScreenshotUrl: eventRegistrations.paymentScreenshotUrl,
@@ -283,47 +284,8 @@ export async function POST(request: Request, { params }: Params) {
         );
       }
 
-      // 群組活動：依群組規則做後端校驗
+      // 群組活動：依群組規則做後端校驗（與現場報名共用 validateGroupSelection）
       if (useGroups) {
-        const groupById = new Map(groups.map((g) => [g.id, g]));
-        const itemById = new Map(purchaseItems.map((it) => [it.id, it]));
-        // 每個選取項目都必須屬於本活動的某個群組
-        for (const id of purchaseItemIds) {
-          const it = itemById.get(id);
-          if (!it || it.groupId == null || !groupById.has(it.groupId)) {
-            return NextResponse.json({ error: "無效的購買項目" }, { status: 400 });
-          }
-        }
-        // 統計各群組被選取的數量，套用 required / selectionMode 規則
-        const countByGroup = new Map<number, number>();
-        for (const id of purchaseItemIds) {
-          const gid = itemById.get(id)!.groupId!;
-          countByGroup.set(gid, (countByGroup.get(gid) ?? 0) + 1);
-        }
-        for (const g of groups) {
-          const c = countByGroup.get(g.id) ?? 0;
-          if (g.selectionMode === "single" && c > 1) {
-            return NextResponse.json(
-              { error: `「${g.title}」僅能擇一` },
-              { status: 400 }
-            );
-          }
-          if (g.required) {
-            if (g.selectionMode === "single" && c !== 1) {
-              return NextResponse.json(
-                { error: `請於「${g.title}」選擇一項` },
-                { status: 400 }
-              );
-            }
-            if (g.selectionMode === "multiple" && c < 1) {
-              return NextResponse.json(
-                { error: `請於「${g.title}」至少選擇一項` },
-                { status: 400 }
-              );
-            }
-          }
-        }
-        // 跨群組互斥：互斥配對的兩個群組不可同時有選取
         const exclusions = await db
           .select({
             groupAId: eventGroupExclusions.groupAId,
@@ -331,15 +293,14 @@ export async function POST(request: Request, { params }: Params) {
           })
           .from(eventGroupExclusions)
           .where(eq(eventGroupExclusions.eventId, eventId));
-        for (const { groupAId, groupBId } of exclusions) {
-          if ((countByGroup.get(groupAId) ?? 0) > 0 && (countByGroup.get(groupBId) ?? 0) > 0) {
-            const a = groupById.get(groupAId);
-            const b = groupById.get(groupBId);
-            return NextResponse.json(
-              { error: `「${a?.title ?? ""}」與「${b?.title ?? ""}」不可同時選擇` },
-              { status: 400 }
-            );
-          }
+        const groupError = validateGroupSelection(
+          groups,
+          purchaseItems,
+          purchaseItemIds,
+          exclusions
+        );
+        if (groupError) {
+          return NextResponse.json({ error: groupError }, { status: 400 });
         }
       }
     } else {
@@ -407,20 +368,12 @@ export async function POST(request: Request, { params }: Params) {
         : Promise.resolve([] as { purchaseItemId: number; tierId: number; amount: number }[]),
     ]);
 
-    const activeTier = resolveActiveTier(tiers, new Date());
-    const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
-    for (const row of priceRows) {
-      const arr = pricesByItem.get(row.purchaseItemId) ?? [];
-      arr.push({ tierId: row.tierId, amount: row.amount });
-      pricesByItem.set(row.purchaseItemId, arr);
-    }
-    const unitPriceById = new Map<number, number>();
-    for (const item of selectedItems) {
-      unitPriceById.set(
-        item.id,
-        getItemUnitPrice(item.amount, pricesByItem.get(item.id) ?? [], activeTier?.id ?? null)
-      );
-    }
+    const { activeTier, unitPriceById } = resolveUnitPrices(
+      selectedItems,
+      tiers,
+      priceRows,
+      new Date()
+    );
 
     // autoCalc（或群組活動）時以伺服器解析價為準（Σ單價 × 參加者數），避免顯示價/收費價不一致或被竄改
     const computedTotal =

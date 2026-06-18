@@ -230,6 +230,11 @@ export function RegistrationsList({
                       <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                         {reg.attendeeCount}人
                       </span>
+                      {reg.source === "walk_in" && (
+                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                          現場
+                        </span>
+                      )}
                       <span className="text-sm text-gray-600">
                         NT ${reg.totalAmount.toLocaleString()}
                       </span>

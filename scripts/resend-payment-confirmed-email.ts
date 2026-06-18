@@ -35,6 +35,11 @@ async function main() {
     process.exit(1);
   }
 
+  if (!registration.contactEmail) {
+    console.error("Registration has no contact email (e.g. walk-in); nothing to send.");
+    process.exit(1);
+  }
+
   const [event] = await db
     .select()
     .from(events)

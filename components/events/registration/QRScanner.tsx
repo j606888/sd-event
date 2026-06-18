@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { X, AlertCircle } from "lucide-react";
+import { X, AlertCircle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
 import type { ScannedRegistration } from "@/types/registration";
@@ -11,9 +11,11 @@ type QRScannerProps = {
   eventId: number;
   onScanSuccess?: (attendeeId: number, attendeeName: string) => void;
   onClose: () => void;
+  /** 提供時於掃描畫面顯示「現場報名」按鈕 */
+  onWalkIn?: () => void;
 };
 
-export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
+export function QRScanner({ eventId, onScanSuccess, onClose, onWalkIn }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -299,7 +301,16 @@ export function QRScanner({ eventId, onScanSuccess, onClose }: QRScannerProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 space-y-2">
+          {onWalkIn && (
+            <Button
+              onClick={onWalkIn}
+              className="w-full gap-1.5 bg-[#5295BC] text-white hover:bg-[#4285A5]"
+            >
+              <UserPlus className="w-4 h-4" />
+              現場報名
+            </Button>
+          )}
           <Button
             onClick={onClose}
             variant="outline"

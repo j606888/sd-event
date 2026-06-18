@@ -16,6 +16,7 @@ import {
 export const userRoleEnum = pgEnum("user_role", ["Organizer"]);
 export const teamMemberRoleEnum = pgEnum("team_member_role", ["owner", "member"]);
 export const eventStatusEnum = pgEnum("event_status", ["draft", "published"]);
+export const eventTypeEnum = pgEnum("event_type", ["Party", "Workshop", "Festival"]);
 
 // ============ Users ============
 export const users = pgTable("users", {
@@ -119,6 +120,8 @@ export const events = pgTable("events", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  /** 活動類型，用於決定購買項目範本；既有資料 backfill 為 Party */
+  type: eventTypeEnum("type").notNull().default("Party"),
   description: text("description"),
   coverUrl: text("cover_url"),
   startAt: timestamp("start_at", { withTimezone: true }).notNull(),
@@ -256,12 +259,14 @@ export const eventRegistrations = pgTable("event_registrations", {
     .references(() => events.id, { onDelete: "cascade" }),
   purchaseItemId: integer("purchase_item_id")
     .references(() => eventPurchaseItems.id, { onDelete: "set null" }),
-  /** 聯絡人資訊 */
+  /** 聯絡人資訊（現場報名可只填姓名，故電話/信箱允許為空） */
   contactName: text("contact_name").notNull(),
-  contactPhone: text("contact_phone").notNull(),
-  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
+  /** 報名來源："online"（公開表單）| "walk_in"（現場由主辦建立） */
+  source: text("source").notNull().default("online"),
   /** 付款資訊 */
-  paymentMethod: text("payment_method"), // "Line Pay", "Bank Transfer", "Other"
+  paymentMethod: text("payment_method"), // "Line Pay", "Bank Transfer", "Other", "Cash"
   totalAmount: integer("total_amount").notNull(),
   /** 付款狀態 */
   paymentStatus: text("payment_status").notNull().default("pending"), // "pending", "reported", "confirmed", "rejected"

@@ -195,8 +195,10 @@ export async function PATCH(request: Request, { params }: Params) {
       .returning();
 
     // When creator confirms payment, send notification email to contact
+    // （現場現金報名可能沒有 email，此時略過寄信）
     if (
       updated &&
+      updated.contactEmail &&
       updates.paymentStatus === "confirmed" &&
       registration.paymentStatus !== "confirmed"
     ) {

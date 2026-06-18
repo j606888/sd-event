@@ -2,6 +2,32 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Product overview
+
+This is an event registration & check-in platform built for **social-dance organizers** (Bachata /
+Salsa / Zouk parties, workshops, and festivals). It replaces the common but painful workflow of
+collecting sign-ups in a Google Form and printing an A4 Excel sheet to check people off at the door.
+
+What it does well, and why each piece exists:
+
+- **Tiered pricing** (早鳥 / 一般 / 現場) — dance events almost always sell early-bird, regular, and
+  door prices. Tiers are time-based (`eventPriceTiers`, the `endsAt = null` tier is the door/fallback
+  price); each ticket can carry a per-tier price. Prices are resolved server-side at registration
+  time so the charged amount can't drift from what was shown.
+- **Ticket groups, multi-select & mutual exclusion** — Full-Pass vs single-class vs party add-ons,
+  with rules like "pick one of these" or "choosing a Full-Pass locks the single-class group."
+- **Leader / Follower stats** — every attendee has a dance role, which organizers need for balance.
+- **Payment tracking** (`pending → reported → confirmed | rejected`) — attendees upload a transfer
+  screenshot at `/report-payment/[registrationKey]`; organizers confirm and an email goes out.
+- **QR check-in** — the standout feature at the door. Attendees show a QR voucher; staff scan it at
+  `/events/[eventId]/scan` and mark each attendee checked in, replacing the printed paper list.
+- **On-site (walk-in / cash) registration** — organizers can register someone who shows up at the
+  door, charge cash, and check them in on the spot, from a phone. See the walk-in endpoint
+  `app/api/events/[eventId]/registrations/walk-in/route.ts` and `WalkInDrawer`.
+
+Public-facing pages use opaque `publicKey` / `registrationKey` (nanoid) URLs and need no login;
+organizer dashboards are team-scoped and JWT-authenticated.
+
 ## Commands
 
 ```bash

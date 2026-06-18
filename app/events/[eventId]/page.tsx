@@ -5,11 +5,12 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EventForm } from "@/components/events/management/EventForm";
 import { EventStats } from "@/components/events/management/EventStats";
+import { WalkInDrawer } from "@/components/events/management/WalkInDrawer";
 import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
 import { RegistrationDetail, RegistrationDetailSkeleton } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Share2 } from "lucide-react";
+import { Share2, UserPlus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "@/hooks/use-event-detail";
 import {
@@ -36,6 +37,7 @@ export default function EventDetailPage() {
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("form");
   const [shareCopied, setShareCopied] = useState(false);
   const [selectedRegistrationId, setSelectedRegistrationId] = useState<number | null>(null);
+  const [walkInOpen, setWalkInOpen] = useState(false);
 
   // Filter / search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -246,9 +248,21 @@ export default function EventDetailPage() {
                 }}
               />
             ) : (
-              <RegistrationsList
-                registrations={registrations}
-                onSelect={(id) => setSelectedRegistrationId(id)}
+              <div className="space-y-3">
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setWalkInOpen(true)}
+                    className="gap-1.5 bg-[#5295BC] text-white hover:bg-[#4285A5]"
+                  >
+                    <UserPlus className="size-4" />
+                    現場報名
+                  </Button>
+                </div>
+                <RegistrationsList
+                  registrations={registrations}
+                  onSelect={(id) => setSelectedRegistrationId(id)}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 paymentFilter={paymentFilter}
@@ -257,9 +271,10 @@ export default function EventDetailPage() {
                 onCheckInFilterChange={setCheckInFilter}
                 hiddenFilter={hiddenFilter}
                 onHiddenFilterChange={setHiddenFilter}
-                totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
-                isLoading={registrationsQuery.isLoading}
-              />
+                  totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
+                  isLoading={registrationsQuery.isLoading}
+                />
+              </div>
             )}
             {!selectedRegistration &&
               registrationsData?.pagination &&
@@ -320,6 +335,12 @@ export default function EventDetailPage() {
           </div>
         )}
       </div>
+
+      <WalkInDrawer
+        open={walkInOpen}
+        eventId={event.id}
+        onClose={() => setWalkInOpen(false)}
+      />
     </div>
   );
 }

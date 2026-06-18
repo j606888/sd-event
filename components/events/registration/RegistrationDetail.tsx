@@ -174,6 +174,11 @@ export function RegistrationDetail({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {registration.source === "walk_in" && (
+              <span className="inline-flex items-center px-2.5 py-1 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
+                現場
+              </span>
+            )}
             {registration.hidden && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 rounded-full text-xs font-medium text-amber-800">
                 <EyeOff className="w-3 h-3" />
@@ -220,11 +225,11 @@ export function RegistrationDetail({
           </div>
           <div>
             <span className="text-gray-500">電話</span>
-            <span className="ml-2 text-gray-900">{registration.contactPhone}</span>
+            <span className="ml-2 text-gray-900">{registration.contactPhone || "—"}</span>
           </div>
           <div>
             <span className="text-gray-500">信箱</span>
-            <span className="ml-2 text-gray-900">{registration.contactEmail}</span>
+            <span className="ml-2 text-gray-900">{registration.contactEmail || "—"}</span>
           </div>
         </div>
       </div>
@@ -301,7 +306,9 @@ export function RegistrationDetail({
           <div>
             <span className="text-gray-500">付款方式</span>
             <span className="ml-2 text-gray-900">
-              {registration.paymentMethod || "未指定"}
+              {registration.paymentMethod === "Cash"
+                ? "現金"
+                : registration.paymentMethod || "未指定"}
             </span>
           </div>
           {registration.paymentNote && (
