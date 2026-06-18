@@ -29,7 +29,7 @@ export function EventDetailsStep({
   return (
     <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-        {hasCover ? (
+        {isRenderableImageSrc(event.coverUrl) ? (
           <div className="relative w-full">
             <Image
               src={event.coverUrl}
