@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Trash2, Plus } from "lucide-react";
+import { ChevronLeft, Trash2, Plus, TicketPercent, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,13 @@ type ApplicationFormStepProps = {
   canProceed: boolean;
   onBack: () => void;
   onNext: () => void;
+  couponsSupported: boolean;
+  applyingCoupon: boolean;
+  couponError: string | null;
+  onApplyCoupon: () => void;
+  onRemoveCoupon: () => void;
+  discountAmount: number;
+  finalAmount: number;
 };
 
 export function ApplicationFormStep({
@@ -36,6 +43,13 @@ export function ApplicationFormStep({
   canProceed,
   onBack,
   onNext,
+  couponsSupported,
+  applyingCoupon,
+  couponError,
+  onApplyCoupon,
+  onRemoveCoupon,
+  discountAmount,
+  finalAmount,
 }: ApplicationFormStepProps) {
   const groupById = new Map(event.groups.map((g) => [g.id, g]));
   // 若某互斥群組已有選取，回傳「鎖住本群組的那個群組」，否則 null
@@ -363,6 +377,75 @@ export function ApplicationFormStep({
                 className="mt-1"
               />
             </div>
+
+            {couponsSupported && (
+              <div>
+                <Label htmlFor="couponCode">折扣碼</Label>
+                {formData.appliedCoupon ? (
+                  <div className="mt-1 flex items-center justify-between rounded-lg border border-brand bg-brand/5 px-3 py-2.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <TicketPercent className="size-4 text-brand" />
+                      <span className="font-mono font-medium text-brand">
+                        {formData.appliedCoupon.code}
+                      </span>
+                      <span className="text-gray-600">
+                        {formData.appliedCoupon.discountType === "fixed"
+                          ? `折抵 NT$${formData.appliedCoupon.value}`
+                          : `折扣 ${formData.appliedCoupon.value}%`}
+                        {discountAmount > 0 && ` −NT$${discountAmount}`}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onRemoveCoupon}
+                      className="flex size-7 items-center justify-center rounded text-gray-400 hover:text-red-500"
+                      aria-label="移除折扣碼"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex gap-2">
+                    <Input
+                      id="couponCode"
+                      placeholder="輸入折扣碼（選填）"
+                      value={formData.couponCode}
+                      onChange={(e) =>
+                        onFormFieldChange(
+                          "couponCode",
+                          e.target.value.toUpperCase()
+                        )
+                      }
+                      className="flex-1 font-mono uppercase"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onApplyCoupon}
+                      disabled={!formData.couponCode.trim() || applyingCoupon}
+                      className="border-brand text-brand hover:bg-brand/10"
+                    >
+                      {applyingCoupon ? "驗證中…" : "套用"}
+                    </Button>
+                  </div>
+                )}
+                {couponError && (
+                  <p className="mt-1 text-sm text-red-500">{couponError}</p>
+                )}
+              </div>
+            )}
+
+            {formData.appliedCoupon && discountAmount > 0 && (
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5 text-sm">
+                <span className="text-gray-500">折扣後金額</span>
+                <span>
+                  <span className="mr-2 text-gray-400 line-through">
+                    ${formData.totalAmount}
+                  </span>
+                  <span className="font-semibold text-brand">${finalAmount}</span>
+                </span>
+              </div>
+            )}
           </div>
 
           <Button

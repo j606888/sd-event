@@ -72,4 +72,13 @@ export type PublicEventData = {
   /** 票種群組（含其下項目）；空陣列 = 此活動未使用群組，走舊模型 */
   groups: EventPurchaseItemGroup[];
   noticeItems: EventNoticeItem[];
+  /** 活動是否設有折扣碼（報名表據此顯示折扣碼輸入欄位） */
+  hasCoupons?: boolean;
+};
+
+/** 已套用的折扣碼（validate API 回傳、報名表單預覽用） */
+export type AppliedCoupon = {
+  code: string;
+  discountType: "fixed" | "percent";
+  value: number;
 };

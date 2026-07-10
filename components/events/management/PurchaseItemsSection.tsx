@@ -9,6 +9,7 @@ import type {
   PurchaseItemDraft,
   PriceTierDraft,
   PurchaseItemGroupDraft,
+  CouponDraft,
 } from "@/hooks/use-event-form";
 
 type PurchaseItemsSectionProps = {
@@ -16,6 +17,15 @@ type PurchaseItemsSectionProps = {
   autoCalcAmount: boolean;
   priceTiers: PriceTierDraft[];
   groups: PurchaseItemGroupDraft[];
+  coupons: CouponDraft[];
+  onAddCoupon: () => void;
+  onUpdateCoupon: <K extends keyof CouponDraft>(
+    index: number,
+    field: K,
+    value: CouponDraft[K]
+  ) => void;
+  onPersistCoupon: (index: number) => void;
+  onRemoveCoupon: (index: number) => void;
   onAutoCalcAmountChange: (value: boolean) => void;
   onAddClick: () => void;
   onEditItem: (index: number) => void;
@@ -44,6 +54,11 @@ export function PurchaseItemsSection({
   autoCalcAmount,
   priceTiers,
   groups,
+  coupons,
+  onAddCoupon,
+  onUpdateCoupon,
+  onPersistCoupon,
+  onRemoveCoupon,
   onAutoCalcAmountChange,
   onAddClick,
   onEditItem,
@@ -63,6 +78,8 @@ export function PurchaseItemsSection({
   onToggleGroupExclusion,
 }: PurchaseItemsSectionProps) {
   const useGroups = groups.length > 0;
+  // 折扣碼僅在伺服器能權威計算金額的活動生效（與後端 registrations route 的規則一致）
+  const couponsSupported = useGroups || autoCalcAmount;
 
   // 進階選項預設收合；若活動已設定群組則自動展開。使用者手動切換後以 override 為準。
   // 完全由 render 推導，避免 effect / ref 連鎖（亦相容群組非同步載入）。
@@ -289,6 +306,104 @@ export function PurchaseItemsSection({
             {items.map((item, i) => renderItemRow(item, i))}
           </ul>
         ))}
+
+      {/* 折扣碼：折固定金額（整筆折一次）或打折（%），可設使用次數上限 */}
+      <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+        <div className="flex items-center justify-between">
+          <Label>折扣碼（選填）</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={onAddCoupon}
+            disabled={!couponsSupported}
+          >
+            <Plus className="size-4" />
+            新增折扣碼
+          </Button>
+        </div>
+        {couponsSupported ? (
+          <p className="text-xs text-gray-500">
+            報名者輸入折扣碼後自動調整金額。固定金額為整筆報名折一次；打折以折扣百分比計（10 = 打九折）。
+            使用上限留空＝不限次數。
+          </p>
+        ) : (
+          <p className="text-xs text-gray-500">
+            折扣碼僅支援自動計算金額的活動（使用票種群組，或關閉「使用者自行填寫金額」）。
+          </p>
+        )}
+        {couponsSupported && coupons.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {coupons.map((coupon, i) => (
+              <li
+                key={coupon.id ?? `draft-${i}`}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <Input
+                  className="w-36 bg-white font-mono uppercase"
+                  placeholder="折扣碼"
+                  value={coupon.code}
+                  onChange={(e) =>
+                    onUpdateCoupon(i, "code", e.target.value.toUpperCase())
+                  }
+                  onBlur={() => onPersistCoupon(i)}
+                />
+                <select
+                  className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                  value={coupon.discountType}
+                  onChange={(e) => {
+                    onUpdateCoupon(
+                      i,
+                      "discountType",
+                      e.target.value === "percent" ? "percent" : "fixed"
+                    );
+                    onPersistCoupon(i);
+                  }}
+                  aria-label="折扣類型"
+                >
+                  <option value="fixed">折抵金額</option>
+                  <option value="percent">打折（%）</option>
+                </select>
+                <Input
+                  className="w-24 bg-white"
+                  type="number"
+                  min={1}
+                  max={coupon.discountType === "percent" ? 100 : undefined}
+                  placeholder={coupon.discountType === "percent" ? "折扣 %" : "金額"}
+                  value={coupon.value}
+                  onChange={(e) => onUpdateCoupon(i, "value", e.target.value)}
+                  onBlur={() => onPersistCoupon(i)}
+                  aria-label="折扣數值"
+                />
+                <Input
+                  className="w-24 bg-white"
+                  type="number"
+                  min={1}
+                  placeholder="不限"
+                  value={coupon.usageLimit}
+                  onChange={(e) => onUpdateCoupon(i, "usageLimit", e.target.value)}
+                  onBlur={() => onPersistCoupon(i)}
+                  aria-label="使用上限"
+                />
+                {(coupon.usedCount ?? 0) > 0 && (
+                  <span className="text-xs text-gray-400">
+                    已用 {coupon.usedCount} 次
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemoveCoupon(i)}
+                  className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
+                  aria-label="移除折扣碼"
+                >
+                  <X className="size-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* 分隔線：把「主要設定」與「進階設定」明顯分層 */}
       <div className="mt-2 flex items-center gap-3 text-xs font-medium text-gray-400">

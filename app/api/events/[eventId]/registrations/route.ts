@@ -11,15 +11,24 @@ import {
   eventPriceTiers,
   eventPurchaseItemPrices,
   eventRegistrationPurchaseItems,
+  eventCoupons,
   teamMembers,
 } from "@/db/schema";
 import { sendRegistrationSuccessEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
-import { eq, desc, count, or, like, and, inArray, asc, sql } from "drizzle-orm";
+import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
+import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, lt } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
+
+/** 折扣碼名額於 transaction 內被搶完時擲出，於外層轉為 409 */
+class CouponExhaustedError extends Error {
+  constructor() {
+    super("COUPON_EXHAUSTED");
+  }
+}
 
 function generateRegistrationKey(): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -116,6 +125,8 @@ export async function GET(request: Request, { params }: Params) {
       paymentMethod: eventRegistrations.paymentMethod,
       source: eventRegistrations.source,
       totalAmount: eventRegistrations.totalAmount,
+      couponCode: eventRegistrations.couponCode,
+      discountAmount: eventRegistrations.discountAmount,
       paymentStatus: eventRegistrations.paymentStatus,
       paymentScreenshotUrl: eventRegistrations.paymentScreenshotUrl,
       paymentNote: eventRegistrations.paymentNote,
@@ -215,6 +226,8 @@ export async function POST(request: Request, { params }: Params) {
     const paymentMethod =
       typeof body.paymentMethod === "string" ? body.paymentMethod : null;
     const totalAmount = Number(body.totalAmount);
+    const couponCode =
+      typeof body.couponCode === "string" ? normalizeCouponCode(body.couponCode) : "";
     const attendees =
       Array.isArray(body.attendees) && body.attendees.length > 0
         ? body.attendees
@@ -228,6 +241,8 @@ export async function POST(request: Request, { params }: Params) {
     const useGroups = groups.length > 0;
     // 群組活動一律走多選路徑
     const effectiveMultiple = useGroups || event.allowMultiplePurchase;
+    // 伺服器權威計算金額的模式（群組或 autoCalc）；折扣碼僅在此模式生效
+    const serverAuthoritative = useGroups || !!event.autoCalcAmount;
 
     // Check if event allows multiple purchase
     const hasPurchaseItems = effectiveMultiple
@@ -239,7 +254,8 @@ export async function POST(request: Request, { params }: Params) {
       !contactPhone ||
       !contactEmail ||
       !Number.isInteger(totalAmount) ||
-      totalAmount <= 0 ||
+      // 權威模式下伺服器會重算金額，允許 0（100% 折抵）；手填模式維持必須為正
+      (serverAuthoritative ? totalAmount < 0 : totalAmount <= 0) ||
       attendees.length === 0 ||
       !hasPurchaseItems
     ) {
@@ -381,10 +397,51 @@ export async function POST(request: Request, { params }: Params) {
         (sum: number, id: number) => sum + (unitPriceById.get(id) ?? 0),
         0
       ) * validAttendees.length;
-    const finalTotalAmount =
-      useGroups || event.autoCalcAmount ? computedTotal : totalAmount;
 
-    if (!Number.isInteger(finalTotalAmount) || finalTotalAmount <= 0) {
+    // 折扣碼：僅權威模式生效，伺服器重新驗證並計算折抵（client 僅預覽）
+    let coupon: typeof eventCoupons.$inferSelect | null = null;
+    let discountAmount = 0;
+    if (couponCode) {
+      if (!serverAuthoritative) {
+        return NextResponse.json(
+          { error: "此活動不支援折扣碼", code: "COUPON_NOT_SUPPORTED" },
+          { status: 400 }
+        );
+      }
+      const [found] = await db
+        .select()
+        .from(eventCoupons)
+        .where(
+          and(eq(eventCoupons.eventId, eventId), eq(eventCoupons.code, couponCode))
+        )
+        .limit(1);
+      if (!found) {
+        return NextResponse.json(
+          { error: "折扣碼無效", code: "COUPON_INVALID" },
+          { status: 400 }
+        );
+      }
+      // 友善預檢；實際名額由 transaction 內的原子更新把關
+      if (found.usageLimit != null && found.usedCount >= found.usageLimit) {
+        return NextResponse.json(
+          { error: "此折扣碼已額滿，無法使用", code: "COUPON_EXHAUSTED" },
+          { status: 409 }
+        );
+      }
+      coupon = found;
+      discountAmount = computeCouponDiscount(computedTotal, found);
+    }
+
+    const finalTotalAmount = serverAuthoritative
+      ? computedTotal - discountAmount
+      : totalAmount;
+
+    // 權威模式擋折扣前即非正的金額（保留舊行為）；折扣後允許 0（免費報名）
+    if (
+      !Number.isInteger(finalTotalAmount) ||
+      finalTotalAmount < 0 ||
+      (serverAuthoritative && computedTotal <= 0)
+    ) {
       return NextResponse.json({ error: "總金額計算錯誤" }, { status: 400 });
     }
 
@@ -392,6 +449,30 @@ export async function POST(request: Request, { params }: Params) {
 
     // 建立報名記錄（在 transaction 中確保原子性）
     const registration = await db.transaction(async (tx) => {
+      // 原子搶折扣碼名額：條件更新保證併發時只有 usageLimit 筆成功。
+      // 註：取消/拒絕報名不回補 usedCount（v1 限制）。
+      if (coupon) {
+        const claimed = await tx
+          .update(eventCoupons)
+          .set({
+            usedCount: sql`${eventCoupons.usedCount} + 1`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(eventCoupons.id, coupon.id),
+              or(
+                isNull(eventCoupons.usageLimit),
+                lt(eventCoupons.usedCount, eventCoupons.usageLimit)
+              )
+            )
+          )
+          .returning({ id: eventCoupons.id });
+        if (claimed.length === 0) {
+          throw new CouponExhaustedError();
+        }
+      }
+
       // 建立報名記錄
       const [reg] = await tx
         .insert(eventRegistrations)
@@ -404,6 +485,9 @@ export async function POST(request: Request, { params }: Params) {
           contactEmail,
           paymentMethod,
           totalAmount: finalTotalAmount,
+          couponId: coupon?.id ?? null,
+          couponCode: coupon?.code ?? null,
+          discountAmount,
           paymentStatus: "pending",
         })
         .returning();
@@ -452,11 +536,19 @@ export async function POST(request: Request, { params }: Params) {
         contactEmail: registration.contactEmail,
         paymentMethod: registration.paymentMethod,
         totalAmount: registration.totalAmount,
+        couponCode: registration.couponCode,
+        discountAmount: registration.discountAmount,
         paymentStatus: registration.paymentStatus,
         createdAt: registration.createdAt,
       },
     });
   } catch (e) {
+    if (e instanceof CouponExhaustedError) {
+      return NextResponse.json(
+        { error: "此折扣碼已額滿，無法使用", code: "COUPON_EXHAUSTED" },
+        { status: 409 }
+      );
+    }
     console.error("Registration creation error:", e);
     return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
   }

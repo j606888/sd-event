@@ -11,6 +11,7 @@ import {
   eventPurchaseItemPrices,
   eventGroupExclusions,
   eventNoticeItems,
+  eventCoupons,
 } from "@/db/schema";
 import { and, eq, asc, inArray } from "drizzle-orm";
 import { resolveActiveTier, getItemUnitPrice } from "@/lib/pricing";
@@ -47,6 +48,7 @@ export async function GET(_request: Request, { params }: Params) {
     priceTiers,
     groups,
     exclusions,
+    couponRows,
   ] = await Promise.all([
     event.locationId
       ? db
@@ -104,6 +106,11 @@ export async function GET(_request: Request, { params }: Params) {
       })
       .from(eventGroupExclusions)
       .where(eq(eventGroupExclusions.eventId, event.id)),
+    db
+      .select({ id: eventCoupons.id })
+      .from(eventCoupons)
+      .where(eq(eventCoupons.eventId, event.id))
+      .limit(1),
     ]);
 
   // 解析當下生效時段（伺服器時間），把每個項目的 amount 換成該時段的有效價。
@@ -170,6 +177,8 @@ export async function GET(_request: Request, { params }: Params) {
       groups: groupsWithItems,
       activeTier: activeTier ? { name: activeTier.name } : null,
       noticeItems,
+      // 報名表僅在活動確實設有折扣碼時顯示輸入欄位
+      hasCoupons: couponRows.length > 0,
     },
   });
 }

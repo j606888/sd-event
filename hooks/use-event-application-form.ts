@@ -6,6 +6,8 @@ import type { PublicEventData, EventPurchaseItem, EventPurchaseItemGroup } from 
 import type { FormData, Participant } from "@/components/events/registration/event-application-types";
 import { INITIAL_FORM_DATA } from "@/components/events/registration/event-application-types";
 import { createRegistration } from "@/lib/api/create-registration";
+import { validateCoupon } from "@/lib/api/validate-coupon";
+import { computeCouponDiscount } from "@/lib/coupon";
 
 export type EventApplicationFormState = {
   step: 1 | 2 | 3;
@@ -24,9 +26,15 @@ export function useEventApplicationForm(event: PublicEventData) {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   // 活動有群組 → 走群組模型；否則沿用舊的 single / multiple 欄位
   const useGroups = event.groups.length > 0;
+
+  // 折扣碼：活動有設定折扣碼，且金額由伺服器權威計算（群組或 autoCalc）才開放
+  const couponsSupported =
+    Boolean(event.hasCoupons) && (useGroups || event.autoCalcAmount);
 
   // 群組被互斥鎖住：其互斥對象已有選取（鎖住時本群組視為無需選取）
   const isGroupLocked = (g: EventPurchaseItemGroup) =>
@@ -137,6 +145,44 @@ export function useEventApplicationForm(event: PublicEventData) {
     }
   }, [useGroups, event.autoCalcAmount, event.allowMultiplePurchase, event.purchaseItems, formData.selectedByGroup, formData.selectedPlanId, formData.selectedPlanIds, formData.participants.length, selectedPlans]);
 
+  // 折扣預覽：totalAmount 維持折扣前 base，折後金額另行導出，與伺服器計算一致
+  const baseAmount = Number(formData.totalAmount) || 0;
+  const discountAmount =
+    couponsSupported && formData.appliedCoupon
+      ? computeCouponDiscount(baseAmount, formData.appliedCoupon)
+      : 0;
+  const finalAmount = baseAmount - discountAmount;
+
+  const applyCoupon = useCallback(async () => {
+    const code = formData.couponCode.trim();
+    if (!code) return;
+    setApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const result = await validateCoupon(event.id, code);
+      if (result.valid) {
+        setFormData((prev) => ({
+          ...prev,
+          appliedCoupon: result.coupon,
+          couponCode: "",
+        }));
+      } else {
+        setCouponError(result.error);
+      }
+    } catch (err) {
+      setCouponError(
+        err instanceof Error ? err.message : "驗證折扣碼失敗，請稍後再試"
+      );
+    } finally {
+      setApplyingCoupon(false);
+    }
+  }, [event.id, formData.couponCode]);
+
+  const removeCoupon = useCallback(() => {
+    setCouponError(null);
+    setFormData((prev) => ({ ...prev, appliedCoupon: null }));
+  }, []);
+
   const canProceedToStep2 = event.noticeItems.length === 0 || agreedToTerms;
   // 群組模式：逐群組驗證 required / selectionMode
   const groupsSatisfied = event.groups.every((g) => {
@@ -183,16 +229,30 @@ export function useEventApplicationForm(event: PublicEventData) {
         contactPhone: formData.contactPhone,
         contactEmail: formData.contactEmail,
         paymentMethod: formData.paymentMethod,
-        totalAmount: Number(formData.totalAmount),
+        // 折扣碼生效時送折後金額（伺服器仍會權威重算）
+        totalAmount:
+          couponsSupported && formData.appliedCoupon
+            ? finalAmount
+            : Number(formData.totalAmount),
+        couponCode:
+          couponsSupported && formData.appliedCoupon
+            ? formData.appliedCoupon.code
+            : null,
         attendees: formData.participants.map((p) => ({ name: p.name, role: p.role })),
       });
 
       router.push(`/registration-success/${result.registration.registrationKey}`);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "網路錯誤，請稍後再試");
+      const message = err instanceof Error ? err.message : "網路錯誤，請稍後再試";
+      // 折扣碼在送出瞬間被搶完：清除已套用狀態讓使用者以原價重試
+      if (message.includes("折扣碼")) {
+        setFormData((prev) => ({ ...prev, appliedCoupon: null }));
+        setCouponError(message);
+      }
+      setSubmitError(message);
       setSubmitting(false);
     }
-  }, [event.id, event.allowMultiplePurchase, useGroups, formData, router]);
+  }, [event.id, event.allowMultiplePurchase, useGroups, formData, router, couponsSupported, finalAmount]);
 
   return {
     step,
@@ -213,5 +273,12 @@ export function useEventApplicationForm(event: PublicEventData) {
     canProceedToStep2,
     canProceedToStep3,
     submitRegistration,
+    couponsSupported,
+    applyingCoupon,
+    couponError,
+    applyCoupon,
+    removeCoupon,
+    discountAmount,
+    finalAmount,
   };
 }

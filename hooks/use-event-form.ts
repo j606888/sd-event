@@ -54,6 +54,16 @@ export type PriceTierDraft = {
 
 export type NoticeItemDraft = { id?: number; content: string };
 
+/** 折扣碼草稿；value / usageLimit 以字串存放對應 input（usageLimit 空 = 不限） */
+export type CouponDraft = {
+  id?: number;
+  code: string;
+  discountType: "fixed" | "percent";
+  value: string;
+  usageLimit: string;
+  usedCount?: number;
+};
+
 /** ISO 時間轉成 date input 的 "YYYY-MM-DD"（當地） */
 function toDateInput(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -180,6 +190,7 @@ export function useEventForm({
         : []
   );
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
+  const [coupons, setCoupons] = useState<CouponDraft[]>([]);
 
   const initializedEventIdRef = useRef<number | null>(null);
 
@@ -304,7 +315,10 @@ export function useEventForm({
       fetch(`/api/events/${eventId}/group-exclusions`, {
         credentials: "include",
       }).then((r) => r.json()),
-    ]).then(([pData, nData, tData, gData, eData]) => {
+      fetch(`/api/events/${eventId}/coupons`, {
+        credentials: "include",
+      }).then((r) => r.json()),
+    ]).then(([pData, nData, tData, gData, eData, cData]) => {
       const items = (pData?.purchaseItems ?? []).map(
         (i: {
           id: number;
@@ -362,11 +376,29 @@ export function useEventForm({
           `id-${e.groupBId}`,
         ]
       );
+      const couponList = (cData?.coupons ?? []).map(
+        (c: {
+          id: number;
+          code: string;
+          discountType: string;
+          value: number;
+          usageLimit: number | null;
+          usedCount: number;
+        }): CouponDraft => ({
+          id: c.id,
+          code: c.code,
+          discountType: c.discountType === "percent" ? "percent" : "fixed",
+          value: String(c.value),
+          usageLimit: c.usageLimit == null ? "" : String(c.usageLimit),
+          usedCount: c.usedCount ?? 0,
+        })
+      );
       setPurchaseItems(items);
       setNoticeItems(notices);
       setPriceTiers(tiers);
       setGroups(groupList);
       setGroupExclusions(exclusions);
+      setCoupons(couponList);
     });
   }, [mode, eventId]);
 
@@ -802,6 +834,100 @@ export function useEventForm({
     });
   };
 
+  // ===== 折扣碼 =====
+  const addCoupon = () => {
+    // 折扣碼需要使用者輸入有效內容才有意義，兩種模式都先加本地草稿，
+    // edit 模式由 persistCoupon 於欄位失焦時建立/更新後端資料
+    setCoupons((prev) => [
+      ...prev,
+      { code: "", discountType: "fixed", value: "", usageLimit: "" },
+    ]);
+  };
+
+  const updateCoupon = <K extends keyof CouponDraft>(
+    index: number,
+    field: K,
+    value: CouponDraft[K]
+  ) => {
+    setCoupons((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
+    );
+  };
+
+  const couponPayload = (c: CouponDraft) => ({
+    code: c.code,
+    discountType: c.discountType,
+    value: Number(c.value),
+    usageLimit: c.usageLimit.trim() === "" ? null : Number(c.usageLimit),
+  });
+
+  const isCouponComplete = (c: CouponDraft) =>
+    c.code.trim() !== "" && Number.isInteger(Number(c.value)) && Number(c.value) >= 1;
+
+  // edit 模式：欄位失焦時把該折扣碼存回後端（草稿列填齊 code + value 才建立）
+  const persistCoupon = async (index: number) => {
+    if (mode !== "edit" || eventId == null) return;
+    const coupon = coupons[index];
+    if (!coupon || !isCouponComplete(coupon)) return;
+    try {
+      const res = await fetch(
+        coupon.id == null
+          ? `/api/events/${eventId}/coupons`
+          : `/api/events/${eventId}/coupons/${coupon.id}`,
+        {
+          method: coupon.id == null ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(couponPayload(coupon)),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSaveError(data.error || "儲存折扣碼失敗");
+        return;
+      }
+      setSaveError(null);
+      const saved = data.coupon;
+      if (saved?.id != null) {
+        setCoupons((prev) =>
+          prev.map((c, i) =>
+            i === index
+              ? {
+                  ...c,
+                  id: saved.id,
+                  code: saved.code,
+                  usedCount: saved.usedCount ?? c.usedCount ?? 0,
+                }
+              : c
+          )
+        );
+      }
+    } catch {
+      setSaveError("儲存折扣碼失敗");
+    }
+  };
+
+  const removeCoupon = async (index: number) => {
+    const coupon = coupons[index];
+    if (mode === "edit" && eventId != null && coupon?.id != null) {
+      try {
+        const res = await fetch(`/api/events/${eventId}/coupons/${coupon.id}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setSaveError(data.error || "刪除折扣碼失敗");
+          return;
+        }
+      } catch {
+        setSaveError("刪除折扣碼失敗");
+        return;
+      }
+    }
+    setCoupons((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
@@ -1013,6 +1139,15 @@ export function useEventForm({
               }),
             });
           }
+          for (const coupon of coupons) {
+            if (!isCouponComplete(coupon)) continue;
+            await fetch(`/api/events/${newEventId}/coupons`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(couponPayload(coupon)),
+            });
+          }
         }
         window.location.href = "/events";
       }
@@ -1049,6 +1184,7 @@ export function useEventForm({
     groups,
     groupExclusions,
     noticeItems,
+    coupons,
     saveError,
     saving,
     // Simple setters
@@ -1089,6 +1225,10 @@ export function useEventForm({
     removeGroup,
     isGroupExcluded,
     toggleGroupExclusion,
+    addCoupon,
+    updateCoupon,
+    persistCoupon,
+    removeCoupon,
     handleSubmit,
   };
 }

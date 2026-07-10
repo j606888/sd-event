@@ -123,6 +123,8 @@ export async function GET(_request: Request, { params }: Params) {
         contactEmail: registration.contactEmail,
         paymentMethod: registration.paymentMethod,
         totalAmount: registration.totalAmount,
+        couponCode: registration.couponCode,
+        discountAmount: registration.discountAmount,
         paymentStatus: registration.paymentStatus,
         paymentScreenshotUrl: registration.paymentScreenshotUrl,
         paymentNote: registration.paymentNote,

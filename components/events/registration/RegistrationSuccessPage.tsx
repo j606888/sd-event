@@ -21,6 +21,9 @@ export function RegistrationSuccessPage({
   paymentStatus,
 }: RegistrationSuccessPageProps) {
   const participantsText = registration.participants.map((p) => p.name).join("、");
+  const discountAmount = registration.discountAmount ?? 0;
+  // totalAmount 為實付（已折扣）金額；有折扣時另示原價
+  const originalAmount = Number(registration.totalAmount) + discountAmount;
 
   const renderHeader = () => {
     switch (paymentStatus) {
@@ -101,6 +104,27 @@ export function RegistrationSuccessPage({
                 <div>
                   <div className="text-sm text-gray-500">參加者</div>
                   <div className="text-gray-900">{participantsText}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Coupon discount */}
+            {discountAmount > 0 && (
+              <div className="flex items-center gap-4">
+                <DollarSign className="w-6 h-6 text-gray-500 " />
+                <div>
+                  <div className="text-sm text-gray-500">折扣</div>
+                  <div className="text-gray-900">
+                    <span className="mr-2 text-gray-400 line-through">
+                      NT ${originalAmount}
+                    </span>
+                    {registration.couponCode && (
+                      <span className="mr-1 font-mono text-sm text-brand">
+                        {registration.couponCode}
+                      </span>
+                    )}
+                    <span className="text-brand">−NT ${discountAmount}</span>
+                  </div>
                 </div>
               </div>
             )}

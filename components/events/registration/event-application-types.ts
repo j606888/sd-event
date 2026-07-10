@@ -1,4 +1,4 @@
-import type { PublicEventData } from "@/types/event";
+import type { AppliedCoupon, PublicEventData } from "@/types/event";
 
 export type Participant = {
   id: string;
@@ -15,7 +15,12 @@ export type FormData = {
   contactPhone: string;
   contactEmail: string;
   participants: Participant[];
+  /** 折扣前金額；折後金額由 hook 以 appliedCoupon 另行導出 */
   totalAmount: string;
+  /** 折扣碼輸入框內容（尚未套用） */
+  couponCode: string;
+  /** 已通過 validate API 的折扣碼；null = 未套用 */
+  appliedCoupon: AppliedCoupon | null;
   paymentMethod: "Line Pay" | "Bank Transfer" | "Other" | null;
 };
 
@@ -28,6 +33,8 @@ export const INITIAL_FORM_DATA: FormData = {
   contactEmail: "",
   participants: [{ id: "1", name: "", role: "Leader" }],
   totalAmount: "",
+  couponCode: "",
+  appliedCoupon: null,
   paymentMethod: null,
 };
 

@@ -69,6 +69,8 @@ export default function EntryVoucherPage() {
               }
             : null,
           totalAmount: String(responseData.registration.totalAmount),
+          couponCode: responseData.registration.couponCode ?? null,
+          discountAmount: responseData.registration.discountAmount ?? 0,
           attendees: responseData.attendees.map((a) => ({
             id: a.id,
             name: a.name,
@@ -288,7 +290,20 @@ export default function EntryVoucherPage() {
               <div>
                 <div className="text-gray-500 text-xs">應付金額</div>
                 <div className="text-gray-900 font-semibold">
+                  {(data.registration.discountAmount ?? 0) > 0 && (
+                    <span className="mr-2 font-normal text-gray-400 line-through">
+                      NT{" "}
+                      {Number(data.registration.totalAmount) +
+                        (data.registration.discountAmount ?? 0)}
+                    </span>
+                  )}
                   NT {data.registration.totalAmount}
+                  {data.registration.couponCode &&
+                    (data.registration.discountAmount ?? 0) > 0 && (
+                      <span className="ml-2 font-mono text-xs font-normal text-brand">
+                        {data.registration.couponCode}
+                      </span>
+                    )}
                 </div>
               </div>
             </div>

@@ -84,6 +84,7 @@ export function EventForm({
     priceTiers,
     groups,
     noticeItems,
+    coupons,
     saveError,
     saving,
     setTitle,
@@ -118,6 +119,10 @@ export function EventForm({
     removeGroup,
     isGroupExcluded,
     toggleGroupExclusion,
+    addCoupon,
+    updateCoupon,
+    persistCoupon,
+    removeCoupon,
     handleSubmit,
   } = useEventForm({ mode, teamId, eventId, initialData, initialType, onSaveSuccess });
 
@@ -361,6 +366,11 @@ export function EventForm({
           onRemoveGroup={removeGroup}
           isGroupExcluded={isGroupExcluded}
           onToggleGroupExclusion={toggleGroupExclusion}
+          coupons={coupons}
+          onAddCoupon={addCoupon}
+          onUpdateCoupon={updateCoupon}
+          onPersistCoupon={persistCoupon}
+          onRemoveCoupon={removeCoupon}
         />
         </div>
 

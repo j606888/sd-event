@@ -14,6 +14,8 @@ type PaymentStepProps = {
   formData: FormData;
   selectedPlan: EventPurchaseItem | null;
   selectedPlans: EventPurchaseItem[];
+  discountAmount: number;
+  finalAmount: number;
   copiedText: string | null;
   onCopy: (text: string, type: string) => void;
   onPaymentMethodChange: (method: "Line Pay" | "Bank Transfer" | "Other") => void;
@@ -28,6 +30,8 @@ export function PaymentStep({
   formData,
   selectedPlan,
   selectedPlans,
+  discountAmount,
+  finalAmount,
   copiedText,
   onCopy,
   onPaymentMethodChange,
@@ -110,10 +114,28 @@ export function PaymentStep({
                   ))}
                 </span>
               </div>
+              {formData.appliedCoupon && discountAmount > 0 && (
+                <div className="flex gap-3">
+                  <span className="text-gray-500">折扣碼</span>
+                  <span className="text-gray-900">
+                    <span className="font-mono">{formData.appliedCoupon.code}</span>
+                    <span className="ml-2 text-brand">−NT${discountAmount}</span>
+                  </span>
+                </div>
+              )}
               <div className="flex gap-3">
                 <span className="text-gray-500">總金額</span>
                 <span className="text-gray-900 font-semibold">
-                  ${formData.totalAmount}
+                  {formData.appliedCoupon && discountAmount > 0 ? (
+                    <>
+                      <span className="mr-2 font-normal text-gray-400 line-through">
+                        ${formData.totalAmount}
+                      </span>
+                      ${finalAmount}
+                    </>
+                  ) : (
+                    <>${formData.totalAmount}</>
+                  )}
                 </span>
               </div>
             </div>

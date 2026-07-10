@@ -306,9 +306,32 @@ export function RegistrationDetail({
               <span className="text-gray-900">${registration.purchaseItem.amount}</span>
             </div>
           ) : null}
+          {(registration.discountAmount ?? 0) > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">
+                折扣碼
+                {registration.couponCode && (
+                  <span className="ml-1 font-mono text-gray-900">
+                    {registration.couponCode}
+                  </span>
+                )}
+              </span>
+              <span className="text-brand">
+                −${registration.discountAmount!.toLocaleString()}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-500">總金額</span>
             <span className="text-gray-900 font-semibold">
+              {(registration.discountAmount ?? 0) > 0 && (
+                <span className="mr-2 font-normal text-gray-400 line-through">
+                  $
+                  {(
+                    registration.totalAmount + (registration.discountAmount ?? 0)
+                  ).toLocaleString()}
+                </span>
+              )}
               ${registration.totalAmount.toLocaleString()}
             </span>
           </div>
