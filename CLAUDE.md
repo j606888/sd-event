@@ -61,7 +61,7 @@ Environments are separated by **file**, never by commenting URLs in and out:
 docker compose up -d  # Start local Postgres on port 54331
 ```
 
-Local `DATABASE_URL` (already set in `.env`): `postgresql://postgres:password@localhost:54331/postgres`.
+Local `DATABASE_URL` (already set in `.env`): `postgresql://postgres:password@localhost:54331/sd_event_development`.
 
 ## Architecture
 
