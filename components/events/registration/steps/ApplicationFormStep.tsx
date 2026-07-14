@@ -450,10 +450,10 @@ export function ApplicationFormStep({
 
           <Button
             onClick={onNext}
-            disabled={!canProceed}
+            disabled={!canProceed || applyingCoupon}
             className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
           >
-            選擇付款方式
+            {applyingCoupon ? "驗證折扣碼…" : "選擇付款方式"}
           </Button>
         </div>
       </div>

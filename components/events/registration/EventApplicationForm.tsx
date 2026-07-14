@@ -38,7 +38,7 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
         onUpdateParticipant={form.updateParticipant}
         canProceed={form.canProceedToStep3}
         onBack={() => form.setStep(1)}
-        onNext={() => form.setStep(3)}
+        onNext={form.proceedToPayment}
         couponsSupported={form.couponsSupported}
         applyingCoupon={form.applyingCoupon}
         couponError={form.couponError}

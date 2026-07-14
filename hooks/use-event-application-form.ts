@@ -153,9 +153,9 @@ export function useEventApplicationForm(event: PublicEventData) {
       : 0;
   const finalAmount = baseAmount - discountAmount;
 
-  const applyCoupon = useCallback(async () => {
+  const applyCoupon = useCallback(async (): Promise<boolean> => {
     const code = formData.couponCode.trim();
-    if (!code) return;
+    if (!code) return true;
     setApplyingCoupon(true);
     setCouponError(null);
     try {
@@ -166,13 +166,15 @@ export function useEventApplicationForm(event: PublicEventData) {
           appliedCoupon: result.coupon,
           couponCode: "",
         }));
-      } else {
-        setCouponError(result.error);
+        return true;
       }
+      setCouponError(result.error);
+      return false;
     } catch (err) {
       setCouponError(
         err instanceof Error ? err.message : "驗證折扣碼失敗，請稍後再試"
       );
+      return false;
     } finally {
       setApplyingCoupon(false);
     }
@@ -182,6 +184,16 @@ export function useEventApplicationForm(event: PublicEventData) {
     setCouponError(null);
     setFormData((prev) => ({ ...prev, appliedCoupon: null }));
   }, []);
+
+  // 進付款步驟：折扣碼欄有輸入但尚未按「套用」時自動嘗試套用，
+  // 驗證失敗就留在本步驟顯示錯誤，避免使用者不知情地以原價送出
+  const proceedToPayment = useCallback(async () => {
+    if (couponsSupported && !formData.appliedCoupon && formData.couponCode.trim()) {
+      const ok = await applyCoupon();
+      if (!ok) return;
+    }
+    setStep(3);
+  }, [couponsSupported, formData.appliedCoupon, formData.couponCode, applyCoupon]);
 
   const canProceedToStep2 = event.noticeItems.length === 0 || agreedToTerms;
   // 群組模式：逐群組驗證 required / selectionMode
@@ -278,6 +290,7 @@ export function useEventApplicationForm(event: PublicEventData) {
     couponError,
     applyCoupon,
     removeCoupon,
+    proceedToPayment,
     discountAmount,
     finalAmount,
   };
