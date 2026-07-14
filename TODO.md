@@ -9,17 +9,6 @@
 > 已有兩筆報名（registrationKey `6uwyf54caeey` 含折扣碼 VIP20 + 一筆現場報名）。
 > 開發指令：`yarn dev -p 3010`，本機 DB 見 CLAUDE.md。
 
-## 3. 統計頁「報名項目統計」的金額標示
-
-`components/events/management/EventStats.tsx`（API：`app/api/events/[eventId]/stats/route.ts`）
-的「報名項目統計」顯示的是項目**現行定價**（如 Full Pass $2,200），但實際成交多為時段價
-（早鳥 $1,800），容易誤讀成營收。二選一：
-- (a) 金額改為該項目實收加總（join `event_registration_purchase_items.unit_amount`），或
-- (b) 拿掉金額只留「N 人」，營收看上方三張卡片。
-偏好 (a)，但 (b) 也可接受，看實作成本。
-
-**驗證**：`/events/8` → 統計 → 報名項目統計的數字能和報名詳情對上。
-
 ## 4. 報名者列表增加「使用折扣碼」篩選（低優先）
 
 主辦方目前無法看「哪些報名用了折扣碼／用了哪個碼」。在

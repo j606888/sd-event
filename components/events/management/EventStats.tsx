@@ -25,6 +25,7 @@ type StatsData = {
     name: string;
     amount: number;
     attendeeCount: number;
+    revenue: number;
   }>;
 };
 
@@ -208,7 +209,10 @@ export function EventStats({ eventId }: EventStatsProps) {
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h3 className="mb-3 text-sm font-medium text-gray-700">報名項目統計</h3>
+        <h3 className="mb-1 text-sm font-medium text-gray-700">報名項目統計</h3>
+        <p className="mb-3 text-xs text-gray-400">
+          金額為各筆報名成交價加總（含時段價，未扣折扣碼折抵）
+        </p>
         {purchaseItemSummary.length === 0 ? (
           <p className="text-sm text-gray-500">尚無報名項目資料</p>
         ) : (
@@ -218,11 +222,14 @@ export function EventStats({ eventId }: EventStatsProps) {
                 key={item.id}
                 className="flex items-center justify-between text-sm"
               >
-                <span className="text-gray-700">
-                  {item.name} ${item.amount.toLocaleString()}
-                </span>
-                <span className="font-medium text-gray-900">
-                  {item.attendeeCount} 人
+                <span className="text-gray-700">{item.name}</span>
+                <span>
+                  <span className="font-medium text-gray-900">
+                    {item.attendeeCount} 人
+                  </span>
+                  <span className="ml-3 text-gray-500">
+                    NT$ {item.revenue.toLocaleString()}
+                  </span>
                 </span>
               </li>
             ))}
