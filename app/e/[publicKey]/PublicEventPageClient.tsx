@@ -36,5 +36,14 @@ export function PublicEventPageClient({ publicKey }: PublicEventPageClientProps)
     );
   }
 
-  return <EventApplicationForm event={event} />;
+  return (
+    <>
+      {event.status === "draft" && (
+        <div className="sticky top-0 z-50 bg-amber-500 px-4 py-2 text-center text-sm font-medium text-white">
+          預覽模式 — 活動尚未發布，僅團隊成員看得到此頁
+        </div>
+      )}
+      <EventApplicationForm event={event} />
+    </>
+  );
 }

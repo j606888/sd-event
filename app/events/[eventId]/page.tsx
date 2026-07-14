@@ -37,6 +37,8 @@ export default function EventDetailPage() {
   // UI state
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("form");
   const [shareCopied, setShareCopied] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [selectedRegistrationId, setSelectedRegistrationId] = useState<number | null>(null);
   const [walkInOpen, setWalkInOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -90,6 +92,26 @@ export default function EventDetailPage() {
     hiddenFilter === "non_hidden"
       ? registrationsData?.pagination?.total ?? 0
       : registrationsData?.registrations?.length ?? 0;
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "published" }),
+      });
+      if (!res.ok) throw new Error("發布失敗，請稍後再試");
+      queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : "發布失敗，請稍後再試");
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   // 依目前篩選條件匯出 CSV（GET + cookie 認證，瀏覽器直接下載）
   const handleExportCsv = () => {
@@ -148,6 +170,22 @@ export default function EventDetailPage() {
         <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-900">
           {event.title}
         </h1>
+        {event.status === "draft" && (
+          <>
+            <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+              草稿
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handlePublish}
+              disabled={publishing}
+              className="bg-brand text-white hover:bg-brand-hover"
+            >
+              {publishing ? "發布中…" : "發布"}
+            </Button>
+          </>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -172,6 +210,16 @@ export default function EventDetailPage() {
           返回列表
         </Link>
       </div>
+      {publishError && (
+        <div className="border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-600">
+          {publishError}
+        </div>
+      )}
+      {event.status === "draft" && (
+        <div className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+          活動尚未發布：報名連結僅團隊成員能預覽，按「發布」後才對外開放報名。
+        </div>
+      )}
       <div className="flex border-b border-gray-200 bg-white">
         {TABS.map((tab) => (
           <button

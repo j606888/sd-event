@@ -15,6 +15,8 @@ import {
 } from "@/db/schema";
 import { and, eq, asc, inArray } from "drizzle-orm";
 import { resolveActiveTier, getItemUnitPrice } from "@/lib/pricing";
+import { getSession } from "@/lib/auth";
+import { requireTeamMember } from "@/lib/api-auth";
 
 type Params = { params: Promise<{ publicKey: string }> };
 
@@ -36,6 +38,17 @@ export async function GET(_request: Request, { params }: Params) {
   const event = rows[0];
   if (!event) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+  }
+
+  // 草稿活動僅該團隊成員可見（預覽）；對外一律視同不存在
+  if (event.status !== "published") {
+    const session = await getSession();
+    const forbidden = session
+      ? await requireTeamMember(event.teamId, session.userId)
+      : null;
+    if (!session || forbidden) {
+      return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    }
   }
 
   // Fetch related data

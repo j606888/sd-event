@@ -160,7 +160,8 @@ export async function POST(request: Request) {
       bankInfoId: Number.isInteger(bankInfoId) ? bankInfoId : null,
       allowMultiplePurchase,
       autoCalcAmount,
-      status: "published",
+      // 建立後先進草稿，主辦方按「發布」才對外開放
+      status: "draft",
     })
     .returning({
       id: events.id,
