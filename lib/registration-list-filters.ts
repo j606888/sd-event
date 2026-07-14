@@ -6,6 +6,7 @@
 export type PaymentFilter = "all" | "pending" | "reported" | "confirmed" | "rejected";
 export type CheckInFilter = "all" | "none" | "partial" | "all_entered";
 export type HiddenFilter = "all" | "hidden" | "non_hidden";
+export type CouponFilter = "all" | "used" | "not_used";
 
 export const PAYMENT_OPTIONS: { value: PaymentFilter; label: string }[] = [
   { value: "all", label: "全部" },
@@ -26,6 +27,12 @@ export const HIDDEN_OPTIONS: { value: HiddenFilter; label: string }[] = [
   { value: "non_hidden", label: "未隱藏" },
   { value: "all", label: "全部" },
   { value: "hidden", label: "已隱藏" },
+];
+
+export const COUPON_OPTIONS: { value: CouponFilter; label: string }[] = [
+  { value: "all", label: "全部" },
+  { value: "used", label: "有用折扣碼" },
+  { value: "not_used", label: "未用折扣碼" },
 ];
 
 export function matchesPaymentFilter(

@@ -9,15 +9,6 @@
 > 已有兩筆報名（registrationKey `6uwyf54caeey` 含折扣碼 VIP20 + 一筆現場報名）。
 > 開發指令：`yarn dev -p 3010`，本機 DB 見 CLAUDE.md。
 
-## 4. 報名者列表增加「使用折扣碼」篩選（低優先）
-
-主辦方目前無法看「哪些報名用了折扣碼／用了哪個碼」。在
-`/events/[eventId]` 報名者列表的篩選（`components/events/registration/RegistrationsList.tsx`、
-`lib/registration-list-filters.ts`、列表 API `app/api/events/[eventId]/registrations/route.ts`）
-加一個折扣碼維度（有用碼／未用碼，或依 code 篩選），列表列上可順便顯示 coupon code 小標籤。
-
-**驗證**：篩選後只剩測試小美那筆（VIP20）；CSV 匯出不需要動（已有金額欄）。
-
 ## 5. 產品層討論（不要直接動工，先跟我確認方向）
 
 - **建立活動的發布流程**：目前按「建立活動」即上線銷售（無草稿/預覽狀態）。schema 的

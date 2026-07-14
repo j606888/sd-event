@@ -20,7 +20,7 @@ import {
   useUpdateRegistration,
   useCheckIn,
 } from "@/hooks/use-registrations";
-import type { PaymentFilter, CheckInFilter, HiddenFilter } from "@/lib/registration-list-filters";
+import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter } from "@/lib/registration-list-filters";
 
 const TABS = [
   { id: "form" as const, label: "表單" },
@@ -47,6 +47,7 @@ export default function EventDetailPage() {
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
   const [checkInFilter, setCheckInFilter] = useState<CheckInFilter>("all");
   const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>("non_hidden");
+  const [couponFilter, setCouponFilter] = useState<CouponFilter>("all");
   const [page, setPage] = useState(1);
 
   // Debounce search query
@@ -58,7 +59,7 @@ export default function EventDetailPage() {
   // Reset page when search or filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, paymentFilter, checkInFilter, hiddenFilter]);
+  }, [debouncedSearch, paymentFilter, checkInFilter, hiddenFilter, couponFilter]);
 
   // Server state
   const eventQuery = useEvent(eventId);
@@ -71,6 +72,7 @@ export default function EventDetailPage() {
     paymentStatus: paymentFilter,
     hiddenFilter,
     checkInFilter,
+    couponFilter,
   };
 
   const registrationsQuery = useRegistrations(eventId, registrationsParams);
@@ -96,6 +98,7 @@ export default function EventDetailPage() {
       paymentStatus: paymentFilter,
       hiddenFilter,
       checkInFilter,
+      couponFilter,
     });
     window.location.href = `/api/events/${eventId}/registrations/export?${qs}`;
   };
@@ -294,6 +297,8 @@ export default function EventDetailPage() {
                 onCheckInFilterChange={setCheckInFilter}
                 hiddenFilter={hiddenFilter}
                 onHiddenFilterChange={setHiddenFilter}
+                couponFilter={couponFilter}
+                onCouponFilterChange={setCouponFilter}
                   totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
                   isLoading={registrationsQuery.isLoading}
                 />

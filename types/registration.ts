@@ -102,6 +102,7 @@ export type Registration = {
   contactPhone: string | null;
   contactEmail: string | null;
   totalAmount: number;
+  couponCode?: string | null;
   paymentStatus: PaymentStatus;
   source?: RegistrationSource | string;
   attendeeCount: number;

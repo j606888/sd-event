@@ -9,9 +9,11 @@ import {
   PAYMENT_OPTIONS,
   CHECK_IN_OPTIONS,
   HIDDEN_OPTIONS,
+  COUPON_OPTIONS,
   type PaymentFilter,
   type CheckInFilter,
   type HiddenFilter,
+  type CouponFilter,
 } from "@/lib/registration-list-filters";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +30,8 @@ type RegistrationsListProps = {
   onCheckInFilterChange: (v: CheckInFilter) => void;
   hiddenFilter: HiddenFilter;
   onHiddenFilterChange: (v: HiddenFilter) => void;
+  couponFilter: CouponFilter;
+  onCouponFilterChange: (v: CouponFilter) => void;
   /** Total count before filters (for empty state message) */
   totalUnfilteredCount?: number;
   isLoading?: boolean;
@@ -55,6 +59,8 @@ export function RegistrationsList({
   onCheckInFilterChange,
   hiddenFilter,
   onHiddenFilterChange,
+  couponFilter,
+  onCouponFilterChange,
   totalUnfilteredCount = 0,
   isLoading = false,
 }: RegistrationsListProps) {
@@ -63,7 +69,8 @@ export function RegistrationsList({
   const activeFilterCount =
     (paymentFilter !== "all" ? 1 : 0) +
     (checkInFilter !== "all" ? 1 : 0) +
-    (hiddenFilter !== "non_hidden" ? 1 : 0);
+    (hiddenFilter !== "non_hidden" ? 1 : 0) +
+    (couponFilter !== "all" ? 1 : 0);
 
   return (
     <div className="space-y-4">
@@ -162,6 +169,27 @@ export function RegistrationsList({
             </div>
           </div>
           <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">折扣碼</h3>
+            <div className="flex flex-wrap gap-2">
+              {COUPON_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onCouponFilterChange(opt.value)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    couponFilter === opt.value
+                      ? opt.value === "all"
+                        ? "bg-brand text-white"
+                        : "bg-sky-50 text-sky-700 border border-sky-200"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">顯示</h3>
             <div className="flex flex-wrap gap-2">
               {HIDDEN_OPTIONS.map((opt) => (
@@ -238,6 +266,11 @@ export function RegistrationsList({
                       <span className="text-sm text-gray-600">
                         NT ${reg.totalAmount.toLocaleString()}
                       </span>
+                      {reg.couponCode && (
+                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium font-mono bg-brand/10 text-brand">
+                          {reg.couponCode}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-end gap-1.5 shrink-0 flex-wrap">

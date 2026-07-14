@@ -19,7 +19,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
-import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, lt } from "drizzle-orm";
+import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -78,6 +78,7 @@ export async function GET(request: Request, { params }: Params) {
   const paymentStatus = searchParams.get("paymentStatus") || "all";
   const hiddenFilter = searchParams.get("hiddenFilter") || "all";
   const checkInFilter = searchParams.get("checkInFilter") || "all";
+  const couponFilter = searchParams.get("couponFilter") || "all";
 
   // 建立查詢條件
   const whereConditions = [eq(eventRegistrations.eventId, eventId)];
@@ -105,6 +106,13 @@ export async function GET(request: Request, { params }: Params) {
     whereConditions.push(eq(eventRegistrations.hidden, false));
   } else if (hiddenFilter === "hidden") {
     whereConditions.push(eq(eventRegistrations.hidden, true));
+  }
+
+  // Coupon filter
+  if (couponFilter === "used") {
+    whereConditions.push(isNotNull(eventRegistrations.couponCode));
+  } else if (couponFilter === "not_used") {
+    whereConditions.push(isNull(eventRegistrations.couponCode));
   }
 
   // COUNT query for pagination total (before checkInFilter which is applied in JS)
