@@ -163,7 +163,8 @@ export function PaymentStep({
             </div>
           </div>
 
-          {event.bankInfo && (
+          {/* 匯款帳號只在選擇銀行轉帳時顯示，避免與其他付款方式混淆 */}
+          {formData.paymentMethod === "Bank Transfer" && event.bankInfo && (
             <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-semibold text-gray-900">匯款帳號</h3>
               <div className="space-y-2 text-sm">

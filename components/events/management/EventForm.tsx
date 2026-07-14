@@ -25,7 +25,7 @@ import { BankInfoDrawer } from "./BankInfoDrawer";
 import { PurchaseItemDrawer } from "./PurchaseItemDrawer";
 import { NoticeItemDrawer } from "./NoticeItemDrawer";
 import { useEventForm } from "@/hooks/use-event-form";
-import { EVENT_TYPES, type EventType } from "@/lib/event-templates";
+import { EVENT_TYPES, isEventType, type EventType } from "@/lib/event-templates";
 
 export type { EventFormInitialData } from "@/hooks/use-event-form";
 
@@ -128,7 +128,9 @@ export function EventForm({
 
   // 切換活動類型：create 模式會以新範本覆蓋販售項目（需確認）；edit 模式僅變更類型
   const handleTypeChange = (next: EventType) => {
-    if (next === type) return;
+    // Radix Select 的隱藏 native select 可能被外部 change 事件（如瀏覽器 autofill）
+    // 以空字串觸發 onValueChange，須擋掉非法值以免蓋掉已載入的類型
+    if (!isEventType(next) || next === type) return;
     if (mode === "create") {
       const ok = window.confirm(
         "切換類型會以新範本覆蓋目前的票價時段、群組與購買項目設定，確定要切換嗎？"

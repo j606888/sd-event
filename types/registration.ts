@@ -85,7 +85,10 @@ export type EntryVoucherPageData = {
 export type PurchaseItem = {
   id: number;
   name: string;
+  /** 報名當下的成交單價（含時段）；舊資料無快照時為項目定價 */
   amount: number;
+  /** 報名當下生效的時段名稱（如「早鳥」）；無時段或舊資料為 null */
+  tierName?: string | null;
 };
 
 /** 報名來源："online"（公開表單）| "walk_in"（現場由主辦建立） */

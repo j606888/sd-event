@@ -64,7 +64,8 @@ export type PublicEventData = {
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
   /** 當下生效的票價時段（無時段時為 null），purchaseItems[].amount 已依此解析 */
-  activeTier: { name: string } | null;
+  /** 目前生效的票價時段；endsAt 為 null 表示不過期（一般／現場價） */
+  activeTier: { name: string; endsAt: string | null } | null;
   location: EventLocation | null;
   organizer: EventOrganizer | null;
   bankInfo: EventBankInfo | null;

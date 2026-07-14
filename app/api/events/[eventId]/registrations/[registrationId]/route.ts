@@ -85,18 +85,28 @@ export async function GET(_request: Request, { params }: Params) {
     : null;
 
   // 取得 join table 內的購買項目（多選 / 群組活動）。一律查詢，有列就用。
+  // 金額優先用報名當下的單價快照（unitAmount，含時段價），舊資料為 null 時退回項目定價。
   const registrationPurchaseItems = await db
     .select({
       id: eventPurchaseItems.id,
       name: eventPurchaseItems.name,
       amount: eventPurchaseItems.amount,
+      unitAmount: eventRegistrationPurchaseItems.unitAmount,
+      tierName: eventRegistrationPurchaseItems.tierName,
     })
     .from(eventRegistrationPurchaseItems)
     .innerJoin(
       eventPurchaseItems,
       eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
     )
-    .where(eq(eventRegistrationPurchaseItems.registrationId, registrationId));
+    .where(eq(eventRegistrationPurchaseItems.registrationId, registrationId))
+    .then((rows) =>
+      rows.map(({ unitAmount, tierName, ...row }) => ({
+        ...row,
+        amount: unitAmount ?? row.amount,
+        tierName,
+      }))
+    );
 
   const purchaseItems = registrationPurchaseItems.length > 0
     ? registrationPurchaseItems

@@ -175,7 +175,9 @@ export async function GET(_request: Request, { params }: Params) {
       bankInfo,
       purchaseItems: itemsWithPrice,
       groups: groupsWithItems,
-      activeTier: activeTier ? { name: activeTier.name } : null,
+      activeTier: activeTier
+        ? { name: activeTier.name, endsAt: activeTier.endsAt }
+        : null,
       noticeItems,
       // 報名表僅在活動確實設有折扣碼時顯示輸入欄位
       hasCoupons: couponRows.length > 0,

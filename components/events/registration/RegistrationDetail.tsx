@@ -295,7 +295,12 @@ export function RegistrationDetail({
             // Multiple purchase items
             registration.purchaseItems.map((item) => (
               <div key={item.id} className="flex justify-between">
-                <span className="text-gray-900">{item.name}</span>
+                <span className="text-gray-900">
+                  {item.name}
+                  {item.tierName && (
+                    <span className="ml-1.5 text-xs text-gray-400">（{item.tierName}）</span>
+                  )}
+                </span>
                 <span className="text-gray-900">${item.amount}</span>
               </div>
             ))
@@ -385,7 +390,7 @@ export function RegistrationDetail({
           disabled={updating}
           className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
         >
-          {updating ? "處理中…" : "標記為已完成"}
+          {updating ? "處理中…" : "確認收款"}
         </Button>
       )}
 

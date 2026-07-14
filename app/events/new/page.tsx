@@ -72,7 +72,7 @@ export default function NewEventPage() {
         mode="create"
         teamId={teamId}
         initialType={selectedType}
-        submitLabel="儲存草稿"
+        submitLabel="建立活動"
       />
     </div>
   );

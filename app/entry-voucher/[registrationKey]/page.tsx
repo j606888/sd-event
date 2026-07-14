@@ -7,19 +7,8 @@ import Image from "next/image";
 import { ChevronLeft, Clock, MapPin, Wallet, DollarSign, CheckCircle2 } from "lucide-react";
 import QRCode from "qrcode";
 import { getRegistrationByKey } from "@/lib/api/registration";
+import { formatEventDateShort } from "@/lib/format-event-date";
 import type { EntryVoucherPageData } from "@/types/registration";
-
-const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
-
-function formatEventDate(startAt: string, endAt: string): string {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  const fmt = (d: Date) =>
-    `${d.getMonth() + 1}月${d.getDate()}日 (${WEEKDAY[d.getDay()]})`;
-  const timeFmt = (d: Date) =>
-    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
-}
 
 function getRoleBadge(role: string) {
   const styles: Record<string, string> = {
@@ -242,7 +231,7 @@ export default function EntryVoucherPage() {
             <div className="flex items-start gap-3">
               <Clock className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
               <span className="text-gray-900">
-                {formatEventDate(data.event.startAt, data.event.endAt)}
+                {formatEventDateShort(data.event.startAt, data.event.endAt)}
               </span>
             </div>
 

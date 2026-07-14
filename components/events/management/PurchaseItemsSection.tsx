@@ -325,8 +325,8 @@ export function PurchaseItemsSection({
         </div>
         {couponsSupported ? (
           <p className="text-xs text-gray-500">
-            報名者輸入折扣碼後自動調整金額。固定金額為整筆報名折一次；打折以折扣百分比計（10 = 打九折）。
-            使用上限留空＝不限次數。
+            報名者輸入折扣碼後自動調整金額。固定金額為整筆報名折一次；打折輸入折扣百分比（例：20 ＝ 少收
+            20%，即打 8 折）。使用上限留空＝不限次數。
           </p>
         ) : (
           <p className="text-xs text-gray-500">
@@ -386,10 +386,23 @@ export function PurchaseItemsSection({
                   onBlur={() => onPersistCoupon(i)}
                   aria-label="使用上限"
                 />
-                {(coupon.usedCount ?? 0) > 0 && (
+                {coupon.discountType === "percent" &&
+                  Number(coupon.value) > 0 &&
+                  Number(coupon.value) < 100 && (
+                    <span className="text-xs text-gray-500">
+                      ＝打 {(100 - Number(coupon.value)) / 10} 折
+                    </span>
+                  )}
+                {coupon.usageLimit ? (
                   <span className="text-xs text-gray-400">
-                    已用 {coupon.usedCount} 次
+                    已用 {coupon.usedCount ?? 0}/{coupon.usageLimit}
                   </span>
+                ) : (
+                  (coupon.usedCount ?? 0) > 0 && (
+                    <span className="text-xs text-gray-400">
+                      已用 {coupon.usedCount} 次
+                    </span>
+                  )
                 )}
                 <button
                   type="button"
