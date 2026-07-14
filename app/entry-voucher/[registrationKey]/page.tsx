@@ -30,11 +30,7 @@ export default function EntryVoucherPage() {
   const isInitialLoad = useRef(true);
 
   useEffect(() => {
-    if (!registrationKey) {
-      setError("無效的報名編號");
-      setLoading(false);
-      return;
-    }
+    if (!registrationKey) return;
 
     const transformApiData = (responseData: Awaited<ReturnType<typeof getRegistrationByKey>>) => {
       if (!responseData?.registration || !responseData?.event || !responseData?.attendees) {
@@ -149,27 +145,32 @@ export default function EntryVoucherPage() {
     return () => clearInterval(interval);
   }, [registrationKey]);
 
-  if (loading) {
+  if (loading && registrationKey) {
     return (
-      <div className="min-h-screen p-6 flex items-center justify-center">
-        <p className="text-gray-500">載入中…</p>
+      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
+        <p className="text-white/80">載入中…</p>
       </div>
     );
   }
 
-  if (error || !data || !qrCodeUrl) {
+  if (!registrationKey || error || !data || !qrCodeUrl) {
     return (
-      <div className="min-h-screen p-6 flex flex-col items-center justify-center gap-4">
-        <p className="text-red-500">{error ?? "找不到報名資料"}</p>
-        <p className="text-sm text-gray-500">連結可能已失效</p>
+      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
+        <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl text-center space-y-2">
+          <p className="text-red-500">
+            {(!registrationKey ? "無效的報名編號" : error) ?? "找不到報名資料"}
+          </p>
+          <p className="text-sm text-gray-500">連結可能已失效</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+      <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+      <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.push(`/registration-success/${registrationKey}`)}
           className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100"
@@ -298,6 +299,7 @@ export default function EntryVoucherPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

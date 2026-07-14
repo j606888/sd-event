@@ -9,30 +9,6 @@
 > 已有兩筆報名（registrationKey `6uwyf54caeey` 含折扣碼 VIP20 + 一筆現場報名）。
 > 開發指令：`yarn dev -p 3010`，本機 DB 見 CLAUDE.md。
 
-## 1. 回報付款頁與入場憑證頁改成置中卡片版面（主要項目）
-
-**問題**：`/report-payment/[registrationKey]` 與 `/entry-voucher/[registrationKey]` 是整頁全寬、
-靠左的版面，和報名流程（`/e/[publicKey]`、`/registration-success/[registrationKey]`）的
-深藍漸層背景 + 置中白色圓角卡片風格完全不一致，桌機上看起來像沒排版。
-
-**做法**：
-- 參考 `components/events/registration/steps/EventDetailsStep.tsx` 的外層結構：
-  `min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10` +
-  `mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl`。
-- 改 `app/report-payment/[registrationKey]/page.tsx` 與 `app/entry-voucher/[registrationKey]/page.tsx`
-  （若內容在其他元件內，順著 import 找）。
-- 手機寬度下應與現狀差異不大，重點是桌機置中收斂。
-
-**驗證**：開 `http://localhost:3010/report-payment/6uwyf54caeey` 與
-`http://localhost:3010/entry-voucher/6uwyf54caeey`，桌機視窗下內容置中、卡片式；
-回報付款送出流程仍可用（送出後導回 registration-success）。
-
-## 2. 順手修：entry-voucher 頁既有的 lint error
-
-`app/entry-voucher/[registrationKey]/page.tsx` 有一個既有的
-`react-hooks/set-state-in-effect` error（effect 內同步 `setError("無效的報名編號")`）。
-做第 1 項時順手重構掉（例如改成 render 時直接判斷 `!registrationKey` 顯示錯誤，不進 effect）。
-
 ## 3. 統計頁「報名項目統計」的金額標示
 
 `components/events/management/EventStats.tsx`（API：`app/api/events/[eventId]/stats/route.ts`）
