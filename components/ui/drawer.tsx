@@ -53,11 +53,11 @@ export function Drawer({
           className
         )}
       >
-        <div className="flex shrink-0 flex-col gap-0.5 border-b border-gray-100 px-4 pb-4 pt-4">
+        <div className="flex shrink-0 flex-col gap-0.5 border-b border-hairline px-4 pb-4 pt-4">
           {subtitle && (
-            <p className="text-sm text-gray-500">{subtitle}</p>
+            <p className="text-xs font-medium uppercase tracking-widest text-gray-400">{subtitle}</p>
           )}
-          <h2 id="drawer-title" className="text-lg font-bold text-gray-900">
+          <h2 id="drawer-title" className="font-display text-lg font-bold text-ink">
             {title}
           </h2>
         </div>

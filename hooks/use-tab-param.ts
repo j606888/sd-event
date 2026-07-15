@@ -6,7 +6,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 export const EVENT_TABS = [
   { id: "basic", label: "基本資訊" },
   { id: "tickets", label: "票券設定" },
-  { id: "payment", label: "主辦與收款" },
   { id: "registrations", label: "報名者" },
   { id: "stats", label: "統計" },
   { id: "verify", label: "驗票" },
@@ -17,7 +16,7 @@ export type EventTabId = (typeof EVENT_TABS)[number]["id"];
 const TAB_IDS: readonly string[] = EVENT_TABS.map((t) => t.id);
 
 /** 編輯活動時屬於表單（useEventForm）範圍的分頁 */
-export const FORM_TAB_IDS: readonly EventTabId[] = ["basic", "tickets", "payment"];
+export const FORM_TAB_IDS: readonly EventTabId[] = ["basic", "tickets"];
 
 /**
  * 活動詳情頁分頁狀態，同步至網址 `?tab=`：可深連結、重新整理不跳走。

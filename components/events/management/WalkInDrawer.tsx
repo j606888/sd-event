@@ -213,7 +213,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                           key={item.id}
                           className={`flex items-center gap-3 rounded-lg border p-2.5 ${
                             locked ? "cursor-not-allowed border-gray-200" : "cursor-pointer hover:bg-gray-50"
-                          } ${isSelected ? "border-brand bg-gray-50" : "border-gray-200"}`}
+                          } ${isSelected ? "border-brand bg-brand/5" : "border-gray-200"}`}
                         >
                           <input
                             type={isSingle ? "radio" : "checkbox"}
@@ -240,7 +240,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                     {isSingle && !group.required && !locked && (
                       <label
                         className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer hover:bg-gray-50 ${
-                          selected.length === 0 ? "border-brand bg-gray-50" : "border-gray-200"
+                          selected.length === 0 ? "border-brand bg-brand/5" : "border-gray-200"
                         }`}
                       >
                         <input
@@ -265,7 +265,7 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
                   <label
                     key={item.id}
                     className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer hover:bg-gray-50 ${
-                      isSelected ? "border-brand bg-gray-50" : "border-gray-200"
+                      isSelected ? "border-brand bg-brand/5" : "border-gray-200"
                     }`}
                   >
                     <input

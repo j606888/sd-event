@@ -55,7 +55,7 @@ function AutoSaveChip({ mode, form }: TicketSettingsProps) {
 }
 
 /**
- * 票券設定分頁：左側編輯卡片（票券內容／票價時段／互斥規則／折扣碼／進階），
+ * 票券設定分頁：左側編輯卡片（票券內容／票價時段／折扣碼／進階（互斥規則＋金額計算）），
  * 右側報名頁即時預覽（桌機 sticky 欄；手機收進抽屜）。
  */
 export function TicketSettings({ mode, form }: TicketSettingsProps) {
@@ -72,23 +72,23 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
         <AutoSaveChip mode={mode} form={form} />
       </div>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start lg:gap-4">
-        <div className="flex flex-col gap-3">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start lg:gap-8">
+        {/* 左欄：各設定區塊以髮絲線分隔，不再包卡片框 */}
+        <div className="flex flex-col divide-y divide-hairline">
           <TicketGroupsCard form={form} />
           <PriceTiersCard form={form} />
-          <ExclusionRulesCard form={form} />
           <CouponsCard form={form} />
 
-          {/* 進階：僅剩「報名者自行填寫金額」；使用區塊時金額一律自動計算 */}
-          <div className="rounded-md border border-gray-200 bg-white">
+          {/* 進階：互斥規則＋金額計算（使用區塊時金額一律自動計算） */}
+          <div className="py-5">
             <button
               type="button"
               onClick={() => setAdvancedOpen((v) => !v)}
               aria-expanded={advancedOpen}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+              className="flex w-full items-center gap-2 text-left cursor-pointer"
             >
               <Settings2 className="size-4 shrink-0 text-gray-400" />
-              <span className="flex-1 text-sm font-medium text-gray-700">進階</span>
+              <span className="flex-1 text-sm font-semibold text-ink">進階</span>
               <ChevronDown
                 className={`size-4 shrink-0 text-gray-400 transition-transform motion-reduce:transition-none ${
                   advancedOpen ? "rotate-180" : ""
@@ -96,25 +96,28 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
               />
             </button>
             {advancedOpen && (
-              <div className="flex flex-col gap-2 border-t border-gray-200 p-3">
-                <Label className="text-sm">金額計算</Label>
-                {groups.length > 0 ? (
-                  <p className="text-xs text-gray-500">
-                    已使用票券區塊，總金額由系統依選取的票券自動計算。
-                  </p>
-                ) : (
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!autoCalcAmount}
-                      onChange={(e) => setAutoCalcAmount(!e.target.checked)}
-                      className="size-4 rounded border-gray-300"
-                    />
-                    <span className="text-sm text-gray-600">
-                      讓報名者自行填寫金額（關閉自動加總）
-                    </span>
-                  </label>
-                )}
+              <div className="flex flex-col gap-5 pt-3">
+                <ExclusionRulesCard form={form} />
+                <div className="flex flex-col gap-2">
+                  <Label className="text-sm">金額計算</Label>
+                  {groups.length > 0 ? (
+                    <p className="text-xs text-gray-500">
+                      已使用票券區塊，總金額由系統依選取的票券自動計算。
+                    </p>
+                  ) : (
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!autoCalcAmount}
+                        onChange={(e) => setAutoCalcAmount(!e.target.checked)}
+                        className="size-4 rounded border-gray-300"
+                      />
+                      <span className="text-sm text-gray-600">
+                        讓報名者自行填寫金額（關閉自動加總）
+                      </span>
+                    </label>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -130,7 +133,7 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
       <button
         type="button"
         onClick={() => setPreviewOpen(true)}
-        className="fixed bottom-20 right-4 z-20 flex items-center gap-1.5 rounded-full bg-[#e0765c] px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:brightness-105 lg:hidden"
+        className="fixed bottom-20 right-4 z-20 flex items-center gap-1.5 rounded-full bg-follower px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-follower-hover lg:hidden"
       >
         <Eye className="size-4" />
         預覽報名頁

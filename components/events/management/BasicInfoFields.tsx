@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SegmentedToggle } from "@/components/ui/segmented";
 import { LocationSelect } from "./LocationSelect";
 import { EVENT_TYPES, isEventType, type EventType } from "@/lib/event-templates";
 import type { UseEventFormReturn } from "@/hooks/use-event-form";
@@ -68,23 +69,13 @@ export function BasicInfoFields({ mode, form }: BasicInfoFieldsProps) {
       <div className="flex flex-col gap-2">
         <Label htmlFor="eventType">活動類型</Label>
         {mode === "create" ? (
-          <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
-            {EVENT_TYPES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                aria-pressed={type === t.value}
-                onClick={() => handleTypeChange(t.value)}
-                className={`rounded-md px-2 py-2 text-sm font-medium transition-colors ${
-                  type === t.value
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-900"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedToggle
+            fullWidth
+            size="md"
+            value={type}
+            onChange={(v) => handleTypeChange(v as EventType)}
+            options={EVENT_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+          />
         ) : (
           <Select value={type} onValueChange={(v) => handleTypeChange(v as EventType)}>
             <SelectTrigger id="eventType" className="w-full min-w-0">
@@ -122,7 +113,7 @@ export function BasicInfoFields({ mode, form }: BasicInfoFieldsProps) {
           rows={12}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full min-w-0 rounded-md border-0 bg-[#F3F5F7] px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 md:text-sm"
+          className="w-full min-w-0 rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus:ring-2 focus:ring-brand/30 placeholder:text-gray-400 md:text-sm"
         />
       </div>
       <div className="flex flex-col gap-2">
@@ -155,7 +146,7 @@ export function BasicInfoFields({ mode, form }: BasicInfoFieldsProps) {
             </button>
           </div>
         ) : (
-          <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8">
+          <div className="rounded-lg border border-dashed border-gray-300 py-8 transition-colors hover:border-brand/50">
             <label className="flex flex-col items-center justify-center cursor-pointer">
               <input
                 type="file"
@@ -191,7 +182,6 @@ export function BasicInfoFields({ mode, form }: BasicInfoFieldsProps) {
           <Input
             id="startTime"
             type="datetime-local"
-            className="bg-[#F3F5F7]"
             value={startAt}
             onChange={(e) => handleStartAtChange(e.target.value)}
           />
@@ -201,7 +191,6 @@ export function BasicInfoFields({ mode, form }: BasicInfoFieldsProps) {
           <Input
             id="endTime"
             type="datetime-local"
-            className="bg-[#F3F5F7]"
             value={endAt}
             onChange={(e) => setEndAt(e.target.value)}
           />

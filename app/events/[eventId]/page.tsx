@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { EventEditTabs } from "@/components/events/management/EventEditTabs";
+import { EventTabBar } from "@/components/events/management/EventTabBar";
 import { EventStats } from "@/components/events/management/EventStats";
 import { WalkInDrawer } from "@/components/events/management/WalkInDrawer";
 import { RegistrationEditDrawer } from "@/components/events/management/RegistrationEditDrawer";
@@ -11,10 +12,10 @@ import { RegistrationsList } from "@/components/events/registration/Registration
 import { RegistrationDetail, RegistrationDetailSkeleton } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Share2, UserPlus, Download } from "lucide-react";
+import { ArrowLeft, Check, Link2, UserPlus, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "@/hooks/use-event-detail";
-import { EVENT_TABS, FORM_TAB_IDS, useTabParam } from "@/hooks/use-tab-param";
+import { FORM_TAB_IDS, useTabParam } from "@/hooks/use-tab-param";
 import {
   useRegistrations,
   useRegistrationDetail,
@@ -25,17 +26,20 @@ import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter } from "@
 
 function EventDetailSkeleton() {
   return (
-    <div className="mx-auto flex w-full flex-1 flex-col max-w-6xl">
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-16" />
+    <div className="flex w-full max-w-6xl flex-1 flex-col">
+      <div className="px-4 pt-4 pb-3 md:px-8 md:pt-5">
+        <Skeleton className="mb-2 h-3.5 w-16" />
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-9 w-24 rounded-full" />
+        </div>
       </div>
-      <div className="flex border-b border-gray-200 bg-white px-4">
+      <div className="flex border-b border-hairline px-4 md:px-8">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <Skeleton key={i} className="h-10 w-16 mx-2 my-1.5 rounded" />
         ))}
       </div>
-      <div className="flex-1 p-4 space-y-6">
+      <div className="flex-1 px-4 py-5 md:px-8 space-y-6">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex flex-col gap-2">
             <Skeleton className="h-4 w-16" />
@@ -165,95 +169,82 @@ function EventDetailPageInner() {
   const isFormTab = (FORM_TAB_IDS as readonly string[]).includes(activeTab);
 
   return (
-    <div className="mx-auto flex w-full flex-1 flex-col max-w-6xl">
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
-        <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-900">
-          {event.title}
-        </h1>
-        {event.status === "draft" && (
-          <>
-            <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
-              草稿
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handlePublish}
-              disabled={publishing}
-              className="bg-brand text-white hover:bg-brand-hover"
-            >
-              {publishing ? "發布中…" : "發布"}
-            </Button>
-          </>
-        )}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => {
-            const url = `${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.publicKey}`;
-            navigator.clipboard.writeText(url).then(() => {
-              setShareCopied(true);
-              setTimeout(() => setShareCopied(false), 2000);
-            });
-          }}
-        >
-          <Share2 className="size-4" />
-          {shareCopied ? "已複製連結" : "分享表單"}
-        </Button>
+    <div className="flex w-full max-w-6xl flex-1 flex-col">
+      <div className="px-4 pt-4 pb-3 md:px-8 md:pt-5">
+        {/* 麵包屑返回：桌機慣例放在標題上方左側 */}
         <Link
           href="/events"
-          className="flex items-center justify-center text-gray-600 hover:underline"
-          aria-label="返回所有活動"
+          className="group mb-1.5 inline-flex items-center gap-1 text-xs font-medium text-gray-400 transition-colors hover:text-ink"
         >
-          返回列表
+          <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+          所有活動
         </Link>
-      </div>
-      {publishError && (
-        <div className="border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-600">
-          {publishError}
-        </div>
-      )}
-      {event.status === "draft" && (
-        <div className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-          活動尚未發布：報名連結僅團隊成員能預覽，按「發布」後才對外開放報名。
-        </div>
-      )}
-      {/* 單層分頁：手機可橫向捲動 */}
-      <div className="flex overflow-x-auto border-b border-gray-200 bg-white">
-        {EVENT_TABS.map((tab) => (
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="min-w-0 flex-1 truncate font-display text-xl font-bold text-ink md:text-2xl">
+            {event.title}
+          </h1>
+          {event.status === "draft" && (
+            <>
+              <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-amber-700">
+                <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
+                草稿
+              </span>
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={publishing}
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-follower px-4 text-sm font-medium text-white shadow-sm shadow-follower/25 transition-colors cursor-pointer hover:bg-follower-hover disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {publishing ? "發布中…" : "發布"}
+              </button>
+            </>
+          )}
           <button
-            key={tab.id}
             type="button"
             onClick={() => {
-              setTab(tab.id);
-              setSelectedRegistrationId(null);
+              const url = `${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.publicKey}`;
+              navigator.clipboard.writeText(url).then(() => {
+                setShareCopied(true);
+                setTimeout(() => setShareCopied(false), 2000);
+              });
             }}
-            className={`relative flex shrink-0 items-center justify-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors cursor-pointer sm:flex-1 ${
-              activeTab === tab.id
-                ? "text-brand"
-                : "text-gray-600 hover:text-gray-900"
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-white shadow-sm transition-colors cursor-pointer ${
+              shareCopied
+                ? "bg-emerald-500 shadow-emerald-500/25"
+                : "bg-brand shadow-brand/25 hover:bg-brand-hover"
             }`}
           >
-            {tab.label}
-            {tab.id === "registrations" && visibleRegistrationCount > 0 && (
-              <span className="rounded-full bg-brand px-1.5 py-0.5 text-xs font-medium text-white">
-                {visibleRegistrationCount}
-              </span>
-            )}
-            {activeTab === tab.id && (
-              <span
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand"
-                aria-hidden
-              />
-            )}
+            {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
+            {shareCopied ? "已複製連結" : "分享表單"}
           </button>
-        ))}
+        </div>
+      </div>
+      {publishError && (
+        <p className="flex items-center gap-1.5 px-4 pb-2 text-sm text-red-600 md:px-8">
+          <span className="size-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
+          {publishError}
+        </p>
+      )}
+      {event.status === "draft" && (
+        <p className="flex items-center gap-1.5 px-4 pb-2 text-xs text-amber-700 md:px-8">
+          <span className="size-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden />
+          活動尚未發布：報名連結僅團隊成員能預覽，按「發布」後才對外開放報名。
+        </p>
+      )}
+      {/* 分頁導覽：sm 以上為上方分頁，手機為固定底部導覽列 */}
+      <div className="px-4 md:px-8">
+        <EventTabBar
+          activeTab={activeTab}
+          registrationCount={visibleRegistrationCount}
+          onSelect={(tab) => {
+            setTab(tab);
+            setSelectedRegistrationId(null);
+          }}
+        />
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 p-4">
+      {/* Tab content（手機底部預留導覽列高度） */}
+      <div className="flex-1 px-4 pt-5 pb-24 sm:pb-8 md:px-8 md:pt-6">
         {/* 表單三分頁常駐 mounted：未儲存的編輯在切到其他分頁時不會消失 */}
         <div className={isFormTab ? "" : "hidden"}>
           <EventEditTabs
@@ -396,20 +387,18 @@ function EventDetailPageInner() {
           <EventStats eventId={eventId} />
         )}
         {activeTab === "verify" && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                掃描參加者的 QR code 來確認入場
-              </p>
-              <Button
-                onClick={() => {
-                  window.location.href = `/events/${eventId}/scan`;
-                }}
-                className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
-              >
-                開啟掃描器
-              </Button>
-            </div>
+          <div className="max-w-md space-y-4">
+            <p className="text-sm text-gray-600">
+              掃描參加者的 QR code 來確認入場
+            </p>
+            <Button
+              onClick={() => {
+                window.location.href = `/events/${eventId}/scan`;
+              }}
+              className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
+            >
+              開啟掃描器
+            </Button>
           </div>
         )}
       </div>

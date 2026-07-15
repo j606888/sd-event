@@ -18,10 +18,10 @@ type EventEditTabsProps = {
 };
 
 /**
- * 編輯模式的表單分頁殼：基本資訊／票券設定／主辦與收款。
- * useEventForm 只在這裡實例化一次；三個面板全程 mounted、用 hidden 切換，
+ * 編輯模式的表單分頁殼：基本資訊（含主辦與收款）／票券設定。
+ * useEventForm 只在這裡實例化一次；兩個面板全程 mounted、用 hidden 切換，
  * 未儲存的編輯在切分頁時不會消失。
- * 儲存語意：基本資訊與主辦與收款需按「儲存變更」；票券設定即時自動儲存。
+ * 儲存語意：基本資訊需按「儲存變更」；票券設定即時自動儲存。
  */
 export function EventEditTabs({
   teamId,
@@ -44,16 +44,15 @@ export function EventEditTabs({
 
   // 送出前若必填欄位缺漏，先切到含該欄位的分頁，讓使用者看得到錯誤
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (!title.trim() || !locationId) {
+    if (!title.trim() || !locationId || !organizerId || !bankInfoId) {
       setTab("basic");
-    } else if (!organizerId || !bankInfoId) {
-      setTab("payment");
     }
     handleSubmit(e);
   };
 
   const saveFooter = (
-    <div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-1.5 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+    // 手機版 sticky 在底部導覽列上方；sm 起回到內容流
+    <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex flex-col gap-1.5 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
       <Button
         type="submit"
         className="w-full bg-primary text-white hover:bg-brand-hover sm:w-auto sm:self-start sm:px-8"
@@ -70,22 +69,22 @@ export function EventEditTabs({
   );
 
   const errorBanner = saveError ? (
-    <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+    <p className="flex items-center gap-1.5 text-sm text-red-600">
+      <span className="size-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
       {saveError}
     </p>
   ) : null;
 
   return (
     <div className="w-full">
-      {/* 基本資訊 */}
+      {/* 基本資訊（含主辦與收款） */}
       <form
-        className={`flex-col gap-5 ${activeTab === "basic" ? "flex" : "hidden"}`}
+        className={`max-w-2xl flex-col gap-5 ${activeTab === "basic" ? "flex" : "hidden"}`}
         onSubmit={onSubmit}
       >
         {errorBanner}
-        <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
-          <BasicInfoFields mode="edit" form={form} />
-        </div>
+        <BasicInfoFields mode="edit" form={form} />
+        <OrganizerPaymentFields form={form} />
         {saveFooter}
       </form>
 
@@ -93,18 +92,6 @@ export function EventEditTabs({
       <div className={activeTab === "tickets" ? "" : "hidden"}>
         <TicketSettings mode="edit" form={form} />
       </div>
-
-      {/* 主辦與收款 */}
-      <form
-        className={`flex-col gap-5 ${activeTab === "payment" ? "flex" : "hidden"}`}
-        onSubmit={onSubmit}
-      >
-        {errorBanner}
-        <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
-          <OrganizerPaymentFields form={form} />
-        </div>
-        {saveFooter}
-      </form>
 
       <EventFormDrawers mode="edit" teamId={teamId} eventId={eventId} form={form} />
     </div>

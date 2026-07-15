@@ -133,7 +133,7 @@ export function RegistrationDetail({
     registration.paymentStatus === "pending" || registration.paymentStatus === "reported";
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl space-y-6">
       {/* Header with navigation */}
       <div className="flex items-center justify-between">
         <button
@@ -168,7 +168,7 @@ export function RegistrationDetail({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="font-display text-lg font-bold text-ink">
               {registration.contactName}
             </h2>
             <div className="text-sm text-gray-600 mt-1">
@@ -233,7 +233,7 @@ export function RegistrationDetail({
 
       {/* Contact Information */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">聯絡人</h3>
+        <h3 className="font-display text-sm font-bold text-ink">聯絡人</h3>
         <div className="space-y-2 text-sm">
           <div>
             <span className="text-gray-500">姓名</span>
@@ -253,7 +253,7 @@ export function RegistrationDetail({
       {/* Participants */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">參與者</h3>
+          <h3 className="font-display text-sm font-bold text-ink">參與者</h3>
           <Button
             onClick={() => setShowCheckInDialog(true)}
             size="sm"
@@ -268,7 +268,7 @@ export function RegistrationDetail({
           {registration.attendees.map((attendee) => (
             <div
               key={attendee.id}
-              className="flex items-center justify-between p-2 rounded bg-gray-50"
+              className="flex items-center justify-between rounded-lg bg-field px-3 py-2"
             >
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-900">{attendee.name}</span>
@@ -289,7 +289,7 @@ export function RegistrationDetail({
 
       {/* Registration Items */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">報名項目</h3>
+        <h3 className="font-display text-sm font-bold text-ink">報名項目</h3>
         <div className="space-y-2 text-sm">
           {registration.purchaseItems && registration.purchaseItems.length > 0 ? (
             // Multiple purchase items
@@ -345,7 +345,7 @@ export function RegistrationDetail({
 
       {/* Payment Details */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">付款資料</h3>
+        <h3 className="font-display text-sm font-bold text-ink">付款資料</h3>
         <div className="space-y-2 text-sm">
           <div>
             <span className="text-gray-500">付款方式</span>
@@ -367,7 +367,7 @@ export function RegistrationDetail({
       {/* Payment Screenshot */}
       {registration.paymentScreenshotUrl && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-gray-900">付款證明</h3>
+          <h3 className="font-display text-sm font-bold text-ink">付款證明</h3>
           <button
             type="button"
             onClick={() => setImagePreviewOpen(true)}

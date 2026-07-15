@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import type { PurchaseItemGroupDraft, UseEventFormReturn } from "@/hooks/use-event-form";
 
 const groupKeyOf = (group: PurchaseItemGroupDraft, groupIndex: number) =>
@@ -48,9 +47,9 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <Label>互斥規則（選填）</Label>
+        <h3 className="font-display text-sm font-bold text-ink">互斥規則（選填）</h3>
         {!adding && (
           <Button
             type="button"
@@ -74,7 +73,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
           {visiblePairs.map(([a, b]) => (
             <li
               key={`${a}|${b}`}
-              className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700"
+              className="flex items-center justify-between gap-2 rounded-md bg-field px-3 py-2 text-sm text-gray-700"
             >
               <span>
                 <span className="font-medium">「{titleByKey.get(a)}」</span>
@@ -98,7 +97,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
       {adding && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-gray-300 p-2">
           <select
-            className="h-9 min-w-[8rem] flex-1 rounded-md border border-gray-200 bg-white px-2 text-sm"
+            className="h-9 min-w-[8rem] flex-1 rounded-md border-0 bg-field px-2 text-sm shadow-xs"
             value={pickA}
             onChange={(e) => {
               setPickA(e.target.value);
@@ -115,7 +114,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
           </select>
           <span className="text-xs text-gray-500">與</span>
           <select
-            className="h-9 min-w-[8rem] flex-1 rounded-md border border-gray-200 bg-white px-2 text-sm"
+            className="h-9 min-w-[8rem] flex-1 rounded-md border-0 bg-field px-2 text-sm shadow-xs"
             value={pickB}
             onChange={(e) => setPickB(e.target.value)}
             aria-label="區塊 B"

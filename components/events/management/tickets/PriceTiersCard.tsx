@@ -3,7 +3,6 @@
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { endOfDayFromDateInput, resolveActiveTier } from "@/lib/pricing";
 import type { UseEventFormReturn } from "@/hooks/use-event-form";
 
@@ -26,9 +25,9 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
   })();
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3">
+    <div className="flex flex-col gap-2 py-5 first:pt-0">
       <div className="flex items-center justify-between">
-        <Label>票價時段（選填）</Label>
+        <h3 className="font-display text-sm font-bold text-ink">票價時段（選填）</h3>
         <Button
           type="button"
           variant="outline"
@@ -49,14 +48,14 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
           {priceTiers.map((tier, i) => (
             <li key={tier.id ?? `draft-${i}`} className="flex items-center gap-2">
               <Input
-                className="flex-1 bg-white"
+                className="min-w-0 flex-1"
                 placeholder="時段名稱（如 早鳥）"
                 value={tier.name}
                 onChange={(e) => updatePriceTier(i, "name", e.target.value)}
                 onBlur={() => persistPriceTier(i)}
               />
               <Input
-                className="w-40 bg-white"
+                className="w-36 sm:w-40"
                 type="date"
                 value={tier.endsAt}
                 onChange={(e) => updatePriceTier(i, "endsAt", e.target.value)}
@@ -68,7 +67,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                   目前適用
                 </span>
               ) : (
-                <span className="w-[3.75rem] shrink-0" aria-hidden />
+                <span className="hidden w-[3.75rem] shrink-0 sm:inline-block" aria-hidden />
               )}
               <button
                 type="button"

@@ -18,10 +18,10 @@ export function getEventStatus(event: {
   return "active";
 }
 
-const STATUS_BADGE: Record<EventStatus, { text: string; className: string }> = {
-  draft: { text: "草稿", className: "bg-orange-100 text-orange-700" },
-  active: { text: "銷售中", className: "bg-green-100 text-green-700" },
-  ended: { text: "已結束", className: "bg-gray-100 text-gray-600" },
+const STATUS_BADGE: Record<EventStatus, { text: string; dot: string; className: string }> = {
+  draft: { text: "草稿", dot: "bg-amber-500", className: "text-amber-700" },
+  active: { text: "銷售中", dot: "bg-green-500", className: "text-green-700" },
+  ended: { text: "已結束", dot: "bg-gray-300", className: "text-gray-500" },
 };
 
 type EventListRowProps = {
@@ -35,7 +35,7 @@ export function EventListRow({ event, registrationCount = 0 }: EventListRowProps
   return (
     <Link
       href={`/events/${event.id}`}
-      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition-colors hover:border-brand/40 hover:bg-brand/[0.03] sm:gap-4 sm:px-4"
+      className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-brand/[0.04] sm:gap-4 sm:px-3"
     >
       {/* Thumbnail */}
       <div className="relative hidden h-12 w-20 shrink-0 overflow-hidden rounded-md bg-gray-100 sm:block">
@@ -66,12 +66,13 @@ export function EventListRow({ event, registrationCount = 0 }: EventListRowProps
       {/* Status + registration count */}
       <div className="flex shrink-0 flex-col items-end gap-1">
         <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
+          className={`inline-flex items-center gap-1.5 text-xs font-medium ${badge.className}`}
         >
+          <span className={`size-1.5 rounded-full ${badge.dot}`} aria-hidden />
           {badge.text}
         </span>
         <span className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-900">{registrationCount}</span> 人報名
+          <span className="font-display font-semibold text-ink">{registrationCount}</span> 人報名
         </span>
       </div>
     </Link>

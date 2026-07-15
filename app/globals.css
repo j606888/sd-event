@@ -22,6 +22,13 @@
   --paper: #f4f6f8;        /* cool paper page background                       */
   --muted-ink: #5b6472;    /* secondary text                                  */
 
+  /* --- Dashboard surface system (organizer app only) ----------------------
+     The dashboard sits on a near-white surface; structure comes from
+     hairline dividers and whitespace instead of nested bordered cards. */
+  --surface: #fcfcfd;      /* dashboard content background                    */
+  --hairline: #e8eaef;     /* thin dividers between sections & list rows      */
+  --field: #f3f5f7;        /* form field fill (inputs, selects, textareas)    */
+
   --primary: var(--brand);
   --radius: 0.625rem;
   --background: var(--paper);
@@ -68,6 +75,9 @@
   --color-follower-hover: var(--follower-hover);
   --color-paper: var(--paper);
   --color-muted-ink: var(--muted-ink);
+  --color-surface: var(--surface);
+  --color-hairline: var(--hairline);
+  --color-field: var(--field);
   --font-nunito: var(--font-nunito);
   --font-inter: var(--font-inter);
   --font-display: var(--font-space-grotesk);
@@ -157,10 +167,8 @@ body {
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
 }

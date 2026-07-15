@@ -130,9 +130,9 @@ export default function EventLocationsPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto w-full">
+    <div className="w-full max-w-3xl px-4 py-5 md:px-8 md:py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">活動地點</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">活動地點</h1>
         <Button onClick={openDrawer} className="gap-2">
           <Plus className="size-4" />
           新增地點
@@ -142,16 +142,16 @@ export default function EventLocationsPage() {
       {loading ? (
         <p className="text-gray-500">載入中…</p>
       ) : locations.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 py-12 text-center text-gray-500">
+        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
           尚無活動地點，點擊「新增地點」建立
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-hairline border-t border-hairline">
           {locations.map((loc) => (
             <li
               key={loc.id}
               onClick={() => openEditDrawer(loc)}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 rounded-lg px-2 py-3.5 cursor-pointer hover:bg-brand/[0.04] transition-colors"
             >
               <MapPin className="size-5 shrink-0 text-brand" />
               <div className="min-w-0 flex-1">

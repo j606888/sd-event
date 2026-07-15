@@ -1,9 +1,20 @@
 "use client";
 
-import { LayoutList, Pencil, Plus, X } from "lucide-react";
+import { Ellipsis, Eye, EyeOff, Info, LayoutList, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SegmentedToggle } from "@/components/ui/segmented";
 import type {
   PurchaseItemDraft,
   PurchaseItemGroupDraft,
@@ -63,7 +74,6 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   ) => {
     const sold = item.soldCount ?? 0;
     const canDelete = sold === 0;
-    const canEdit = sold === 0;
     const itemBody = (
       <>
         {item.name} — ${item.amount}
@@ -71,7 +81,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
           <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
         ) : null}
         {item.prices && item.prices.length > 0 ? (
-          <span className="ml-2 text-xs text-gray-400">
+          <span className="block text-xs text-gray-400 sm:ml-2 sm:inline">
             （
             {item.prices
               .map((p) => {
@@ -84,37 +94,28 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
             ）
           </span>
         ) : null}
-        {!canDelete ? (
-          <span className="ml-2 text-xs text-gray-400">已 {sold} 人報名</span>
-        ) : null}
       </>
     );
     return (
       <li
         key={item.id ?? `draft-${i}`}
-        className="flex flex-wrap items-center justify-between gap-2 text-sm"
+        className="flex items-center justify-between gap-2 py-2.5 text-sm"
       >
-        {canEdit ? (
-          <button
-            type="button"
-            onClick={() => openPurchaseItemEditor(i)}
-            className={`group -mx-1 flex items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-gray-100 ${
-              item.hidden ? "text-gray-400" : "text-gray-700"
-            }`}
-            aria-label={`編輯 ${item.name}`}
-          >
-            <span>{itemBody}</span>
-            <Pencil className="size-3.5 shrink-0 text-gray-300 group-hover:text-gray-500" />
-          </button>
-        ) : (
-          <span className={item.hidden ? "text-gray-400" : "text-gray-700"}>
-            {itemBody}
-          </span>
-        )}
-        <div className="flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => openPurchaseItemEditor(i)}
+          className={`group -mx-1 flex min-w-0 flex-1 items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-gray-100 ${
+            item.hidden ? "text-gray-400" : "text-gray-700"
+          }`}
+          aria-label={`編輯 ${item.name}`}
+        >
+          <span className="min-w-0">{itemBody}</span>
+          <Pencil className="size-3.5 shrink-0 text-gray-300 group-hover:text-gray-500" />
+        </button>
+        <div className="flex shrink-0 items-center gap-2">
           {options?.showAssignSelect && (
             <select
-              className="h-8 rounded-md border border-amber-300 bg-white px-2 text-xs text-gray-700"
+              className="h-8 rounded-md border-0 bg-amber-50 px-2 text-xs text-amber-800"
               value=""
               onChange={(e) => {
                 if (e.target.value) assignItemGroup(i, e.target.value);
@@ -129,42 +130,47 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
               ))}
             </select>
           )}
-          {canDelete ? (
-            <button
-              type="button"
-              disabled={purchaseItemDeletingIndex === i}
-              onClick={() => deletePurchaseItem(i)}
-              className="text-red-500 hover:underline disabled:opacity-50"
-              aria-label="刪除票券"
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex size-8 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 data-[state=open]:bg-gray-100 data-[state=open]:text-gray-600"
+              aria-label={`${item.name} 更多操作`}
             >
-              {purchaseItemDeletingIndex === i ? "刪除中…" : "刪除"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={purchaseItemHiddenUpdatingIndex === i}
-              onClick={() => setPurchaseItemHidden(i, !item.hidden)}
-              className="text-gray-500 hover:underline disabled:opacity-50"
-              aria-label={item.hidden ? "在報名表顯示" : "從報名表隱藏"}
-            >
-              {purchaseItemHiddenUpdatingIndex === i
-                ? "更新中…"
-                : item.hidden
-                  ? "在報名表顯示"
-                  : "從報名表隱藏"}
-            </button>
-          )}
+              <Ellipsis className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => openPurchaseItemEditor(i)}>
+                <Pencil />
+                編輯
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={purchaseItemHiddenUpdatingIndex === i}
+                onSelect={() => setPurchaseItemHidden(i, !item.hidden)}
+              >
+                {item.hidden ? <Eye /> : <EyeOff />}
+                {purchaseItemHiddenUpdatingIndex === i
+                  ? "更新中…"
+                  : item.hidden
+                    ? "在報名表顯示"
+                    : "從報名表隱藏"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={!canDelete || purchaseItemDeletingIndex === i}
+                onSelect={() => deletePurchaseItem(i)}
+              >
+                <Trash2 />
+                {purchaseItemDeletingIndex === i
+                  ? "刪除中…"
+                  : canDelete
+                    ? "刪除"
+                    : "刪除（已有報名）"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </li>
     );
   };
-
-  const segmentButton = (active: boolean) =>
-    `rounded px-2 py-1 text-xs font-medium transition-colors ${
-      active
-        ? "bg-white text-gray-900 shadow-sm"
-        : "text-gray-500 hover:text-gray-900"
-    }`;
 
   const handleRemoveGroup = (index: number) => {
     const group = groups[index];
@@ -176,9 +182,9 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-gray-200 bg-white p-3">
+    <div className="flex flex-col gap-3 py-5 first:pt-0">
       <div className="flex items-center justify-between">
-        <Label>票券內容</Label>
+        <h3 className="font-display text-sm font-bold text-ink">票券內容</h3>
         {!useGroups && (
           <Button
             type="button"
@@ -196,14 +202,14 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
       {!useGroups && (
         <>
           {purchaseItems.length > 0 ? (
-            <ul className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+            <ul className="flex flex-col divide-y divide-hairline">
               {purchaseItems.map((item, i) => renderItemRow(item, i))}
             </ul>
           ) : (
             <p className="text-xs text-gray-400">尚未新增票券。</p>
           )}
           {/* 引導啟用票券區塊（原「群組」功能） */}
-          <div className="flex flex-col gap-2 rounded-md border-2 border-dashed border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 rounded-lg border border-dashed border-gray-300 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-2">
               <LayoutList className="mt-0.5 size-4 shrink-0 text-gray-400" />
               <p className="text-xs text-gray-500">
@@ -233,72 +239,52 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
             return (
               <div
                 key={group.id ?? `draft-${gi}`}
-                className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3"
+                className="flex flex-col gap-2 border-l-2 border-brand/70 pl-3 sm:pl-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Input
-                    className="min-w-[8rem] flex-1 bg-white"
+                    className="w-full sm:w-auto sm:min-w-[8rem] sm:flex-1"
                     placeholder="區塊名稱（如 主票種）"
                     value={group.title}
                     onChange={(e) => updateGroup(gi, "title", e.target.value)}
                     onBlur={() => persistGroup(gi)}
                   />
-                  <div
-                    className="flex rounded-md bg-gray-200/70 p-0.5"
-                    role="group"
+                  <SegmentedToggle
                     aria-label="選擇方式"
-                  >
-                    <button
-                      type="button"
-                      aria-pressed={group.selectionMode === "single"}
-                      className={segmentButton(group.selectionMode === "single")}
-                      onClick={() => {
-                        updateGroup(gi, "selectionMode", "single");
-                        persistGroup(gi, { selectionMode: "single" });
-                      }}
-                    >
-                      單選
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={group.selectionMode === "multiple"}
-                      className={segmentButton(group.selectionMode === "multiple")}
-                      onClick={() => {
-                        updateGroup(gi, "selectionMode", "multiple");
-                        persistGroup(gi, { selectionMode: "multiple" });
-                      }}
-                    >
-                      可複選
-                    </button>
-                  </div>
-                  <div
-                    className="flex rounded-md bg-gray-200/70 p-0.5"
-                    role="group"
+                    value={group.selectionMode}
+                    options={[
+                      { value: "single", label: "單選" },
+                      { value: "multiple", label: "可複選" },
+                    ]}
+                    onChange={(mode) => {
+                      updateGroup(gi, "selectionMode", mode);
+                      persistGroup(gi, { selectionMode: mode });
+                    }}
+                  />
+                  <SegmentedToggle
                     aria-label="是否必選"
-                  >
-                    <button
-                      type="button"
-                      aria-pressed={group.required}
-                      className={segmentButton(group.required)}
-                      onClick={() => {
-                        updateGroup(gi, "required", true);
-                        persistGroup(gi, { required: true });
-                      }}
+                    value={group.required ? "required" : "optional"}
+                    options={[
+                      { value: "required", label: "必選" },
+                      { value: "optional", label: "可跳過" },
+                    ]}
+                    onChange={(v) => {
+                      const required = v === "required";
+                      updateGroup(gi, "required", required);
+                      persistGroup(gi, { required });
+                    }}
+                  />
+                  <Popover>
+                    <PopoverTrigger
+                      className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-600 data-[state=open]:text-gray-600"
+                      aria-label="區塊規則說明"
                     >
-                      必選
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={!group.required}
-                      className={segmentButton(!group.required)}
-                      onClick={() => {
-                        updateGroup(gi, "required", false);
-                        persistGroup(gi, { required: false });
-                      }}
-                    >
-                      可跳過
-                    </button>
-                  </div>
+                      <Info className="size-4" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto max-w-64 px-3 py-2">
+                      <p className="text-xs text-gray-600">{groupRuleSentence(group)}</p>
+                    </PopoverContent>
+                  </Popover>
                   <button
                     type="button"
                     onClick={() => handleRemoveGroup(gi)}
@@ -308,9 +294,8 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                     <X className="size-4" />
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">{groupRuleSentence(group)}</p>
                 {groupItems.length > 0 ? (
-                  <ul className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3">
+                  <ul className="flex flex-col divide-y divide-hairline">
                     {groupItems.map(({ item, index }) => renderItemRow(item, index))}
                   </ul>
                 ) : (
@@ -336,14 +321,14 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
             );
             if (ungrouped.length === 0) return null;
             return (
-              <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
-                <p className="mb-1 text-sm font-medium text-amber-700">
+              <div className="flex flex-col gap-1 border-l-2 border-amber-400 pl-3 sm:pl-4">
+                <p className="text-sm font-medium text-amber-700">
                   尚未指定區塊的票券
                 </p>
-                <p className="mb-2 text-xs text-amber-700/80">
+                <p className="text-xs text-amber-700/80">
                   這些票券不會出現在報名表上，請先把它們移到一個區塊。
                 </p>
-                <ul className="flex flex-col gap-2">
+                <ul className="flex flex-col divide-y divide-hairline">
                   {ungrouped.map(({ item, index }) =>
                     renderItemRow(item, index, { showAssignSelect: true })
                   )}
