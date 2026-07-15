@@ -54,6 +54,16 @@ export type PriceTierDraft = {
 
 export type NoticeItemDraft = { id?: number; content: string };
 
+/** 折扣碼草稿；value / usageLimit 以字串存放對應 input（usageLimit 空 = 不限） */
+export type CouponDraft = {
+  id?: number;
+  code: string;
+  discountType: "fixed" | "percent";
+  value: string;
+  usageLimit: string;
+  usedCount?: number;
+};
+
 /** ISO 時間轉成 date input 的 "YYYY-MM-DD"（當地） */
 function toDateInput(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -155,6 +165,13 @@ export function useEventForm({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // 票券設定區（edit 模式）的自動儲存狀態；失敗訊息仍走 saveError
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "saving" | "saved"
+  >("idle");
+  const autoSaveInFlightRef = useRef(0);
+  // 基本資訊／主辦收款欄位是否有尚未按「儲存變更」的變更
+  const [basicDirty, setBasicDirty] = useState(false);
   // 新增活動依所選類型預填購買項目範本（時段／群組／項目／互斥），可自行增刪修改；
   // 編輯模式皆從空起始，由載入 effect 從 API 回填
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>(() =>
@@ -172,7 +189,7 @@ export function useEventForm({
   const [groups, setGroups] = useState<PurchaseItemGroupDraft[]>(() =>
     mode === "create" ? getEventTemplate(initialType ?? "Party").groups : []
   );
-  // 群組互斥配對；以群組 key（`id-<id>` / `draft-<index>`）成對表示，與 PurchaseItemsSection 一致
+  // 群組互斥配對；以群組 key（`id-<id>` / `draft-<index>`）成對表示，與票券設定 UI 一致
   const [groupExclusions, setGroupExclusions] = useState<Array<[string, string]>>(
     () =>
       mode === "create"
@@ -180,8 +197,42 @@ export function useEventForm({
         : []
   );
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
+  const [coupons, setCoupons] = useState<CouponDraft[]>([]);
 
   const initializedEventIdRef = useRef<number | null>(null);
+
+  // 以 in-flight 計數器追蹤自動儲存中的請求；全部完成後顯示「已自動儲存」
+  const trackAutoSave = async <T,>(work: Promise<T>): Promise<T> => {
+    autoSaveInFlightRef.current += 1;
+    setAutoSaveStatus("saving");
+    try {
+      return await work;
+    } finally {
+      autoSaveInFlightRef.current -= 1;
+      if (autoSaveInFlightRef.current <= 0) {
+        autoSaveInFlightRef.current = 0;
+        setAutoSaveStatus("saved");
+      }
+    }
+  };
+
+  /** 包住 edit 模式會直接打 API 的 mutator，讓 UI 能顯示自動儲存狀態 */
+  const withAutoSave = <A extends unknown[], R>(
+    fn: (...args: A) => Promise<R>
+  ) => {
+    return (...args: A): Promise<R> => {
+      if (mode !== "edit" || eventId == null) return fn(...args);
+      return trackAutoSave(fn(...args));
+    };
+  };
+
+  /** 包住基本資訊／主辦收款 setter，追蹤是否有未按「儲存變更」的變更 */
+  const markBasicDirty = <A extends unknown[]>(fn: (...args: A) => void) => {
+    return (...args: A) => {
+      setBasicDirty(true);
+      fn(...args);
+    };
+  };
 
   const { startUpload: startCoverUpload, isUploading: isUploadingCover } =
     useUploadThing("eventCover", {
@@ -304,7 +355,10 @@ export function useEventForm({
       fetch(`/api/events/${eventId}/group-exclusions`, {
         credentials: "include",
       }).then((r) => r.json()),
-    ]).then(([pData, nData, tData, gData, eData]) => {
+      fetch(`/api/events/${eventId}/coupons`, {
+        credentials: "include",
+      }).then((r) => r.json()),
+    ]).then(([pData, nData, tData, gData, eData, cData]) => {
       const items = (pData?.purchaseItems ?? []).map(
         (i: {
           id: number;
@@ -362,11 +416,29 @@ export function useEventForm({
           `id-${e.groupBId}`,
         ]
       );
+      const couponList = (cData?.coupons ?? []).map(
+        (c: {
+          id: number;
+          code: string;
+          discountType: string;
+          value: number;
+          usageLimit: number | null;
+          usedCount: number;
+        }): CouponDraft => ({
+          id: c.id,
+          code: c.code,
+          discountType: c.discountType === "percent" ? "percent" : "fixed",
+          value: String(c.value),
+          usageLimit: c.usageLimit == null ? "" : String(c.usageLimit),
+          usedCount: c.usedCount ?? 0,
+        })
+      );
       setPurchaseItems(items);
       setNoticeItems(notices);
       setPriceTiers(tiers);
       setGroups(groupList);
       setGroupExclusions(exclusions);
+      setCoupons(couponList);
     });
   }, [mode, eventId]);
 
@@ -377,11 +449,19 @@ export function useEventForm({
   const closeDrawer = () => {
     setDrawer(null);
     setEditingItemIndex(null);
+    setAdderDefaultGroupKey("");
   };
 
-  // 開啟「新增購買項目」抽屜（確保非編輯模式）
-  const openPurchaseItemAdder = () => {
+  // 從區塊卡「＋新增票券」帶入的預設所屬區塊（`id-<id>` / `draft-<index>`）
+  const [adderDefaultGroupKey, setAdderDefaultGroupKey] = useState("");
+
+  // 開啟「新增購買項目」抽屜（確保非編輯模式）；可帶入預設所屬區塊。
+  // 防呆：直接當 onClick 用時第一參數會是事件物件，僅接受字串
+  const openPurchaseItemAdder = (defaultGroupKey?: unknown) => {
     setEditingItemIndex(null);
+    setAdderDefaultGroupKey(
+      typeof defaultGroupKey === "string" ? defaultGroupKey : ""
+    );
     setDrawer("purchaseItem");
   };
 
@@ -555,6 +635,66 @@ export function useEventForm({
     }
   };
 
+  // 把項目指派到票券區塊（groupKey 為 `id-<id>` / `draft-<index>`；空字串 = 取消指派）
+  const assignItemGroup = async (index: number, groupKey: string) => {
+    const item = purchaseItems[index];
+    if (!item) return;
+    let groupId: number | null = null;
+    let groupDraftIndex: number | undefined;
+    if (groupKey.startsWith("id-")) groupId = Number(groupKey.slice(3));
+    else if (groupKey.startsWith("draft-")) groupDraftIndex = Number(groupKey.slice(6));
+    const applyLocal = () =>
+      setPurchaseItems((prev) =>
+        prev.map((row, i) =>
+          i === index ? { ...row, groupId, groupDraftIndex } : row
+        )
+      );
+    if (item.id == null || mode !== "edit" || eventId == null) {
+      applyLocal();
+      return;
+    }
+    setSaveError(null);
+    try {
+      const res = await fetch(
+        `/api/events/${eventId}/purchase-items/${item.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ groupId }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSaveError(data.error || "更新購買項目失敗");
+        return;
+      }
+      applyLocal();
+    } catch {
+      setSaveError("更新購買項目失敗");
+    }
+  };
+
+  // autoCalcAmount 位於票券設定分頁（無儲存鈕），edit 模式改動時直接持久化
+  const updateAutoCalcAmount = async (value: boolean) => {
+    setAutoCalcAmount(value);
+    if (mode !== "edit" || eventId == null) return;
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ autoCalcAmount: value }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || "更新購買規則失敗");
+      }
+    } catch {
+      setSaveError("更新購買規則失敗");
+    }
+  };
+
   // ===== 票價時段 =====
   const addPriceTier = async () => {
     const sortOrder = priceTiers.length;
@@ -694,11 +834,16 @@ export function useEventForm({
     );
   };
 
-  // edit 模式：欄位變更時把該群組存回後端
-  const persistGroup = async (index: number) => {
+  // edit 模式：欄位變更時把該群組存回後端。
+  // override：緊接著 updateGroup 呼叫時 state 尚未更新，用它帶入最新值
+  const persistGroup = async (
+    index: number,
+    override?: Partial<PurchaseItemGroupDraft>
+  ) => {
     if (mode !== "edit" || eventId == null) return;
-    const group = groups[index];
-    if (group?.id == null) return;
+    const base = groups[index];
+    if (base?.id == null) return;
+    const group = { ...base, ...override };
     try {
       const res = await fetch(
         `/api/events/${eventId}/purchase-item-groups/${group.id}`,
@@ -766,6 +911,11 @@ export function useEventForm({
   // edit 模式：把互斥配對（僅含已存檔群組的 `id-` key）整批 PUT 回後端
   const persistGroupExclusions = async (pairs: Array<[string, string]>) => {
     if (mode !== "edit" || eventId == null) return;
+    await trackAutoSave(persistGroupExclusionsRequest(pairs));
+  };
+
+  const persistGroupExclusionsRequest = async (pairs: Array<[string, string]>) => {
+    if (mode !== "edit" || eventId == null) return;
     const exclusions = pairs
       .map(([a, b]) => {
         const ga = a.startsWith("id-") ? Number(a.slice(3)) : NaN;
@@ -800,6 +950,102 @@ export function useEventForm({
       void persistGroupExclusions(next);
       return next;
     });
+  };
+
+  // ===== 折扣碼 =====
+  const addCoupon = () => {
+    // 折扣碼需要使用者輸入有效內容才有意義，兩種模式都先加本地草稿，
+    // edit 模式由 persistCoupon 於欄位失焦時建立/更新後端資料
+    setCoupons((prev) => [
+      ...prev,
+      { code: "", discountType: "fixed", value: "", usageLimit: "" },
+    ]);
+  };
+
+  const updateCoupon = <K extends keyof CouponDraft>(
+    index: number,
+    field: K,
+    value: CouponDraft[K]
+  ) => {
+    setCoupons((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
+    );
+  };
+
+  const couponPayload = (c: CouponDraft) => ({
+    code: c.code,
+    discountType: c.discountType,
+    value: Number(c.value),
+    usageLimit: c.usageLimit.trim() === "" ? null : Number(c.usageLimit),
+  });
+
+  const isCouponComplete = (c: CouponDraft) =>
+    c.code.trim() !== "" && Number.isInteger(Number(c.value)) && Number(c.value) >= 1;
+
+  // edit 模式：欄位失焦時把該折扣碼存回後端（草稿列填齊 code + value 才建立）。
+  // override：緊接著 updateCoupon 呼叫時 state 尚未更新，用它帶入最新值
+  const persistCoupon = async (index: number, override?: Partial<CouponDraft>) => {
+    if (mode !== "edit" || eventId == null) return;
+    const base = coupons[index];
+    const coupon = base ? { ...base, ...override } : undefined;
+    if (!coupon || !isCouponComplete(coupon)) return;
+    try {
+      const res = await fetch(
+        coupon.id == null
+          ? `/api/events/${eventId}/coupons`
+          : `/api/events/${eventId}/coupons/${coupon.id}`,
+        {
+          method: coupon.id == null ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(couponPayload(coupon)),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSaveError(data.error || "儲存折扣碼失敗");
+        return;
+      }
+      setSaveError(null);
+      const saved = data.coupon;
+      if (saved?.id != null) {
+        setCoupons((prev) =>
+          prev.map((c, i) =>
+            i === index
+              ? {
+                  ...c,
+                  id: saved.id,
+                  code: saved.code,
+                  usedCount: saved.usedCount ?? c.usedCount ?? 0,
+                }
+              : c
+          )
+        );
+      }
+    } catch {
+      setSaveError("儲存折扣碼失敗");
+    }
+  };
+
+  const removeCoupon = async (index: number) => {
+    const coupon = coupons[index];
+    if (mode === "edit" && eventId != null && coupon?.id != null) {
+      try {
+        const res = await fetch(`/api/events/${eventId}/coupons/${coupon.id}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setSaveError(data.error || "刪除折扣碼失敗");
+          return;
+        }
+      } catch {
+        setSaveError("刪除折扣碼失敗");
+        return;
+      }
+    }
+    setCoupons((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -875,6 +1121,7 @@ export function useEventForm({
           setSaving(false);
           return;
         }
+        setBasicDirty(false);
         onSaveSuccess?.();
       } else {
         const res = await fetch("/api/events", {
@@ -1013,6 +1260,15 @@ export function useEventForm({
               }),
             });
           }
+          for (const coupon of coupons) {
+            if (!isCouponComplete(coupon)) continue;
+            await fetch(`/api/events/${newEventId}/coupons`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(couponPayload(coupon)),
+            });
+          }
         }
         window.location.href = "/events";
       }
@@ -1045,27 +1301,31 @@ export function useEventForm({
     purchaseItemHiddenUpdatingIndex,
     purchaseItemDeletingIndex,
     editingItemIndex,
+    adderDefaultGroupKey,
     priceTiers,
     groups,
     groupExclusions,
     noticeItems,
+    coupons,
     saveError,
     saving,
-    // Simple setters
-    setType,
+    autoSaveStatus,
+    basicDirty,
+    // Simple setters（基本資訊欄位包 dirty 追蹤）
+    setType: markBasicDirty(setType),
     applyTemplate,
-    setTitle,
-    setDescription,
-    setEndAt,
-    setLocationId,
-    setOrganizerId,
-    setBankInfoId,
-    setAllowMultiple,
-    setAutoCalcAmount,
+    setTitle: markBasicDirty(setTitle),
+    setDescription: markBasicDirty(setDescription),
+    setEndAt: markBasicDirty(setEndAt),
+    setLocationId: markBasicDirty(setLocationId),
+    setOrganizerId: markBasicDirty(setOrganizerId),
+    setBankInfoId: markBasicDirty(setBankInfoId),
+    setAllowMultiple: markBasicDirty(setAllowMultiple),
+    setAutoCalcAmount: withAutoSave(updateAutoCalcAmount),
     // Handlers
-    handleStartAtChange,
-    handleFileSelect,
-    removeCover,
+    handleStartAtChange: markBasicDirty(handleStartAtChange),
+    handleFileSelect: markBasicDirty(handleFileSelect),
+    removeCover: markBasicDirty(removeCover),
     openDrawer,
     closeDrawer,
     handleLocationSuccess,
@@ -1076,19 +1336,27 @@ export function useEventForm({
     openPurchaseItemAdder,
     openPurchaseItemEditor,
     handleNoticeItemSuccess,
-    deletePurchaseItem,
     removeNoticeItem,
-    setPurchaseItemHidden,
-    addPriceTier,
+    // 票券設定 mutators（edit 模式自動儲存，包狀態追蹤）
+    deletePurchaseItem: withAutoSave(deletePurchaseItem),
+    setPurchaseItemHidden: withAutoSave(setPurchaseItemHidden),
+    assignItemGroup: withAutoSave(assignItemGroup),
+    addPriceTier: withAutoSave(addPriceTier),
     updatePriceTier,
-    persistPriceTier,
-    removePriceTier,
-    addGroup,
+    persistPriceTier: withAutoSave(persistPriceTier),
+    removePriceTier: withAutoSave(removePriceTier),
+    addGroup: withAutoSave(addGroup),
     updateGroup,
-    persistGroup,
-    removeGroup,
+    persistGroup: withAutoSave(persistGroup),
+    removeGroup: withAutoSave(removeGroup),
     isGroupExcluded,
     toggleGroupExclusion,
+    addCoupon,
+    updateCoupon,
+    persistCoupon: withAutoSave(persistCoupon),
+    removeCoupon: withAutoSave(removeCoupon),
     handleSubmit,
   };
 }
+
+export type UseEventFormReturn = ReturnType<typeof useEventForm>;

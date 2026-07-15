@@ -64,7 +64,8 @@ export type PublicEventData = {
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
   /** 當下生效的票價時段（無時段時為 null），purchaseItems[].amount 已依此解析 */
-  activeTier: { name: string } | null;
+  /** 目前生效的票價時段；endsAt 為 null 表示不過期（一般／現場價） */
+  activeTier: { name: string; endsAt: string | null } | null;
   location: EventLocation | null;
   organizer: EventOrganizer | null;
   bankInfo: EventBankInfo | null;
@@ -72,4 +73,13 @@ export type PublicEventData = {
   /** 票種群組（含其下項目）；空陣列 = 此活動未使用群組，走舊模型 */
   groups: EventPurchaseItemGroup[];
   noticeItems: EventNoticeItem[];
+  /** 活動是否設有折扣碼（報名表據此顯示折扣碼輸入欄位） */
+  hasCoupons?: boolean;
+};
+
+/** 已套用的折扣碼（validate API 回傳、報名表單預覽用） */
+export type AppliedCoupon = {
+  code: string;
+  discountType: "fixed" | "percent";
+  value: number;
 };

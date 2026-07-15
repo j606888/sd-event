@@ -133,7 +133,7 @@ export function RegistrationDetail({
     registration.paymentStatus === "pending" || registration.paymentStatus === "reported";
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl space-y-6">
       {/* Header with navigation */}
       <div className="flex items-center justify-between">
         <button
@@ -168,7 +168,7 @@ export function RegistrationDetail({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="font-display text-lg font-bold text-ink">
               {registration.contactName}
             </h2>
             <div className="text-sm text-gray-600 mt-1">
@@ -233,7 +233,7 @@ export function RegistrationDetail({
 
       {/* Contact Information */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">聯絡人</h3>
+        <h3 className="font-display text-sm font-bold text-ink">聯絡人</h3>
         <div className="space-y-2 text-sm">
           <div>
             <span className="text-gray-500">姓名</span>
@@ -253,7 +253,7 @@ export function RegistrationDetail({
       {/* Participants */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">參與者</h3>
+          <h3 className="font-display text-sm font-bold text-ink">參與者</h3>
           <Button
             onClick={() => setShowCheckInDialog(true)}
             size="sm"
@@ -268,7 +268,7 @@ export function RegistrationDetail({
           {registration.attendees.map((attendee) => (
             <div
               key={attendee.id}
-              className="flex items-center justify-between p-2 rounded bg-gray-50"
+              className="flex items-center justify-between rounded-lg bg-field px-3 py-2"
             >
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-900">{attendee.name}</span>
@@ -289,13 +289,18 @@ export function RegistrationDetail({
 
       {/* Registration Items */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">報名項目</h3>
+        <h3 className="font-display text-sm font-bold text-ink">報名項目</h3>
         <div className="space-y-2 text-sm">
           {registration.purchaseItems && registration.purchaseItems.length > 0 ? (
             // Multiple purchase items
             registration.purchaseItems.map((item) => (
               <div key={item.id} className="flex justify-between">
-                <span className="text-gray-900">{item.name}</span>
+                <span className="text-gray-900">
+                  {item.name}
+                  {item.tierName && (
+                    <span className="ml-1.5 text-xs text-gray-400">（{item.tierName}）</span>
+                  )}
+                </span>
                 <span className="text-gray-900">${item.amount}</span>
               </div>
             ))
@@ -306,9 +311,32 @@ export function RegistrationDetail({
               <span className="text-gray-900">${registration.purchaseItem.amount}</span>
             </div>
           ) : null}
+          {(registration.discountAmount ?? 0) > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">
+                折扣碼
+                {registration.couponCode && (
+                  <span className="ml-1 font-mono text-gray-900">
+                    {registration.couponCode}
+                  </span>
+                )}
+              </span>
+              <span className="text-brand">
+                −${registration.discountAmount!.toLocaleString()}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-500">總金額</span>
             <span className="text-gray-900 font-semibold">
+              {(registration.discountAmount ?? 0) > 0 && (
+                <span className="mr-2 font-normal text-gray-400 line-through">
+                  $
+                  {(
+                    registration.totalAmount + (registration.discountAmount ?? 0)
+                  ).toLocaleString()}
+                </span>
+              )}
               ${registration.totalAmount.toLocaleString()}
             </span>
           </div>
@@ -317,7 +345,7 @@ export function RegistrationDetail({
 
       {/* Payment Details */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">付款資料</h3>
+        <h3 className="font-display text-sm font-bold text-ink">付款資料</h3>
         <div className="space-y-2 text-sm">
           <div>
             <span className="text-gray-500">付款方式</span>
@@ -339,7 +367,7 @@ export function RegistrationDetail({
       {/* Payment Screenshot */}
       {registration.paymentScreenshotUrl && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-gray-900">付款證明</h3>
+          <h3 className="font-display text-sm font-bold text-ink">付款證明</h3>
           <button
             type="button"
             onClick={() => setImagePreviewOpen(true)}
@@ -362,7 +390,7 @@ export function RegistrationDetail({
           disabled={updating}
           className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
         >
-          {updating ? "處理中…" : "標記為已完成"}
+          {updating ? "處理中…" : "確認收款"}
         </Button>
       )}
 

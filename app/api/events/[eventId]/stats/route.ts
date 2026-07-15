@@ -137,6 +137,8 @@ export async function GET(_request: Request, { params }: Params) {
       name: eventPurchaseItems.name,
       amount: eventPurchaseItems.amount,
       attendeeCount: sql<number>`cast(sum(att_counts.cnt * ${eventRegistrationPurchaseItems.quantity}) as int)`,
+      // 實收加總：報名當下的單價快照（unitAmount，含時段價）優先，舊資料退回項目定價
+      revenue: sql<number>`cast(sum(att_counts.cnt * ${eventRegistrationPurchaseItems.quantity} * coalesce(${eventRegistrationPurchaseItems.unitAmount}, ${eventPurchaseItems.amount})) as int)`,
     })
     .from(eventRegistrationPurchaseItems)
     .innerJoin(eventPurchaseItems, eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id))
@@ -148,7 +150,10 @@ export async function GET(_request: Request, { params }: Params) {
       eventPurchaseItems.amount,
     );
 
-  const summaryMap = new Map<number, { id: number; name: string; amount: number; attendeeCount: number }>();
+  const summaryMap = new Map<
+    number,
+    { id: number; name: string; amount: number; attendeeCount: number; revenue: number }
+  >();
   const registrationsWithMultiItems = new Set<number>();
 
   // Build summaryMap from DB-aggregated multi-item results.
@@ -158,6 +163,7 @@ export async function GET(_request: Request, { params }: Params) {
       name: row.name,
       amount: row.amount,
       attendeeCount: Number(row.attendeeCount),
+      revenue: Number(row.revenue),
     });
   }
 
@@ -217,9 +223,12 @@ export async function GET(_request: Request, { params }: Params) {
     const meta = singleItemMetaMap.get(reg.purchaseItemId);
     if (!meta) continue;
     const attendeeCount = attendeeCountByRegistrationId.get(reg.id) ?? 0;
+    // 單一項目（舊制）沒有單價快照，實收以項目定價估計
+    const revenue = attendeeCount * meta.amount;
     const current = summaryMap.get(reg.purchaseItemId);
     if (current) {
       current.attendeeCount += attendeeCount;
+      current.revenue += revenue;
       continue;
     }
     summaryMap.set(reg.purchaseItemId, {
@@ -227,6 +236,7 @@ export async function GET(_request: Request, { params }: Params) {
       name: meta.name,
       amount: meta.amount,
       attendeeCount,
+      revenue,
     });
   }
 

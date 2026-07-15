@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
-import { formatEventDate, getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
+import { getEventDateLabel, getEventTimeRange, formatTierDeadline } from "@/lib/format-event-date";
 import type { PublicEventData } from "@/types/event";
 import { Clock, MapPin, Disc3 } from "lucide-react";
 import { siInstagram, siLine, siFacebook } from "simple-icons";
@@ -100,7 +100,14 @@ export function EventDetailsStep({
 
           {event.purchaseItems.length > 0 && (
             <div className="space-y-2 pb-6 border-b border-gray-200">
-              <h2 className="font-display text-base font-semibold text-ink">方案介紹</h2>
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="font-display text-base font-semibold text-ink">方案介紹</h2>
+                {event.activeTier?.endsAt && (
+                  <span className="rounded-full bg-follower/10 px-2.5 py-0.5 text-xs font-medium text-follower">
+                    {event.activeTier.name}價至 {formatTierDeadline(event.activeTier.endsAt)} 止
+                  </span>
+                )}
+              </div>
               <div className="space-y-2">
                 {event.purchaseItems.map((item) => (
                   <div

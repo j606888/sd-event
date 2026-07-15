@@ -201,9 +201,10 @@ export function ReportPaymentPage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+      <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+      <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.back()}
           className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100"
@@ -344,6 +345,7 @@ export function ReportPaymentPage({
               ? "送出中…"
               : "送出"}
         </Button>
+      </div>
       </div>
     </div>
   );

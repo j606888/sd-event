@@ -17,6 +17,7 @@ export const userRoleEnum = pgEnum("user_role", ["Organizer"]);
 export const teamMemberRoleEnum = pgEnum("team_member_role", ["owner", "member"]);
 export const eventStatusEnum = pgEnum("event_status", ["draft", "published"]);
 export const eventTypeEnum = pgEnum("event_type", ["Party", "Workshop", "Festival"]);
+export const couponDiscountTypeEnum = pgEnum("coupon_discount_type", ["fixed", "percent"]);
 
 // ============ Users ============
 export const users = pgTable("users", {
@@ -235,6 +236,29 @@ export const eventGroupExclusions = pgTable("event_group_exclusions", {
   index("idx_group_exclusions_event_id").on(t.eventId),
 ]);
 
+// ============ Event Coupons (折扣碼) ============
+// 僅在伺服器能權威計算金額的活動（群組模式或 autoCalcAmount）生效。
+export const eventCoupons = pgTable("event_coupons", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  /** 正規化（trim + 大寫）後儲存，查詢亦以正規化後比對 → 不分大小寫 */
+  code: text("code").notNull(),
+  discountType: couponDiscountTypeEnum("discount_type").notNull(),
+  /** fixed: 整筆報名折抵的 TWD 金額；percent: 折扣百分比 1–100（10 = 九折） */
+  value: integer("value").notNull(),
+  /** 可使用的報名筆數上限；null = 不限 */
+  usageLimit: integer("usage_limit"),
+  /** 已使用筆數；報名 transaction 內原子遞增。取消/拒絕報名不回補。 */
+  usedCount: integer("used_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique("uniq_coupon_event_code").on(t.eventId, t.code),
+  index("idx_coupons_event_id").on(t.eventId),
+]);
+
 // ============ Event Notice Items (須知項目) ============
 export const eventNoticeItems = pgTable("event_notice_items", {
   id: serial("id").primaryKey(),
@@ -267,7 +291,16 @@ export const eventRegistrations = pgTable("event_registrations", {
   source: text("source").notNull().default("online"),
   /** 付款資訊 */
   paymentMethod: text("payment_method"), // "Line Pay", "Bank Transfer", "Other", "Cash"
+  /** 實付金額（已折扣）；原價 = totalAmount + discountAmount */
   totalAmount: integer("total_amount").notNull(),
+  /** 使用的折扣碼；coupon 被刪除後仍以快照欄位保留顯示資訊 */
+  couponId: integer("coupon_id").references(() => eventCoupons.id, {
+    onDelete: "set null",
+  }),
+  /** 折扣碼字面快照 */
+  couponCode: text("coupon_code"),
+  /** 折抵金額快照 */
+  discountAmount: integer("discount_amount").notNull().default(0),
   /** 付款狀態 */
   paymentStatus: text("payment_status").notNull().default("pending"), // "pending", "reported", "confirmed", "rejected"
   /** 付款回報資訊 */

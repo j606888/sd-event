@@ -9,9 +9,11 @@ import {
   PAYMENT_OPTIONS,
   CHECK_IN_OPTIONS,
   HIDDEN_OPTIONS,
+  COUPON_OPTIONS,
   type PaymentFilter,
   type CheckInFilter,
   type HiddenFilter,
+  type CouponFilter,
 } from "@/lib/registration-list-filters";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,10 +30,42 @@ type RegistrationsListProps = {
   onCheckInFilterChange: (v: CheckInFilter) => void;
   hiddenFilter: HiddenFilter;
   onHiddenFilterChange: (v: HiddenFilter) => void;
+  couponFilter: CouponFilter;
+  onCouponFilterChange: (v: CouponFilter) => void;
   /** Total count before filters (for empty state message) */
   totalUnfilteredCount?: number;
   isLoading?: boolean;
 };
+
+/** 篩選 pill 群：選中＝品牌色實心，未選＝灰底 */
+function FilterPills<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+            value === opt.value
+              ? "bg-brand text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function getAttendanceTag(attendeeCount: number, checkedInCount: number) {
   const checked = checkedInCount ?? 0;
@@ -55,6 +89,8 @@ export function RegistrationsList({
   onCheckInFilterChange,
   hiddenFilter,
   onHiddenFilterChange,
+  couponFilter,
+  onCouponFilterChange,
   totalUnfilteredCount = 0,
   isLoading = false,
 }: RegistrationsListProps) {
@@ -63,7 +99,8 @@ export function RegistrationsList({
   const activeFilterCount =
     (paymentFilter !== "all" ? 1 : 0) +
     (checkInFilter !== "all" ? 1 : 0) +
-    (hiddenFilter !== "non_hidden" ? 1 : 0);
+    (hiddenFilter !== "non_hidden" ? 1 : 0) +
+    (couponFilter !== "all" ? 1 : 0);
 
   return (
     <div className="space-y-4">
@@ -76,7 +113,7 @@ export function RegistrationsList({
             placeholder="搜尋名稱、電話、Email"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 bg-white border border-gray-300 focus-visible:border-brand"
+            className="pl-10"
           />
           {searchQuery.length > 0 && (
             <button
@@ -121,75 +158,44 @@ export function RegistrationsList({
         <div className="space-y-6">
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">狀態</h3>
-            <div className="flex flex-wrap gap-2">
-              {PAYMENT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onPaymentFilterChange(opt.value)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    paymentFilter === opt.value
-                      ? opt.value === "all"
-                        ? "bg-brand text-white"
-                        : "bg-sky-50 text-sky-700 border border-sky-200"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <FilterPills
+              options={PAYMENT_OPTIONS}
+              value={paymentFilter}
+              onChange={onPaymentFilterChange}
+            />
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">入場狀態</h3>
-            <div className="flex flex-wrap gap-2">
-              {CHECK_IN_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onCheckInFilterChange(opt.value)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    checkInFilter === opt.value
-                      ? opt.value === "all"
-                        ? "bg-brand text-white"
-                        : "bg-sky-50 text-sky-700 border border-sky-200"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <FilterPills
+              options={CHECK_IN_OPTIONS}
+              value={checkInFilter}
+              onChange={onCheckInFilterChange}
+            />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">折扣碼</h3>
+            <FilterPills
+              options={COUPON_OPTIONS}
+              value={couponFilter}
+              onChange={onCouponFilterChange}
+            />
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">顯示</h3>
-            <div className="flex flex-wrap gap-2">
-              {HIDDEN_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onHiddenFilterChange(opt.value)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    hiddenFilter === opt.value
-                      ? opt.value === "non_hidden"
-                        ? "bg-brand text-white"
-                        : "bg-sky-50 text-sky-700 border border-sky-200"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <FilterPills
+              options={HIDDEN_OPTIONS}
+              value={hiddenFilter}
+              onChange={onHiddenFilterChange}
+            />
           </div>
         </div>
       </Drawer>
 
       {/* Registrations List */}
       {isLoading ? (
-        <div className="space-y-2">
+        <div className="divide-y divide-hairline">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="p-4 rounded-lg border border-gray-200 bg-white">
+            <div key={i} className="px-2 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-32" />
@@ -207,11 +213,11 @@ export function RegistrationsList({
           ))}
         </div>
       ) : registrations.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 py-12 text-center text-sm text-gray-500">
+        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500">
           {totalUnfilteredCount === 0 ? "尚無報名記錄" : "沒有符合條件的報名記錄"}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-hairline">
           {registrations.map((reg) => {
             const attendance = getAttendanceTag(reg.attendeeCount, reg.checkedInCount ?? 0);
 
@@ -219,7 +225,7 @@ export function RegistrationsList({
               <button
                 key={reg.id}
                 onClick={() => onSelect(reg.id)}
-                className="w-full text-left p-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                className="w-full text-left px-2 py-3.5 rounded-lg hover:bg-brand/[0.04] transition-colors cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -238,6 +244,11 @@ export function RegistrationsList({
                       <span className="text-sm text-gray-600">
                         NT ${reg.totalAmount.toLocaleString()}
                       </span>
+                      {reg.couponCode && (
+                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium font-mono bg-brand/10 text-brand">
+                          {reg.couponCode}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-end gap-1.5 shrink-0 flex-wrap">

@@ -16,6 +16,8 @@ export type RegistrationApiResponse = {
     contactEmail: string;
     paymentMethod: string | null;
     totalAmount: number;
+    couponCode: string | null;
+    discountAmount: number;
     paymentStatus: string;
     paymentScreenshotUrl: string | null;
     paymentNote: string | null;

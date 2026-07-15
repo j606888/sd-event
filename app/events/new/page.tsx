@@ -28,7 +28,7 @@ export default function NewEventPage() {
   // 第一步：選擇活動類型，據此預填購買項目範本
   if (selectedType == null) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-8">
+      <div className="w-full max-w-3xl px-4 py-6 md:px-8 md:py-8">
         <h1 className="mb-2 font-display text-3xl font-semibold text-ink">
           建立新活動
         </h1>
@@ -66,13 +66,13 @@ export default function NewEventPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8">
+    <div className="w-full max-w-3xl px-4 py-6 md:px-8 md:py-8">
       <h1 className="mb-8 font-display text-3xl font-semibold text-ink">建立新活動</h1>
       <EventForm
         mode="create"
         teamId={teamId}
         initialType={selectedType}
-        submitLabel="儲存草稿"
+        submitLabel="建立活動"
       />
     </div>
   );

@@ -103,7 +103,14 @@ export function formatEventDate(startAt: string, endAt: string): string {
     const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${period} ${displayHour}:${String(minute).padStart(2, "0")}`;
   };
-  return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
+  // 跨日活動須帶出結束日期，避免摘要看起來只有一天
+  const s = getDatePartsInTz(start);
+  const e = getDatePartsInTz(end);
+  const isSameDay = s.year === e.year && s.month === e.month && s.day === e.day;
+  if (isSameDay) {
+    return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
+  }
+  return `${fmt(start)} ${timeFmt(start)} ~ ${fmt(end)} ${timeFmt(end)}`;
 }
 
 /**
@@ -119,6 +126,12 @@ export function formatTimestamp(isoString: string): string {
   return `${year}年${String(month).padStart(2, "0")}月${String(day).padStart(2, "0")}日 ${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
 }
 
+/** 票價時段截止日（M/D，Asia/Taipei），用於「早鳥價至 7/31 止」等提示 */
+export function formatTierDeadline(iso: string): string {
+  const p = getDatePartsInTz(new Date(iso));
+  return `${p.month}/${p.day}`;
+}
+
 export function formatEventDateShort(startAt: string, endAt: string): string {
   const start = new Date(startAt);
   const end = new Date(endAt);
@@ -130,5 +143,12 @@ export function formatEventDateShort(startAt: string, endAt: string): string {
     const { hour, minute } = getTimePartsInTz(d);
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   };
-  return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
+  // 跨日活動須帶出結束日期，避免摘要看起來只有一天
+  const s = getDatePartsInTz(start);
+  const e = getDatePartsInTz(end);
+  const isSameDay = s.year === e.year && s.month === e.month && s.day === e.day;
+  if (isSameDay) {
+    return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
+  }
+  return `${fmt(start)} ${timeFmt(start)} ~ ${fmt(end)} ${timeFmt(end)}`;
 }

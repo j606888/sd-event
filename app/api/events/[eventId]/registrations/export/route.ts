@@ -9,7 +9,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, desc, or, like, and, inArray } from "drizzle-orm";
+import { eq, desc, or, like, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { matchesCheckInFilter, type CheckInFilter } from "@/lib/registration-list-filters";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -75,6 +75,7 @@ export async function GET(request: Request, { params }: Params) {
   const paymentStatus = searchParams.get("paymentStatus") || "all";
   const hiddenFilter = searchParams.get("hiddenFilter") || "all";
   const checkInFilter = (searchParams.get("checkInFilter") || "all") as CheckInFilter;
+  const couponFilter = searchParams.get("couponFilter") || "all";
 
   // 與列表 API 相同的 where 條件（搜尋 / 付款狀態 / 隱藏）
   const whereConditions = [eq(eventRegistrations.eventId, eventId)];
@@ -102,6 +103,12 @@ export async function GET(request: Request, { params }: Params) {
     whereConditions.push(eq(eventRegistrations.hidden, false));
   } else if (hiddenFilter === "hidden") {
     whereConditions.push(eq(eventRegistrations.hidden, true));
+  }
+
+  if (couponFilter === "used") {
+    whereConditions.push(isNotNull(eventRegistrations.couponCode));
+  } else if (couponFilter === "not_used") {
+    whereConditions.push(isNull(eventRegistrations.couponCode));
   }
 
   const registrations = await db
@@ -177,6 +184,8 @@ export async function GET(request: Request, { params }: Params) {
     "角色",
     "報名項目",
     "金額",
+    "折扣碼",
+    "折抵金額",
     "付款方式",
     "付款狀態",
     "入場狀態",
@@ -228,6 +237,8 @@ export async function GET(request: Request, { params }: Params) {
           a ? ROLE_LABELS[a.role] ?? a.role : "",
           itemLabel,
           reg.totalAmount,
+          reg.couponCode ?? "",
+          reg.discountAmount > 0 ? reg.discountAmount : "",
           paymentMethodLabel,
           paymentStatusLabel,
           checkInLabel,

@@ -14,19 +14,19 @@ export function AppShell({ children }: AppShellProps) {
   const { team, teams, refetch: refetchTeams, changeTeam } = useCurrentTeam();
 
   return (
-    <div className="flex relative">
-      <Sidebar 
-        open={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+    <div className="flex relative min-h-dvh">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
         team={team}
         teams={teams}
         onTeamChange={refetchTeams}
         changeTeam={changeTeam}
       />
-      
+
       <div className="flex-1 flex flex-col min-w-0 lg:ml-[280px]">
         <Header onMenuClick={() => setSidebarOpen(true)} team={team} />
-        <main className="flex-1 flex flex-col overflow-auto">{children}</main>
+        <main className="flex-1 flex flex-col overflow-auto bg-surface">{children}</main>
       </div>
     </div>
   );

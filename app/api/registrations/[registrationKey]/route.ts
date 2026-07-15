@@ -95,6 +95,7 @@ export async function GET(_request: Request, { params }: Params) {
               id: eventPurchaseItems.id,
               name: eventPurchaseItems.name,
               amount: eventPurchaseItems.amount,
+              unitAmount: eventRegistrationPurchaseItems.unitAmount,
             })
             .from(eventRegistrationPurchaseItems)
             .innerJoin(
@@ -102,6 +103,13 @@ export async function GET(_request: Request, { params }: Params) {
               eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
             )
             .where(eq(eventRegistrationPurchaseItems.registrationId, registration.id))
+            // 金額優先用報名當下的單價快照（含時段價），舊資料退回項目定價
+            .then((rows) =>
+              rows.map(({ unitAmount, ...row }) => ({
+                ...row,
+                amount: unitAmount ?? row.amount,
+              }))
+            )
         : Promise.resolve([]),
     ]);
 
@@ -123,6 +131,8 @@ export async function GET(_request: Request, { params }: Params) {
         contactEmail: registration.contactEmail,
         paymentMethod: registration.paymentMethod,
         totalAmount: registration.totalAmount,
+        couponCode: registration.couponCode,
+        discountAmount: registration.discountAmount,
         paymentStatus: registration.paymentStatus,
         paymentScreenshotUrl: registration.paymentScreenshotUrl,
         paymentNote: registration.paymentNote,

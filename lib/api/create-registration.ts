@@ -6,6 +6,8 @@ export type CreateRegistrationBody = {
   contactEmail: string;
   paymentMethod: string;
   totalAmount: number;
+  /** 折扣碼（伺服器會重新驗證與計算折扣）；null = 未使用 */
+  couponCode: string | null;
   attendees: Array<{ name: string; role: string }>;
 };
 
@@ -19,6 +21,8 @@ export type CreateRegistrationResult = {
     contactEmail: string;
     paymentMethod: string | null;
     totalAmount: number;
+    couponCode: string | null;
+    discountAmount: number;
     paymentStatus: string;
     createdAt: string;
   };

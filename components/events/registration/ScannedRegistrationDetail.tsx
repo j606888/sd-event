@@ -90,7 +90,7 @@ export function ScannedRegistrationDetail({
           {allCheckedIn && (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">
               <CheckCircle2 className="w-3 h-3" />
-              <span>已完成</span>
+              <span>已全員入場</span>
             </div>
           )}
         </div>

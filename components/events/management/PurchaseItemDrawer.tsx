@@ -17,6 +17,8 @@ type PurchaseItemDrawerProps = {
   currentItems: PurchaseItemDraft[];
   priceTiers: PriceTierDraft[];
   groups: PurchaseItemGroupDraft[];
+  /** 新增模式的預設所屬區塊 key（`id-<id>` / `draft-<index>`；由區塊卡的「＋新增票券」帶入） */
+  defaultGroupKey?: string;
   /** 有值＝編輯既有項目（帶入原值）；無值＝新增 */
   editingItem?: { item: PurchaseItemDraft; index: number };
   onSuccess: (item: PurchaseItemDraft) => void;
@@ -30,6 +32,7 @@ export function PurchaseItemDrawer({
   currentItems,
   priceTiers,
   groups,
+  defaultGroupKey,
   editingItem,
   onSuccess,
   onUpdated,
@@ -59,10 +62,10 @@ export function PurchaseItemDrawer({
     }
     return init;
   });
-  // 所屬群組（key 為 group 的 id 或 draft index 的字串；空 = 未選）
+  // 所屬區塊（key 為 group 的 id 或 draft index 的字串；空 = 未選）
   const [groupKey, setGroupKey] = useState(() => {
     const it = editingItem?.item;
-    if (!it) return "";
+    if (!it) return defaultGroupKey ?? "";
     if (it.groupId != null) return `id-${it.groupId}`;
     if (it.groupDraftIndex != null) return `draft-${it.groupDraftIndex}`;
     return "";
@@ -113,7 +116,7 @@ export function PurchaseItemDrawer({
       return;
     }
     if (useGroups && !groupKey) {
-      setError("請選擇所屬群組");
+      setError("請選擇所屬區塊");
       return;
     }
     const prices = buildPrices();
@@ -245,17 +248,17 @@ export function PurchaseItemDrawer({
       </div>
       {useGroups && (
         <div className="flex flex-col gap-2">
-          <Label htmlFor="item-group">所屬群組 *</Label>
+          <Label htmlFor="item-group">所屬區塊 *</Label>
           <select
             id="item-group"
             className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
             value={groupKey}
             onChange={(e) => setGroupKey(e.target.value)}
           >
-            <option value="">請選擇群組</option>
+            <option value="">請選擇區塊</option>
             {groups.map((group, index) => (
               <option key={group.id ?? `draft-${index}`} value={groupKeyOf(group, index)}>
-                {group.title || "（未命名群組）"}
+                {group.title || "（未命名區塊）"}
               </option>
             ))}
           </select>
@@ -263,8 +266,13 @@ export function PurchaseItemDrawer({
       )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="item-amount">
-          {priceTiers.length > 0 ? "預設金額 *（時段未填價時的 fallback）" : "金額 *"}
+          {priceTiers.length > 0 ? "預設金額 *" : "金額 *"}
         </Label>
+        {priceTiers.length > 0 && (
+          <p className="-mt-1 text-xs text-gray-500">
+            某個時段沒填價格時，就會用這個金額。
+          </p>
+        )}
         <Input
           id="item-amount"
           placeholder="輸入金額"

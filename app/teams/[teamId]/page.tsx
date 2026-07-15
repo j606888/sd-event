@@ -213,10 +213,10 @@ export default function TeamDetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto w-full">
+    <div className="w-full max-w-3xl px-4 py-5 md:px-8 md:py-8">
       <div className="mb-6 flex items-center gap-4">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{team.name}</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">{team.name}</h1>
           <p className="text-sm text-gray-500">
             建立於 {new Date(team.createdAt).toLocaleDateString("zh-TW")}
           </p>
@@ -227,14 +227,14 @@ export default function TeamDetailPage() {
         </Button>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-900">團隊成員</h2>
+      <div className="space-y-2">
+        <h2 className="border-b border-hairline pb-2 text-xs font-bold tracking-[0.15em] text-gray-400">團隊成員</h2>
         {members.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 py-12 text-center text-gray-500">
+          <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
             尚無成員，點擊「邀請成員」新增
           </div>
         ) : (
-          <ul className="space-y-2">
+          <ul className="divide-y divide-hairline">
             {members.map((member) => {
               const canManage = currentUserRole === "owner"; // Only owners can manage members
               const isCurrentUser = member.userId === currentUserId;
@@ -242,7 +242,7 @@ export default function TeamDetailPage() {
               return (
                 <li
                   key={member.userId}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4"
+                  className="flex items-center gap-3 px-2 py-3.5"
                 >
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15 text-sm font-semibold text-brand">
                     {member.user.name.charAt(0).toUpperCase()}
@@ -294,13 +294,13 @@ export default function TeamDetailPage() {
       </div>
 
       {invitations.length > 0 && (
-        <div className="space-y-3 mt-6">
-          <h2 className="text-lg font-semibold text-gray-900">待處理邀請</h2>
-          <ul className="space-y-2">
+        <div className="space-y-2 mt-8">
+          <h2 className="border-b border-hairline pb-2 text-xs font-bold tracking-[0.15em] text-gray-400">待處理邀請</h2>
+          <ul className="divide-y divide-hairline">
             {invitations.map((invitation) => (
               <li
                 key={invitation.id}
-                className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/50 p-4"
+                className="flex items-center gap-3 px-2 py-3.5"
               >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700">
                   <Mail className="size-5" />

@@ -101,7 +101,7 @@ export default function EventsPage() {
   }).filter((g) => g.items.length > 0);
 
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 p-4 md:p-6">
+    <div className="w-full max-w-5xl flex-1 px-4 py-5 md:px-8 md:py-8">
       {/* Header with title and create button */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
@@ -118,18 +118,18 @@ export default function EventsPage() {
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-16 md:py-20 text-center text-gray-500">
+        <div className="rounded-xl border border-dashed border-gray-300 py-16 md:py-20 text-center text-gray-500">
           尚無活動，點擊「建立活動」開始
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
           {groups.map((group) => (
             <section key={group.status}>
-              <h2 className="mb-3 text-sm font-medium text-gray-500">
+              <h2 className="mb-1 flex items-baseline gap-2 border-b border-hairline pb-2 text-xs font-bold tracking-[0.15em] text-gray-400">
                 {group.title}
-                <span className="ml-1.5 text-gray-400">{group.items.length}</span>
+                <span className="font-display text-gray-300">{group.items.length}</span>
               </h2>
-              <ul className="space-y-2">
+              <ul className="divide-y divide-hairline">
                 {group.items.map((event) => (
                   <li key={event.id}>
                     <EventListRow

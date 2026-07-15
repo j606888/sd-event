@@ -7,19 +7,8 @@ import Image from "next/image";
 import { ChevronLeft, Clock, MapPin, Wallet, DollarSign, CheckCircle2 } from "lucide-react";
 import QRCode from "qrcode";
 import { getRegistrationByKey } from "@/lib/api/registration";
+import { formatEventDateShort } from "@/lib/format-event-date";
 import type { EntryVoucherPageData } from "@/types/registration";
-
-const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
-
-function formatEventDate(startAt: string, endAt: string): string {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  const fmt = (d: Date) =>
-    `${d.getMonth() + 1}月${d.getDate()}日 (${WEEKDAY[d.getDay()]})`;
-  const timeFmt = (d: Date) =>
-    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
-}
 
 function getRoleBadge(role: string) {
   const styles: Record<string, string> = {
@@ -41,11 +30,7 @@ export default function EntryVoucherPage() {
   const isInitialLoad = useRef(true);
 
   useEffect(() => {
-    if (!registrationKey) {
-      setError("無效的報名編號");
-      setLoading(false);
-      return;
-    }
+    if (!registrationKey) return;
 
     const transformApiData = (responseData: Awaited<ReturnType<typeof getRegistrationByKey>>) => {
       if (!responseData?.registration || !responseData?.event || !responseData?.attendees) {
@@ -69,6 +54,8 @@ export default function EntryVoucherPage() {
               }
             : null,
           totalAmount: String(responseData.registration.totalAmount),
+          couponCode: responseData.registration.couponCode ?? null,
+          discountAmount: responseData.registration.discountAmount ?? 0,
           attendees: responseData.attendees.map((a) => ({
             id: a.id,
             name: a.name,
@@ -158,27 +145,32 @@ export default function EntryVoucherPage() {
     return () => clearInterval(interval);
   }, [registrationKey]);
 
-  if (loading) {
+  if (loading && registrationKey) {
     return (
-      <div className="min-h-screen p-6 flex items-center justify-center">
-        <p className="text-gray-500">載入中…</p>
+      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
+        <p className="text-white/80">載入中…</p>
       </div>
     );
   }
 
-  if (error || !data || !qrCodeUrl) {
+  if (!registrationKey || error || !data || !qrCodeUrl) {
     return (
-      <div className="min-h-screen p-6 flex flex-col items-center justify-center gap-4">
-        <p className="text-red-500">{error ?? "找不到報名資料"}</p>
-        <p className="text-sm text-gray-500">連結可能已失效</p>
+      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
+        <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl text-center space-y-2">
+          <p className="text-red-500">
+            {(!registrationKey ? "無效的報名編號" : error) ?? "找不到報名資料"}
+          </p>
+          <p className="text-sm text-gray-500">連結可能已失效</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+      <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+      <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.push(`/registration-success/${registrationKey}`)}
           className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:bg-gray-100"
@@ -240,7 +232,7 @@ export default function EntryVoucherPage() {
             <div className="flex items-start gap-3">
               <Clock className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
               <span className="text-gray-900">
-                {formatEventDate(data.event.startAt, data.event.endAt)}
+                {formatEventDateShort(data.event.startAt, data.event.endAt)}
               </span>
             </div>
 
@@ -288,12 +280,26 @@ export default function EntryVoucherPage() {
               <div>
                 <div className="text-gray-500 text-xs">應付金額</div>
                 <div className="text-gray-900 font-semibold">
+                  {(data.registration.discountAmount ?? 0) > 0 && (
+                    <span className="mr-2 font-normal text-gray-400 line-through">
+                      NT{" "}
+                      {Number(data.registration.totalAmount) +
+                        (data.registration.discountAmount ?? 0)}
+                    </span>
+                  )}
                   NT {data.registration.totalAmount}
+                  {data.registration.couponCode &&
+                    (data.registration.discountAmount ?? 0) > 0 && (
+                      <span className="ml-2 font-mono text-xs font-normal text-brand">
+                        {data.registration.couponCode}
+                      </span>
+                    )}
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

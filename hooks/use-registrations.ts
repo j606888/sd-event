@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { PaymentFilter, HiddenFilter, CheckInFilter } from "@/lib/registration-list-filters";
+import type { PaymentFilter, HiddenFilter, CheckInFilter, CouponFilter } from "@/lib/registration-list-filters";
 import type { Registration, RegistrationDetailData } from "@/types/registration";
 import {
   createWalkInRegistration,
@@ -17,6 +17,7 @@ export type RegistrationsParams = {
   paymentStatus: PaymentFilter;
   hiddenFilter: HiddenFilter;
   checkInFilter: CheckInFilter;
+  couponFilter: CouponFilter;
 };
 
 export function useRegistrations(eventId: string, params: RegistrationsParams) {
@@ -30,6 +31,7 @@ export function useRegistrations(eventId: string, params: RegistrationsParams) {
         paymentStatus: params.paymentStatus,
         hiddenFilter: params.hiddenFilter,
         checkInFilter: params.checkInFilter,
+        couponFilter: params.couponFilter,
       });
       const res = await fetch(`/api/events/${eventId}/registrations?${qs}`, {
         credentials: "include",

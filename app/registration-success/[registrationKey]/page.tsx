@@ -74,6 +74,8 @@ export default function RegistrationSuccessPageRoute() {
               role: a.role,
             })),
             totalAmount: String(data.registration.totalAmount),
+            couponCode: data.registration.couponCode ?? null,
+            discountAmount: data.registration.discountAmount ?? 0,
             paymentMethod: data.registration.paymentMethod,
             attendees: data.attendees.map((a: any) => ({
               id: a.id,
@@ -142,6 +144,8 @@ export default function RegistrationSuccessPageRoute() {
         contactEmail: registrationData.registration.contactEmail,
         participants: registrationData.registration.participants,
         totalAmount: registrationData.registration.totalAmount,
+        couponCode: registrationData.registration.couponCode ?? null,
+        discountAmount: registrationData.registration.discountAmount ?? 0,
         paymentMethod: registrationData.registration.paymentMethod,
       }}
       registrationKey={registrationKey}

@@ -38,7 +38,14 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
         onUpdateParticipant={form.updateParticipant}
         canProceed={form.canProceedToStep3}
         onBack={() => form.setStep(1)}
-        onNext={() => form.setStep(3)}
+        onNext={form.proceedToPayment}
+        couponsSupported={form.couponsSupported}
+        applyingCoupon={form.applyingCoupon}
+        couponError={form.couponError}
+        onApplyCoupon={form.applyCoupon}
+        onRemoveCoupon={form.removeCoupon}
+        discountAmount={form.discountAmount}
+        finalAmount={form.finalAmount}
       />
     );
   }
@@ -49,6 +56,8 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
       formData={form.formData}
       selectedPlan={form.selectedPlan}
       selectedPlans={form.selectedPlans}
+      discountAmount={form.discountAmount}
+      finalAmount={form.finalAmount}
       copiedText={form.copiedText}
       onCopy={form.handleCopy}
       onPaymentMethodChange={(method) => form.setFormField("paymentMethod", method)}
