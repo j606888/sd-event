@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { EventForm } from "@/components/events/management/EventForm";
+import { Suspense, useEffect, useState } from "react";
+import { EventEditTabs } from "@/components/events/management/EventEditTabs";
 import { EventStats } from "@/components/events/management/EventStats";
 import { WalkInDrawer } from "@/components/events/management/WalkInDrawer";
 import { RegistrationEditDrawer } from "@/components/events/management/RegistrationEditDrawer";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Share2, UserPlus, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "@/hooks/use-event-detail";
+import { EVENT_TABS, FORM_TAB_IDS, useTabParam } from "@/hooks/use-tab-param";
 import {
   useRegistrations,
   useRegistrationDetail,
@@ -22,20 +23,37 @@ import {
 } from "@/hooks/use-registrations";
 import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter } from "@/lib/registration-list-filters";
 
-const TABS = [
-  { id: "form" as const, label: "表單" },
-  { id: "replies" as const, label: "報名者" },
-  { id: "stats" as const, label: "統計" },
-  { id: "verify" as const, label: "驗票" },
-];
+function EventDetailSkeleton() {
+  return (
+    <div className="mx-auto flex w-full flex-1 flex-col max-w-6xl">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+      <div className="flex border-b border-gray-200 bg-white px-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Skeleton key={i} className="h-10 w-16 mx-2 my-1.5 rounded" />
+        ))}
+      </div>
+      <div className="flex-1 p-4 space-y-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-10 w-full rounded-md" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-export default function EventDetailPage() {
+function EventDetailPageInner() {
   const params = useParams();
   const eventId = params?.eventId as string;
   const queryClient = useQueryClient();
 
-  // UI state
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("form");
+  // 分頁狀態同步至網址 ?tab=，可深連結、重新整理不跳走
+  const [activeTab, setTab] = useTabParam();
   const [shareCopied, setShareCopied] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -126,27 +144,7 @@ export default function EventDetailPage() {
   };
 
   if (eventQuery.isLoading) {
-    return (
-      <div className="mx-auto flex w-full flex-1 flex-col max-w-4xl">
-        <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-16" />
-        </div>
-        <div className="flex border-b border-gray-200 bg-white px-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-10 w-12 mx-2 my-1.5 rounded" />
-          ))}
-        </div>
-        <div className="flex-1 p-4 space-y-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-10 w-full rounded-md" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <EventDetailSkeleton />;
   }
 
   if (eventQuery.error || !event) {
@@ -164,8 +162,10 @@ export default function EventDetailPage() {
     );
   }
 
+  const isFormTab = (FORM_TAB_IDS as readonly string[]).includes(activeTab);
+
   return (
-    <div className="mx-auto flex w-full flex-1 flex-col max-w-4xl">
+    <div className="mx-auto flex w-full flex-1 flex-col max-w-6xl">
       <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
         <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-900">
           {event.title}
@@ -220,23 +220,24 @@ export default function EventDetailPage() {
           活動尚未發布：報名連結僅團隊成員能預覽，按「發布」後才對外開放報名。
         </div>
       )}
-      <div className="flex border-b border-gray-200 bg-white">
-        {TABS.map((tab) => (
+      {/* 單層分頁：手機可橫向捲動 */}
+      <div className="flex overflow-x-auto border-b border-gray-200 bg-white">
+        {EVENT_TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => {
-              setActiveTab(tab.id);
+              setTab(tab.id);
               setSelectedRegistrationId(null);
             }}
-            className={`relative flex flex-1 items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors cursor-pointer ${
+            className={`relative flex shrink-0 items-center justify-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors cursor-pointer sm:flex-1 ${
               activeTab === tab.id
                 ? "text-brand"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
             {tab.label}
-            {tab.id === "replies" && visibleRegistrationCount > 0 && (
+            {tab.id === "registrations" && visibleRegistrationCount > 0 && (
               <span className="rounded-full bg-brand px-1.5 py-0.5 text-xs font-medium text-white">
                 {visibleRegistrationCount}
               </span>
@@ -253,19 +254,20 @@ export default function EventDetailPage() {
 
       {/* Tab content */}
       <div className="flex-1 p-4">
-        {activeTab === "form" && (
-          <EventForm
-            mode="edit"
-            eventId={event.id}
+        {/* 表單三分頁常駐 mounted：未儲存的編輯在切到其他分頁時不會消失 */}
+        <div className={isFormTab ? "" : "hidden"}>
+          <EventEditTabs
             teamId={event.teamId}
+            eventId={event.id}
             initialData={event}
-            submitLabel="更新表單"
+            activeTab={activeTab}
+            setTab={setTab}
             onSaveSuccess={() =>
               queryClient.invalidateQueries({ queryKey: ["event", eventId] })
             }
           />
-        )}
-        {activeTab === "replies" && (
+        </div>
+        {activeTab === "registrations" && (
           <>
             {selectedRegistrationId && registrationDetailQuery.isLoading ? (
               <RegistrationDetailSkeleton onBack={() => setSelectedRegistrationId(null)} />
@@ -337,16 +339,16 @@ export default function EventDetailPage() {
                 <RegistrationsList
                   registrations={registrations}
                   onSelect={(id) => setSelectedRegistrationId(id)}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                paymentFilter={paymentFilter}
-                onPaymentFilterChange={setPaymentFilter}
-                checkInFilter={checkInFilter}
-                onCheckInFilterChange={setCheckInFilter}
-                hiddenFilter={hiddenFilter}
-                onHiddenFilterChange={setHiddenFilter}
-                couponFilter={couponFilter}
-                onCouponFilterChange={setCouponFilter}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  paymentFilter={paymentFilter}
+                  onPaymentFilterChange={setPaymentFilter}
+                  checkInFilter={checkInFilter}
+                  onCheckInFilterChange={setCheckInFilter}
+                  hiddenFilter={hiddenFilter}
+                  onHiddenFilterChange={setHiddenFilter}
+                  couponFilter={couponFilter}
+                  onCouponFilterChange={setCouponFilter}
                   totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
                   isLoading={registrationsQuery.isLoading}
                 />
@@ -434,5 +436,14 @@ export default function EventDetailPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function EventDetailPage() {
+  // useSearchParams（useTabParam）需要 Suspense boundary，否則 build 會失敗
+  return (
+    <Suspense fallback={<EventDetailSkeleton />}>
+      <EventDetailPageInner />
+    </Suspense>
   );
 }
