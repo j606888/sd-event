@@ -13,7 +13,9 @@ import {
   Building2,
   Landmark,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
+import { useSession } from "@/hooks/use-session";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,7 @@ type SidebarProps = {
 export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { isSuperAdmin } = useSession();
   const [createTeamDrawerOpen, setCreateTeamDrawerOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
@@ -206,6 +209,17 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
                 <SidebarLink href="/events/bank" icon={Landmark} label="銀行資訊" active={isActive("/events/bank")} onClick={onClose} />
               </nav>
             </div>
+
+            {isSuperAdmin && (
+              <div>
+                <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-white/35">
+                  站方
+                </p>
+                <nav className="flex flex-col gap-1">
+                  <SidebarLink href="/admin" icon={ShieldCheck} label="總管理" active={isActive("/admin")} onClick={onClose} />
+                </nav>
+              </div>
+            )}
           </div>
 
           {/* Logout */}

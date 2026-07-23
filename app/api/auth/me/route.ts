@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -14,6 +14,12 @@ export async function GET() {
       );
     }
 
+    const impersonatorId = session.impersonatorId;
+    const ids =
+      typeof impersonatorId === "number"
+        ? [session.userId, impersonatorId]
+        : [session.userId];
+
     const rows = await db
       .select({
         id: users.id,
@@ -21,12 +27,13 @@ export async function GET() {
         email: users.email,
         role: users.role,
         activeTeamId: users.activeTeamId,
+        isSuperAdmin: users.isSuperAdmin,
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1);
-    const user = rows[0];
+      .where(inArray(users.id, ids));
+
+    const user = rows.find((r) => r.id === session.userId);
 
     if (!user) {
       return NextResponse.json(
@@ -35,6 +42,11 @@ export async function GET() {
       );
     }
 
+    const admin =
+      typeof impersonatorId === "number"
+        ? rows.find((r) => r.id === impersonatorId)
+        : undefined;
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -42,8 +54,19 @@ export async function GET() {
         email: user.email,
         role: user.role,
         activeTeamId: user.activeTeamId,
+        // 模擬檢視中不揭露被模擬者的管理權限，避免前端顯示總管理入口
+        isSuperAdmin: admin ? false : user.isSuperAdmin,
         createdAt: user.createdAt,
       },
+      /** 有值 = 目前為總管理員唯讀模擬檢視 */
+      impersonation: admin
+        ? {
+            adminName: admin.name,
+            adminEmail: admin.email,
+            targetName: user.name,
+            targetEmail: user.email,
+          }
+        : null,
     });
   } catch (e) {
     console.error("Me error:", e);

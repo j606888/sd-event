@@ -9,6 +9,7 @@ import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { RoleBadge } from "./RoleBadge";
 import { formatTimestamp } from "@/lib/format-event-date";
+import { useReadOnly } from "@/hooks/use-session";
 import type { RegistrationDetailData } from "@/types/registration";
 
 type RegistrationDetailProps = {
@@ -100,6 +101,7 @@ export function RegistrationDetail({
   onCheckIn,
   onEdit,
 }: RegistrationDetailProps) {
+  const readOnly = useReadOnly();
   const [updating, setUpdating] = useState(false);
   const [hiddenUpdating, setHiddenUpdating] = useState(false);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
@@ -130,7 +132,8 @@ export function RegistrationDetail({
 
   const attendeeCount = registration.attendees.length;
   const showConfirmButton =
-    registration.paymentStatus === "pending" || registration.paymentStatus === "reported";
+    !readOnly &&
+    (registration.paymentStatus === "pending" || registration.paymentStatus === "reported");
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -193,7 +196,7 @@ export function RegistrationDetail({
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-gray-500">{formatTimestamp(registration.createdAt)}</span>
           <div className="flex items-center gap-2 shrink-0">
-            {onEdit && (
+            {onEdit && !readOnly && (
               <Button
                 type="button"
                 variant="outline"
@@ -205,7 +208,7 @@ export function RegistrationDetail({
                 編輯
               </Button>
             )}
-            {onHiddenToggle && (
+            {onHiddenToggle && !readOnly && (
               <Button
                 type="button"
                 variant="outline"
@@ -254,15 +257,17 @@ export function RegistrationDetail({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-sm font-bold text-ink">參與者</h3>
-          <Button
-            onClick={() => setShowCheckInDialog(true)}
-            size="sm"
-            variant="outline"
-            className="gap-2"
-          >
-            <QrCode className="w-4 h-4" />
-            手動入場
-          </Button>
+          {!readOnly && (
+            <Button
+              onClick={() => setShowCheckInDialog(true)}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <QrCode className="w-4 h-4" />
+              手動入場
+            </Button>
+          )}
         </div>
         <div className="space-y-2">
           {registration.attendees.map((attendee) => (

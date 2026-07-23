@@ -19,13 +19,25 @@ export async function verifyPassword(
   return bcrypt.compare(password, encrypted);
 }
 
-export type TokenPayload = { userId: number; email: string };
+export type TokenPayload = {
+  userId: number;
+  email: string;
+  /** 有值代表目前是總管理員模擬檢視中；userId 為被模擬者，此值為管理員本人 */
+  impersonatorId?: number;
+};
 
-export async function createToken(payload: TokenPayload): Promise<string> {
+/** 模擬檢視的 token 效期，比一般登入短很多 */
+export const IMPERSONATION_TTL = "30m";
+export const IMPERSONATION_MAX_AGE_SECONDS = 60 * 30;
+
+export async function createToken(
+  payload: TokenPayload,
+  expiresIn: string = "7d"
+): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(expiresIn)
     .sign(JWT_SECRET);
 }
 
@@ -35,7 +47,12 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
     const userId = payload.userId as number;
     const email = payload.email as string;
     if (typeof userId !== "number" || typeof email !== "string") return null;
-    return { userId, email };
+    const impersonatorId = payload.impersonatorId;
+    return {
+      userId,
+      email,
+      ...(typeof impersonatorId === "number" ? { impersonatorId } : {}),
+    };
   } catch {
     return null;
   }
@@ -48,13 +65,16 @@ export async function getSession(): Promise<TokenPayload | null> {
   return verifyToken(token);
 }
 
-export async function setAuthCookie(token: string): Promise<void> {
+export async function setAuthCookie(
+  token: string,
+  maxAge: number = 60 * 60 * 24 * 7 // 7 days
+): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge,
     path: "/",
   });
 }

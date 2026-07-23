@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Check, Link2, UserPlus, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "@/hooks/use-event-detail";
+import { useReadOnly } from "@/hooks/use-session";
 import { FORM_TAB_IDS, useTabParam } from "@/hooks/use-tab-param";
 import {
   useRegistrations,
@@ -55,6 +56,7 @@ function EventDetailPageInner() {
   const params = useParams();
   const eventId = params?.eventId as string;
   const queryClient = useQueryClient();
+  const readOnly = useReadOnly();
 
   // 分頁狀態同步至網址 ?tab=，可深連結、重新整理不跳走
   const [activeTab, setTab] = useTabParam();
@@ -192,7 +194,8 @@ function EventDetailPageInner() {
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={publishing}
+                disabled={publishing || readOnly}
+                title={readOnly ? "模擬檢視為唯讀模式" : undefined}
                 className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-follower px-4 text-sm font-medium text-white shadow-sm shadow-follower/25 transition-colors cursor-pointer hover:bg-follower-hover disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {publishing ? "發布中…" : "發布"}
@@ -321,6 +324,8 @@ function EventDetailPageInner() {
                     type="button"
                     size="sm"
                     onClick={() => setWalkInOpen(true)}
+                    disabled={readOnly}
+                    title={readOnly ? "模擬檢視為唯讀模式" : undefined}
                     className="gap-1.5 bg-brand text-white hover:bg-brand-hover"
                   >
                     <UserPlus className="size-4" />
