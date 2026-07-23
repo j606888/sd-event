@@ -71,6 +71,13 @@
       "when": 1783709730617,
       "tag": "0009_steep_caretaker",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784813363737,
+      "tag": "0010_boring_freak",
+      "breakpoints": true
     }
   ]
 }

@@ -49,6 +49,11 @@ export async function POST(request: Request) {
       );
     }
 
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, user.id));
+
     const token = await createToken({ userId: user.id, email: user.email });
     await setAuthCookie(token);
 

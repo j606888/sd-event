@@ -6,6 +6,7 @@ import { OrganizerPaymentFields } from "./OrganizerPaymentFields";
 import { EventFormDrawers } from "./EventFormDrawers";
 import { TicketSettings } from "./tickets/TicketSettings";
 import { useEventForm, type EventFormInitialData } from "@/hooks/use-event-form";
+import { useReadOnly } from "@/hooks/use-session";
 import type { EventTabId } from "@/hooks/use-tab-param";
 
 type EventEditTabsProps = {
@@ -31,6 +32,7 @@ export function EventEditTabs({
   setTab,
   onSaveSuccess,
 }: EventEditTabsProps) {
+  const readOnly = useReadOnly();
   const form = useEventForm({
     mode: "edit",
     teamId,
@@ -56,11 +58,15 @@ export function EventEditTabs({
       <Button
         type="submit"
         className="w-full bg-primary text-white hover:bg-brand-hover sm:w-auto sm:self-start sm:px-8"
-        disabled={saving}
+        disabled={saving || readOnly}
+        title={readOnly ? "模擬檢視為唯讀模式" : undefined}
       >
         {saving ? "儲存中…" : "儲存變更"}
       </Button>
-      {basicDirty && !saving && (
+      {readOnly && (
+        <p className="text-xs text-amber-600">模擬檢視為唯讀模式，無法儲存變更</p>
+      )}
+      {basicDirty && !saving && !readOnly && (
         <p className="text-xs text-amber-600">
           此頁變更需按「儲存變更」才會生效
         </p>

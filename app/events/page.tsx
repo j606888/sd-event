@@ -10,6 +10,7 @@ import {
   type EventStatus,
 } from "@/components/events/management/EventListRow";
 import { useCurrentTeam } from "@/hooks/use-current-team";
+import { useReadOnly } from "@/hooks/use-session";
 import type { EventLocation } from "@/types/event";
 
 type EventItem = {
@@ -33,6 +34,7 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { teamId, isLoading: teamLoading } = useCurrentTeam();
+  const readOnly = useReadOnly();
 
   useEffect(() => {
     if (teamId == null && !teamLoading) return;
@@ -107,14 +109,24 @@ export default function EventsPage() {
         <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
           所有活動
         </h1>
-        <Link
-          href="/events/new"
-          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:opacity-90 shadow-sm"
-          aria-label="建立新活動"
-        >
-          <Plus className="size-4" />
-          <span>建立活動</span>
-        </Link>
+        {readOnly ? (
+          <span
+            className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-400"
+            title="模擬檢視為唯讀模式"
+          >
+            <Plus className="size-4" />
+            <span>建立活動</span>
+          </span>
+        ) : (
+          <Link
+            href="/events/new"
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:opacity-90 shadow-sm"
+            aria-label="建立新活動"
+          >
+            <Plus className="size-4" />
+            <span>建立活動</span>
+          </Link>
+        )}
       </div>
 
       {events.length === 0 ? (

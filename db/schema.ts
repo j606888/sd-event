@@ -27,9 +27,28 @@ export const users = pgTable("users", {
   encryptedPassword: text("encrypted_password").notNull(),
   role: userRoleEnum("role").notNull().default("Organizer"),
   activeTeamId: integer("active_team_id").references(() => teams.id, { onDelete: "set null" }),
+  /** 站方總管理員；可進入 /admin 並以其他使用者身分唯讀檢視 */
+  isSuperAdmin: boolean("is_super_admin").notNull().default(false),
+  /** 最後一次登入時間，用於總後台判斷使用者活躍度 */
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// ============ Admin Impersonations (總管理員模擬登入稽核) ============
+export const adminImpersonations = pgTable("admin_impersonations", {
+  id: serial("id").primaryKey(),
+  adminUserId: integer("admin_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  targetUserId: integer("target_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"),
+}, (t) => [
+  index("idx_admin_impersonations_admin").on(t.adminUserId),
+]);
 
 // ============ Teams ============
 export const teams = pgTable("teams", {

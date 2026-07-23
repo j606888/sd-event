@@ -10,6 +10,7 @@ import { ExclusionRulesCard } from "./ExclusionRulesCard";
 import { CouponsCard } from "./CouponsCard";
 import { RegistrationPreview } from "./RegistrationPreview";
 import type { UseEventFormReturn } from "@/hooks/use-event-form";
+import { useReadOnly } from "@/hooks/use-session";
 
 type TicketSettingsProps = {
   mode: "create" | "edit";
@@ -60,6 +61,7 @@ function AutoSaveChip({ mode, form }: TicketSettingsProps) {
  */
 export function TicketSettings({ mode, form }: TicketSettingsProps) {
   const { groups, autoCalcAmount, setAutoCalcAmount, purchaseItems, priceTiers } = form;
+  const readOnly = useReadOnly();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -69,12 +71,24 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-end">
-        <AutoSaveChip mode={mode} form={form} />
+        {readOnly ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+            模擬檢視為唯讀模式，票券設定無法變更
+          </span>
+        ) : (
+          <AutoSaveChip mode={mode} form={form} />
+        )}
       </div>
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start lg:gap-8">
         {/* 左欄：各設定區塊以髮絲線分隔，不再包卡片框 */}
-        <div className="flex flex-col divide-y divide-hairline">
+        {/* 此頁為即時自動儲存，唯讀時直接停用整欄互動（寫入本來也會被擋下） */}
+        <div
+          className={`flex flex-col divide-y divide-hairline ${
+            readOnly ? "pointer-events-none opacity-60" : ""
+          }`}
+          aria-disabled={readOnly || undefined}
+        >
           <TicketGroupsCard form={form} />
           <PriceTiersCard form={form} />
           <CouponsCard form={form} />
