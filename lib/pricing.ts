@@ -4,6 +4,7 @@
  * 伺服器端共用（公開活動 route 顯示用、報名建立 route 收費快照用），
  * 一律以「伺服器時間」解析，避免 client 時鐘造成顯示價與收費價不一致。
  */
+import { TAIPEI_OFFSET } from "./format-event-date";
 
 export type PriceTier = {
   id: number;
@@ -59,14 +60,19 @@ export function getItemUnitPrice(
 }
 
 /**
- * 把「只選日期」的截止輸入轉成當地當日 23:59:59.999 的 Date。
+ * 把「只選日期」的截止輸入轉成該日台北時間 23:59:59.999 的 Date。
  * 接受 "YYYY-MM-DD"（date input）或完整 ISO 字串；空值回傳 null（fallback 段）。
+ *
+ * 一律錨定 Asia/Taipei：這個函式同時跑在 server（Vercel 為 UTC）與瀏覽器，
+ * 若依賴執行環境時區，兩邊會算出相差 8 小時的截止點。
  */
 export function endOfDayFromDateInput(value: string | null | undefined): Date | null {
   if (!value || !value.trim()) return null;
   const trimmed = value.trim();
-  // 純日期：以當地時間建構當日末
+  // 純日期：以台北時間建構當日末
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
-  const d = dateOnly ? new Date(`${trimmed}T23:59:59.999`) : new Date(trimmed);
+  const d = dateOnly
+    ? new Date(`${trimmed}T23:59:59.999${TAIPEI_OFFSET}`)
+    : new Date(trimmed);
   return Number.isNaN(d.getTime()) ? null : d;
 }

@@ -152,3 +152,41 @@ export function formatEventDateShort(startAt: string, endAt: string): string {
   }
   return `${fmt(start)} ${timeFmt(start)} ~ ${fmt(end)} ${timeFmt(end)}`;
 }
+
+/**
+ * 台北固定偏移。台灣自 1979 年起不再實施日光節約時間，
+ * 全年恆為 UTC+8，因此可以安全地用常數字串當作 ISO 後綴。
+ */
+export const TAIPEI_OFFSET = "+08:00";
+
+/** ISO 時間 → date input 的 "YYYY-MM-DD"（Asia/Taipei） */
+export function taipeiDateInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const { year, month, day } = getDatePartsInTz(d);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** ISO 時間 → datetime-local input 的 "YYYY-MM-DDTHH:mm"（Asia/Taipei） */
+export function taipeiDateTimeLocal(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const { year, month, day } = getDatePartsInTz(d);
+  const { hour, minute } = getTimePartsInTz(d);
+  return (
+    `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` +
+    `T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+  );
+}
+
+/**
+ * datetime-local input 的 "YYYY-MM-DDTHH:mm" → ISO instant，
+ * 一律以台北時間解讀，不受執行環境時區影響。無效輸入回傳 null。
+ */
+export function fromTaipeiDateTimeLocal(value: string | null | undefined): string | null {
+  if (!value || !value.trim()) return null;
+  const d = new Date(`${value.trim()}:00${TAIPEI_OFFSET}`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}

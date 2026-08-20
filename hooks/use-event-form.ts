@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useUploadThing } from "@/lib/uploadthing";
 import { getEventTemplate, type EventType } from "@/lib/event-templates";
+import {
+  taipeiDateInput,
+  taipeiDateTimeLocal,
+  fromTaipeiDateTimeLocal,
+} from "@/lib/format-event-date";
 
 export type DrawerType =
   | null
@@ -64,15 +69,9 @@ export type CouponDraft = {
   usedCount?: number;
 };
 
-/** ISO 時間轉成 date input 的 "YYYY-MM-DD"（當地） */
+/** ISO 時間轉成 date input 的 "YYYY-MM-DD"（Asia/Taipei） */
 function toDateInput(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return taipeiDateInput(iso);
 }
 
 export type EventFormInitialData = {
@@ -108,23 +107,11 @@ type BankInfo = {
 };
 
 function toDateTimeLocal(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return taipeiDateTimeLocal(iso);
 }
 
 function datetimeLocalToISO(datetimeLocal: string): string {
-  if (!datetimeLocal) return new Date().toISOString();
-  const localDate = new Date(datetimeLocal);
-  if (isNaN(localDate.getTime())) {
-    return new Date().toISOString();
-  }
-  return localDate.toISOString();
+  return fromTaipeiDateTimeLocal(datetimeLocal) ?? new Date().toISOString();
 }
 
 type UseEventFormParams = {
