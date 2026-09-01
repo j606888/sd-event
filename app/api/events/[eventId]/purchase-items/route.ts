@@ -94,6 +94,8 @@ export async function GET(_request: Request, { params }: Params) {
       soldCountByItem.set(row.purchaseItemId, Number(row.n));
     }
 
+    // 舊單選模式：只算「沒有 join 列」的報名，避免與 multiCounts 重複
+    // （現在單選報名也會寫入 join table）
     const legacyCounts = await db
       .select({
         purchaseItemId: eventRegistrations.purchaseItemId,
@@ -104,7 +106,8 @@ export async function GET(_request: Request, { params }: Params) {
         and(
           inArray(eventRegistrations.purchaseItemId, itemIds),
           eq(eventRegistrations.eventId, eventId),
-          eq(eventRegistrations.hidden, false)
+          eq(eventRegistrations.hidden, false),
+          sql`not exists (select 1 from ${eventRegistrationPurchaseItems} where ${eventRegistrationPurchaseItems.registrationId} = ${eventRegistrations.id})`
         )
       )
       .groupBy(eventRegistrations.purchaseItemId);

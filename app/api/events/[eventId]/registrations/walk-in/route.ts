@@ -246,9 +246,10 @@ export async function POST(request: Request, { params }: Params) {
 
       if (!reg) throw new Error("建立報名失敗");
 
-      if (effectiveMultiple && purchaseItemIds.length > 0) {
+      // 單選也寫入，保留收費當下的單價快照（見公開報名 route 的說明）
+      if (selectedIds.length > 0) {
         await tx.insert(eventRegistrationPurchaseItems).values(
-          purchaseItemIds.map((itemId: number) => ({
+          selectedIds.map((itemId: number) => ({
             registrationId: reg.id,
             purchaseItemId: itemId,
             quantity: 1,
