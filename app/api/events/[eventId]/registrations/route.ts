@@ -504,9 +504,10 @@ export async function POST(request: Request, { params }: Params) {
         throw new Error("建立報名失敗");
       }
 
-      // 建立購買項目關聯（多選 / 群組時）
-      if (effectiveMultiple && purchaseItemIds.length > 0) {
-        const registrationPurchaseItemValues = purchaseItemIds.map((itemId: number) => ({
+      // 建立購買項目關聯。單選也要寫入，才會留下收費當下的單價快照（unitAmount）；
+      // 否則之後統計只能退回項目定價（fallback 段），早鳥報名會被算成現場價。
+      if (selectedIds.length > 0) {
+        const registrationPurchaseItemValues = selectedIds.map((itemId: number) => ({
           registrationId: reg.id,
           purchaseItemId: itemId,
           quantity: 1, // Default quantity, can be extended later

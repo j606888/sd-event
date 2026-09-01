@@ -5,6 +5,8 @@ import {
   eventRegistrations,
   eventAttendees,
   eventPurchaseItems,
+  eventPurchaseItemPrices,
+  eventPriceTiers,
   eventRegistrationPurchaseItems,
   teamMembers,
   eventLocations,
@@ -12,7 +14,8 @@ import {
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, asc, inArray } from "drizzle-orm";
+import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
 
 type Params = {
   params: Promise<{ eventId: string; registrationId: string }>;
@@ -74,7 +77,8 @@ export async function GET(_request: Request, { params }: Params) {
     .from(eventAttendees)
     .where(eq(eventAttendees.registrationId, registrationId));
 
-  // 取得購買項目（單選或多選）
+  // 取得購買項目（單選或多選）。單選舊資料沒有單價快照，
+  // 以報名時間回推當時生效的時段價，避免顯示成 fallback 段（現場價）。
   const purchaseItem = registration.purchaseItemId
     ? await db
         .select()
@@ -83,6 +87,29 @@ export async function GET(_request: Request, { params }: Params) {
         .limit(1)
         .then((rows) => rows[0] || null)
     : null;
+
+  let legacyPurchaseItem:
+    | (NonNullable<typeof purchaseItem> & { tierName: string | null })
+    | null = null;
+  if (purchaseItem) {
+    const [tiers, priceRows] = await Promise.all([
+      db
+        .select()
+        .from(eventPriceTiers)
+        .where(eq(eventPriceTiers.eventId, eventId))
+        .orderBy(asc(eventPriceTiers.sortOrder)),
+      db
+        .select()
+        .from(eventPurchaseItemPrices)
+        .where(eq(eventPurchaseItemPrices.purchaseItemId, purchaseItem.id)),
+    ]);
+    const { amount, tierName } = createHistoricalPriceResolver(tiers, priceRows)(
+      purchaseItem.id,
+      purchaseItem.amount,
+      registration.createdAt
+    );
+    legacyPurchaseItem = { ...purchaseItem, amount, tierName };
+  }
 
   // 取得 join table 內的購買項目（多選 / 群組活動）。一律查詢，有列就用。
   // 金額優先用報名當下的單價快照（unitAmount，含時段價），舊資料為 null 時退回項目定價。
@@ -110,8 +137,8 @@ export async function GET(_request: Request, { params }: Params) {
 
   const purchaseItems = registrationPurchaseItems.length > 0
     ? registrationPurchaseItems
-    : purchaseItem
-    ? [purchaseItem]
+    : legacyPurchaseItem
+    ? [legacyPurchaseItem]
     : [];
 
   return NextResponse.json({
@@ -124,7 +151,7 @@ export async function GET(_request: Request, { params }: Params) {
         checkedIn: a.checkedIn || false,
         checkedInAt: a.checkedInAt,
       })),
-      purchaseItem, // For backward compatibility
+      purchaseItem: legacyPurchaseItem, // For backward compatibility
       purchaseItems, // Array of purchase items (for multiple selection)
     },
   });

@@ -27,6 +27,7 @@ async function countActiveRegistrations(eventId: number, itemId: number) {
         eq(eventRegistrations.hidden, false)
       )
     );
+  // 舊單選模式：只算「沒有 join 列」的報名，避免與 multi 重複計數
   const [legacy] = await db
     .select({ n: sql<number>`cast(count(*) as int)` })
     .from(eventRegistrations)
@@ -34,7 +35,8 @@ async function countActiveRegistrations(eventId: number, itemId: number) {
       and(
         eq(eventRegistrations.purchaseItemId, itemId),
         eq(eventRegistrations.eventId, eventId),
-        eq(eventRegistrations.hidden, false)
+        eq(eventRegistrations.hidden, false),
+        sql`not exists (select 1 from ${eventRegistrationPurchaseItems} where ${eventRegistrationPurchaseItems.registrationId} = ${eventRegistrations.id})`
       )
     );
   return Number(multi?.n ?? 0) + Number(legacy?.n ?? 0);

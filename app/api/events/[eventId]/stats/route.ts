@@ -5,11 +5,17 @@ import {
   eventRegistrations,
   eventAttendees,
   eventPurchaseItems,
+  eventPurchaseItemPrices,
+  eventPriceTiers,
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, inArray, and, count, sql } from "drizzle-orm";
+import { eq, inArray, and, asc, count, sql } from "drizzle-orm";
+import {
+  createHistoricalPriceResolver,
+  distributeAmount,
+} from "@/lib/registration-pricing";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -46,6 +52,9 @@ export async function GET(_request: Request, { params }: Params) {
     .select({
       id: eventRegistrations.id,
       purchaseItemId: eventRegistrations.purchaseItemId,
+      createdAt: eventRegistrations.createdAt,
+      totalAmount: eventRegistrations.totalAmount,
+      discountAmount: eventRegistrations.discountAmount,
     })
     .from(eventRegistrations)
     .where(
@@ -120,123 +129,126 @@ export async function GET(_request: Request, { params }: Params) {
     }
   }
 
-  // Query 3: Multi-item purchase summary using a subquery for per-registration attendee counts.
-  const attCountSubquery = db
-    .select({
-      registrationId: eventAttendees.registrationId,
-      cnt: sql<number>`cast(count(*) as int)`.as("cnt"),
-    })
-    .from(eventAttendees)
-    .where(inArray(eventAttendees.registrationId, registrationIds))
-    .groupBy(eventAttendees.registrationId)
-    .as("att_counts");
-
-  const multiItemSummary = await db
-    .select({
-      purchaseItemId: eventRegistrationPurchaseItems.purchaseItemId,
-      name: eventPurchaseItems.name,
-      amount: eventPurchaseItems.amount,
-      attendeeCount: sql<number>`cast(sum(att_counts.cnt * ${eventRegistrationPurchaseItems.quantity}) as int)`,
-      // 實收加總：報名當下的單價快照（unitAmount，含時段價）優先，舊資料退回項目定價
-      revenue: sql<number>`cast(sum(att_counts.cnt * ${eventRegistrationPurchaseItems.quantity} * coalesce(${eventRegistrationPurchaseItems.unitAmount}, ${eventPurchaseItems.amount})) as int)`,
-    })
-    .from(eventRegistrationPurchaseItems)
-    .innerJoin(eventPurchaseItems, eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id))
-    .innerJoin(attCountSubquery, eq(eventRegistrationPurchaseItems.registrationId, attCountSubquery.registrationId))
-    .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds))
-    .groupBy(
-      eventRegistrationPurchaseItems.purchaseItemId,
-      eventPurchaseItems.name,
-      eventPurchaseItems.amount,
-    );
-
-  const summaryMap = new Map<
-    number,
-    { id: number; name: string; amount: number; attendeeCount: number; revenue: number }
-  >();
-  const registrationsWithMultiItems = new Set<number>();
-
-  // Build summaryMap from DB-aggregated multi-item results.
-  for (const row of multiItemSummary) {
-    summaryMap.set(row.purchaseItemId, {
-      id: row.purchaseItemId,
-      name: row.name,
-      amount: row.amount,
-      attendeeCount: Number(row.attendeeCount),
-      revenue: Number(row.revenue),
-    });
-  }
-
-  // Determine which registrations are covered by multi-item entries.
-  const multiItemRegRows = await db
-    .select({ registrationId: eventRegistrationPurchaseItems.registrationId })
-    .from(eventRegistrationPurchaseItems)
-    .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds));
-  for (const row of multiItemRegRows) {
-    registrationsWithMultiItems.add(row.registrationId);
-  }
-
-  // Single-item (legacy) path: registrations using the purchaseItemId field directly.
-  const singleItemRegs = regs.filter(
-    (reg) => reg.purchaseItemId != null && !registrationsWithMultiItems.has(reg.id)
-  );
-
-  const singleItemIds = Array.from(
-    new Set(singleItemRegs.map((reg) => reg.purchaseItemId as number))
-  );
-
-  const singleItemMetaRows =
-    singleItemIds.length > 0
-      ? await db
-          .select({
-            id: eventPurchaseItems.id,
-            name: eventPurchaseItems.name,
-            amount: eventPurchaseItems.amount,
-          })
-          .from(eventPurchaseItems)
-          .where(inArray(eventPurchaseItems.id, singleItemIds))
-      : [];
-  const singleItemMetaMap = new Map(
-    singleItemMetaRows.map((row) => [row.id, row] as const)
-  );
-
-  // Fetch per-registration attendee counts only for the single-item registrations.
-  const attendeeCountByRegistrationId = new Map<number, number>();
-  if (singleItemRegs.length > 0) {
-    const singleItemRegIds = singleItemRegs.map((r) => r.id);
-    const perRegCounts = await db
+  // Query 3: 報名項目統計。
+  //
+  // 逐筆報名計算，最後讓每筆的項目金額加總 == 該筆實際成交價（totalAmount + 折抵），
+  // 這樣本區塊的總計必定與上方「款項」對得起來。單價來源依序：
+  //   1. eventRegistrationPurchaseItems.unitAmount（報名當下的時段價快照）
+  //   2. 舊資料沒有快照時，用 createdAt 回推當時生效的時段價
+  //   3. 都拿不到才退回項目定價
+  // 現場報名若由主辦覆寫金額（walk-in 的 totalAmount），差額會按各項目定價比例攤回，
+  // 因此覆寫後的收入也會反映在這裡。
+  const [regItemRows, allItems, tiers, priceRows, perRegCounts] = await Promise.all([
+    db
+      .select({
+        registrationId: eventRegistrationPurchaseItems.registrationId,
+        purchaseItemId: eventRegistrationPurchaseItems.purchaseItemId,
+        quantity: eventRegistrationPurchaseItems.quantity,
+        unitAmount: eventRegistrationPurchaseItems.unitAmount,
+      })
+      .from(eventRegistrationPurchaseItems)
+      .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds)),
+    db
+      .select({
+        id: eventPurchaseItems.id,
+        name: eventPurchaseItems.name,
+        amount: eventPurchaseItems.amount,
+      })
+      .from(eventPurchaseItems)
+      .where(eq(eventPurchaseItems.eventId, eventId)),
+    db
+      .select()
+      .from(eventPriceTiers)
+      .where(eq(eventPriceTiers.eventId, eventId))
+      .orderBy(asc(eventPriceTiers.sortOrder)),
+    db
+      .select({
+        purchaseItemId: eventPurchaseItemPrices.purchaseItemId,
+        tierId: eventPurchaseItemPrices.tierId,
+        amount: eventPurchaseItemPrices.amount,
+      })
+      .from(eventPurchaseItemPrices)
+      .innerJoin(
+        eventPurchaseItems,
+        eq(eventPurchaseItemPrices.purchaseItemId, eventPurchaseItems.id)
+      )
+      .where(eq(eventPurchaseItems.eventId, eventId)),
+    db
       .select({
         registrationId: eventAttendees.registrationId,
         cnt: sql<number>`cast(count(*) as int)`.as("cnt"),
       })
       .from(eventAttendees)
-      .where(inArray(eventAttendees.registrationId, singleItemRegIds))
-      .groupBy(eventAttendees.registrationId);
-    for (const row of perRegCounts) {
-      attendeeCountByRegistrationId.set(row.registrationId, Number(row.cnt));
-    }
+      .where(inArray(eventAttendees.registrationId, registrationIds))
+      .groupBy(eventAttendees.registrationId),
+  ]);
+
+  const itemMetaById = new Map(allItems.map((i) => [i.id, i] as const));
+  const attendeeCountByRegistrationId = new Map(
+    perRegCounts.map((r) => [r.registrationId, Number(r.cnt)] as const)
+  );
+  const resolveHistoricalPrice = createHistoricalPriceResolver(tiers, priceRows);
+
+  const regItemsByRegistrationId = new Map<
+    number,
+    { purchaseItemId: number; quantity: number; unitAmount: number | null }[]
+  >();
+  for (const row of regItemRows) {
+    const list = regItemsByRegistrationId.get(row.registrationId) ?? [];
+    list.push({
+      purchaseItemId: row.purchaseItemId,
+      quantity: row.quantity,
+      unitAmount: row.unitAmount,
+    });
+    regItemsByRegistrationId.set(row.registrationId, list);
   }
 
+  const summaryMap = new Map<
+    number,
+    { id: number; name: string; amount: number; attendeeCount: number; revenue: number }
+  >();
+
   for (const reg of regs) {
-    if (reg.purchaseItemId == null) continue;
-    if (registrationsWithMultiItems.has(reg.id)) continue;
-    const meta = singleItemMetaMap.get(reg.purchaseItemId);
-    if (!meta) continue;
     const attendeeCount = attendeeCountByRegistrationId.get(reg.id) ?? 0;
-    // 單一項目（舊制）沒有單價快照，實收以項目定價估計
-    const revenue = attendeeCount * meta.amount;
-    const current = summaryMap.get(reg.purchaseItemId);
-    if (current) {
-      current.attendeeCount += attendeeCount;
-      current.revenue += revenue;
-      continue;
-    }
-    summaryMap.set(reg.purchaseItemId, {
-      id: reg.purchaseItemId,
-      name: meta.name,
-      amount: meta.amount,
-      attendeeCount,
-      revenue,
+
+    // 新制走 join table；舊制單選報名沒有 join 列，退回 registration.purchaseItemId
+    const items =
+      regItemsByRegistrationId.get(reg.id) ??
+      (reg.purchaseItemId != null
+        ? [{ purchaseItemId: reg.purchaseItemId, quantity: 1, unitAmount: null }]
+        : []);
+
+    const lines = items.flatMap((item) => {
+      const meta = itemMetaById.get(item.purchaseItemId);
+      if (!meta) return [];
+      const unitAmount =
+        item.unitAmount ??
+        resolveHistoricalPrice(meta.id, meta.amount, reg.createdAt).amount;
+      const units = attendeeCount * item.quantity;
+      return [{ meta, units, listSubtotal: units * unitAmount }];
+    });
+
+    // 各筆的實際成交價（加回折扣碼折抵，與本區塊標題一致）
+    const charged = reg.totalAmount + reg.discountAmount;
+    const revenues = distributeAmount(
+      charged,
+      lines.map((l) => l.listSubtotal)
+    );
+
+    lines.forEach((line, index) => {
+      const current = summaryMap.get(line.meta.id);
+      if (current) {
+        current.attendeeCount += line.units;
+        current.revenue += revenues[index];
+        return;
+      }
+      summaryMap.set(line.meta.id, {
+        id: line.meta.id,
+        name: line.meta.name,
+        amount: line.meta.amount,
+        attendeeCount: line.units,
+        revenue: revenues[index],
+      });
     });
   }
 

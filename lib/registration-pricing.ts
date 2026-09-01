@@ -113,3 +113,76 @@ export function resolveUnitPrices(
 
   return { activeTier, unitPriceById };
 }
+
+/**
+ * 舊資料回推用：建立「以報名當下時間解析單價」的查詢器。
+ *
+ * 單選（舊制）報名沒有寫入 `eventRegistrationPurchaseItems.unitAmount` 快照，
+ * 直接拿 `eventPurchaseItems.amount` 會取到 fallback 段（現場價），
+ * 使早鳥報名的統計金額偏高。改以 `createdAt` 回推當時生效的時段價。
+ *
+ * 索引只建一次，供多筆報名重複查詢。
+ */
+export function createHistoricalPriceResolver(
+  tiers: PriceTier[],
+  priceRows: { purchaseItemId: number; tierId: number; amount: number }[]
+): (
+  itemId: number,
+  itemAmount: number,
+  at: Date | string | null
+) => { amount: number; tierName: string | null } {
+  const pricesByItem = new Map<number, ItemPrice[]>();
+  for (const row of priceRows) {
+    const arr = pricesByItem.get(row.purchaseItemId) ?? [];
+    arr.push({ tierId: row.tierId, amount: row.amount });
+    pricesByItem.set(row.purchaseItemId, arr);
+  }
+
+  // 同一時間點只解析一次時段
+  const tierByTime = new Map<number, PriceTier | null>();
+
+  return (itemId, itemAmount, at) => {
+    const d = at == null ? null : at instanceof Date ? at : new Date(at);
+    const ms = d?.getTime();
+    if (ms == null || Number.isNaN(ms)) {
+      return { amount: itemAmount, tierName: null };
+    }
+    let tier = tierByTime.get(ms);
+    if (tier === undefined) {
+      tier = resolveActiveTier(tiers, new Date(ms));
+      tierByTime.set(ms, tier);
+    }
+    return {
+      amount: getItemUnitPrice(
+        itemAmount,
+        pricesByItem.get(itemId) ?? [],
+        tier?.id ?? null
+      ),
+      tierName: tier?.name ?? null,
+    };
+  };
+}
+
+/**
+ * 把一筆報名的實際成交價按各項目定價比例拆回各項目，並保證整數且加總 == total。
+ * 除不盡的餘數用最大餘數法補給小數部分最大的項目，避免每筆都少個位數。
+ * weights 全為 0（例如免費項目）時回傳全 0，不做無意義的攤分。
+ */
+export function distributeAmount(total: number, weights: number[]): number[] {
+  const weightSum = weights.reduce((sum, w) => sum + w, 0);
+  if (weights.length === 0) return [];
+  if (weightSum <= 0 || total <= 0) return weights.map(() => 0);
+
+  const exact = weights.map((w) => (total * w) / weightSum);
+  const result = exact.map(Math.floor);
+  let remainder = total - result.reduce((sum, v) => sum + v, 0);
+
+  const byFraction = exact
+    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
+    .sort((a, b) => b.fraction - a.fraction);
+  for (let i = 0; i < byFraction.length && remainder > 0; i++) {
+    result[byFraction[i].index]++;
+    remainder--;
+  }
+  return result;
+}

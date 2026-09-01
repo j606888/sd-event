@@ -8,9 +8,12 @@ import {
   organizers,
   bankInfos,
   eventPurchaseItems,
+  eventPurchaseItemPrices,
+  eventPriceTiers,
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { eq, asc, inArray } from "drizzle-orm";
+import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
 
 type Params = { params: Promise<{ registrationKey: string }> };
 
@@ -88,36 +91,57 @@ export async function GET(_request: Request, { params }: Params) {
             .limit(1)
             .then((rows) => rows[0] || null)
         : Promise.resolve(null),
-      // Fetch multiple purchase items if event allows multiple
-      event.allowMultiplePurchase
-        ? db
-            .select({
-              id: eventPurchaseItems.id,
-              name: eventPurchaseItems.name,
-              amount: eventPurchaseItems.amount,
-              unitAmount: eventRegistrationPurchaseItems.unitAmount,
-            })
-            .from(eventRegistrationPurchaseItems)
-            .innerJoin(
-              eventPurchaseItems,
-              eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
-            )
-            .where(eq(eventRegistrationPurchaseItems.registrationId, registration.id))
-            // 金額優先用報名當下的單價快照（含時段價），舊資料退回項目定價
-            .then((rows) =>
-              rows.map(({ unitAmount, ...row }) => ({
-                ...row,
-                amount: unitAmount ?? row.amount,
-              }))
-            )
-        : Promise.resolve([]),
+      // 一律查詢 join table，有列就用；不依賴活動「當下」的 allowMultiplePurchase 設定，
+      // 否則報名後才關掉多選的活動會退回項目定價。
+      db
+        .select({
+          id: eventPurchaseItems.id,
+          name: eventPurchaseItems.name,
+          amount: eventPurchaseItems.amount,
+          unitAmount: eventRegistrationPurchaseItems.unitAmount,
+        })
+        .from(eventRegistrationPurchaseItems)
+        .innerJoin(
+          eventPurchaseItems,
+          eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
+        )
+        .where(eq(eventRegistrationPurchaseItems.registrationId, registration.id))
+        // 金額優先用報名當下的單價快照（含時段價），舊資料退回項目定價
+        .then((rows) =>
+          rows.map(({ unitAmount, ...row }) => ({
+            ...row,
+            amount: unitAmount ?? row.amount,
+          }))
+        ),
     ]);
 
+    // 單選舊資料沒有單價快照，以報名時間回推當時生效的時段價
+    let legacyPurchaseItem = purchaseItem;
+    if (purchaseItem) {
+      const [tiers, priceRows] = await Promise.all([
+        db
+          .select()
+          .from(eventPriceTiers)
+          .where(eq(eventPriceTiers.eventId, event.id))
+          .orderBy(asc(eventPriceTiers.sortOrder)),
+        db
+          .select()
+          .from(eventPurchaseItemPrices)
+          .where(eq(eventPurchaseItemPrices.purchaseItemId, purchaseItem.id)),
+      ]);
+      const { amount } = createHistoricalPriceResolver(tiers, priceRows)(
+        purchaseItem.id,
+        purchaseItem.amount,
+        registration.createdAt
+      );
+      legacyPurchaseItem = { ...purchaseItem, amount };
+    }
+
     // Get purchase items (single or multiple)
-    const purchaseItems = event.allowMultiplePurchase && registrationPurchaseItems.length > 0
+    const purchaseItems = registrationPurchaseItems.length > 0
       ? registrationPurchaseItems
-      : purchaseItem
-      ? [purchaseItem]
+      : legacyPurchaseItem
+      ? [legacyPurchaseItem]
       : [];
 
     return NextResponse.json({
