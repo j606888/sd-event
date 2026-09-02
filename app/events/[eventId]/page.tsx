@@ -22,6 +22,7 @@ import {
   useRegistrationDetail,
   useUpdateRegistration,
   useCheckIn,
+  useResendConfirmationEmail,
 } from "@/hooks/use-registrations";
 import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter } from "@/lib/registration-list-filters";
 
@@ -64,6 +65,10 @@ function EventDetailPageInner() {
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [selectedRegistrationId, setSelectedRegistrationId] = useState<number | null>(null);
+  /** 跨頁前後筆導覽：換頁後要自動選取該頁的頭或尾 */
+  const [pendingEdgeSelect, setPendingEdgeSelect] = useState<
+    "first" | "last" | null
+  >(null);
   const [walkInOpen, setWalkInOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -109,9 +114,37 @@ function EventDetailPageInner() {
 
   const updateRegistration = useUpdateRegistration(eventId);
   const checkInMutation = useCheckIn(eventId, selectedRegistrationId);
+  const resendConfirmation = useResendConfirmationEmail(eventId);
+
+  // 跨頁前後筆導覽：新的一頁載入後，把選取落在該頁的頭或尾
+  useEffect(() => {
+    if (!pendingEdgeSelect || registrationsQuery.isFetching) return;
+    const rows = registrationsData?.registrations ?? [];
+    if (rows.length === 0) {
+      setPendingEdgeSelect(null);
+      return;
+    }
+    const target =
+      pendingEdgeSelect === "first" ? rows[0] : rows[rows.length - 1];
+    setSelectedRegistrationId(target.id);
+    setPendingEdgeSelect(null);
+  }, [pendingEdgeSelect, registrationsQuery.isFetching, registrationsData]);
 
   // Derived values
   const registrations = registrationsData?.registrations ?? [];
+  const pageSizeValue = registrationsData?.pagination?.pageSize ?? 50;
+  const matchedTotal = registrationsData?.pagination?.total ?? registrations.length;
+  const selectedIndexInPage = registrations.findIndex(
+    (r) => r.id === selectedRegistrationId
+  );
+  /**
+   * 前後筆導覽是跨頁的：畫面上顯示的是「第 N / 全部符合筆數」，
+   * 走到當前頁邊界時換頁並選新頁的第一／最後一筆。
+   */
+  const selectedGlobalIndex =
+    selectedIndexInPage < 0
+      ? -1
+      : (page - 1) * pageSizeValue + selectedIndexInPage;
   const visibleRegistrationCount =
     hiddenFilter === "non_hidden"
       ? registrationsData?.pagination?.total ?? 0
@@ -284,21 +317,30 @@ function EventDetailPageInner() {
             ) : selectedRegistration ? (
               <RegistrationDetail
                 registration={selectedRegistration}
-                currentIndex={registrations.findIndex((r) => r.id === selectedRegistrationId)}
-                totalCount={registrations.length}
+                currentIndex={selectedGlobalIndex}
+                totalCount={matchedTotal}
                 onBack={() => {
                   setSelectedRegistrationId(null);
                 }}
                 onPrevious={() => {
-                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId);
-                  if (currentIdx > 0) {
-                    setSelectedRegistrationId(registrations[currentIdx - 1].id);
+                  if (selectedIndexInPage > 0) {
+                    setSelectedRegistrationId(registrations[selectedIndexInPage - 1].id);
+                  } else if (page > 1) {
+                    // 走到本頁第一筆：往前翻一頁並選該頁最後一筆
+                    setPendingEdgeSelect("last");
+                    setPage((p) => p - 1);
                   }
                 }}
                 onNext={() => {
-                  const currentIdx = registrations.findIndex((r) => r.id === selectedRegistrationId);
-                  if (currentIdx < registrations.length - 1) {
-                    setSelectedRegistrationId(registrations[currentIdx + 1].id);
+                  if (
+                    selectedIndexInPage >= 0 &&
+                    selectedIndexInPage < registrations.length - 1
+                  ) {
+                    setSelectedRegistrationId(registrations[selectedIndexInPage + 1].id);
+                  } else if (selectedGlobalIndex < matchedTotal - 1) {
+                    // 走到本頁最後一筆：往後翻一頁並選該頁第一筆
+                    setPendingEdgeSelect("first");
+                    setPage((p) => p + 1);
                   }
                 }}
                 onStatusUpdate={async (status) => {
@@ -321,6 +363,11 @@ function EventDetailPageInner() {
                   await checkInMutation.mutateAsync(attendeeId);
                 }}
                 onEdit={() => setEditOpen(true)}
+                onResendEmail={async () => {
+                  if (selectedRegistrationId) {
+                    await resendConfirmation.mutateAsync(selectedRegistrationId);
+                  }
+                }}
               />
             ) : (
               <div className="space-y-3">
