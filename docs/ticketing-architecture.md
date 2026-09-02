@@ -177,6 +177,29 @@ tierName    text? // 報名當下生效的時段名稱（純記錄用）
 Party 群組）若無此規則，使用者可**同時**勾「全餐雙日 $2800」**又**勾單堂 A/B/C + Party，總額被加總成 $5200，
 造成重複付費。本階段以對稱的「群組↔群組互斥」解決：選了互斥群組任一項即鎖住另一群組（前端灰掉並清空、後端校驗擋下）。
 
+### Phase 2.6 — 票券設定介面改版（讓介面只允許有效狀態）✅ 已完成
+
+> 三個設定不直覺的地方（`單選/複選 × 必選/可跳過` 要自己乘、「預設金額」和現場價要填兩次、
+> 最後一段的空白截止日看起來像沒填完），根因都是**畫面照著資料表長，而不是照著主辦人的意圖長**。
+> 改版把兩個開關併成一個白話下拉、有時段時不再問「預設金額」、最後一段改成鎖定的「到活動結束」，
+> 並把「票價時段」移到「票券內容」之前（票價依賴時段）。資料模型完全沒動。
+
+本階段確立兩個**不變量**，UI 只允許做得出合法狀態：
+
+1. **fallback 段恆為最後一段，且只有它沒有截止日。**
+   `resolveActiveTier` 取第一個尚未截止的段，所以排在 fallback 之後的時段永遠輪不到
+   （舊版「新增時段」一律 append，加出來的段是死的）。現在新增一律插在 fallback 之前，
+   增刪後都會用 `PATCH /price-tiers/[tierId] { sortOrder }` 重編號，避免 sortOrder 撞號。
+2. **有時段時，每張票在每段都要有價格。**
+   `eventPurchaseItems.amount` 仍是 fallback，但改由「最後一段的價格」自動寫入，不再另外問一次。
+   時段列表會列出缺價的票券（缺價會默默用 fallback 計費）。
+
+> 順手修掉的既有 bug：`removePriceTier` 在 create 模式的濾除條件是
+> `p.tierId !== tier?.id`，兩邊都是 `undefined` 時恆為 false，**刪任何一段都會清掉該項目的所有時段價**；
+> 相關位移邏輯已抽成 `lib/ticket-draft-prices.ts` 並補上單元測試。
+> 另外，範本的時段原本全是 `endsAt: ""`，導致新活動永遠停在第一段（收超早鳥價收到天荒地老），
+> 現在範本會帶相對於今天的預設截止日。
+
 ### Phase 3 — 條件加購 / 折扣引擎（待實作）
 
 第一版加購用固定價或獨立項目。日後可在群組/項目上加「加購價隨主票而變」的規則層。
@@ -194,7 +217,8 @@ Party 群組）若無此規則，使用者可**同時**勾「全餐雙日 $2800�
 | 購買項目 API | `app/api/events/[eventId]/purchase-items/route.ts`、`[itemId]/route.ts` |
 | 新增 API | `.../price-tiers/`、`.../purchase-item-groups/` |
 | 公開活動資料 | `lib/api/public-event.ts`、`types/event.ts` |
-| 管理 UI | `components/events/management/PurchaseItemsSection.tsx`、`PurchaseItemDrawer.tsx`、`hooks/use-event-form.ts` |
+| 管理 UI | `components/events/management/tickets/`（`TicketSettings` / `PriceTiersCard` / `TicketGroupsCard` / `RegistrationPreview`）、`components/events/management/PurchaseItemDrawer.tsx`、`hooks/use-event-form.ts` |
+| 定價純函式 | `lib/pricing.ts`、`lib/registration-pricing.ts`、`lib/ticket-draft-prices.ts`（皆有 `*.test.ts`） |
 | 報名 UI | `components/events/registration/steps/ApplicationFormStep.tsx`、`event-application-types.ts`、`hooks/use-event-application-form.ts` |
 | 報名建立 | `app/api/events/[eventId]/registrations/route.ts` |
 

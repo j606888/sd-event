@@ -1,6 +1,16 @@
 "use client";
 
-import { Ellipsis, Eye, EyeOff, Info, LayoutList, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  Ellipsis,
+  Eye,
+  EyeOff,
+  LayoutList,
+  Pencil,
+  Plus,
+  Trash2,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,12 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { SegmentedToggle } from "@/components/ui/segmented";
 import type {
   PurchaseItemDraft,
   PurchaseItemGroupDraft,
@@ -30,17 +34,39 @@ const itemGroupKey = (item: PurchaseItemDraft) => {
   return null;
 };
 
-/** 用白話描述區塊規則對報名者的實際意義 */
-function groupRuleSentence(group: PurchaseItemGroupDraft): string {
-  if (group.selectionMode === "single") {
-    return group.required
-      ? "報名者必須從這個區塊選 1 張票"
-      : "報名者可以選 1 張，也可以不選";
-  }
-  return group.required
-    ? "報名者至少要選 1 張，可以選多張"
-    : "報名者可以選多張，也可以不選";
-}
+/**
+ * 區塊的選擇規則。
+ *
+ * 資料層是 `selectionMode`（single/multiple）× `required`（必選/可跳過）兩個欄位，
+ * 但要主辦人自己把兩個開關乘起來才知道報名者會遇到什麼。這裡把四種組合各給一個
+ * 白話名字，設定時只做一個決定 —— 語意與 `lib/registration-pricing.ts` 的
+ * `validateGroupSelection()` 四個分支一一對應，沒有任何行為變動。
+ */
+type RuleKey =
+  | "single-required"
+  | "single-optional"
+  | "multiple-required"
+  | "multiple-optional";
+
+const RULE_OPTIONS: { value: RuleKey; label: string }[] = [
+  { value: "single-required", label: "必選 1 張（擇一）" },
+  { value: "single-optional", label: "可選 1 張，也可以不選" },
+  { value: "multiple-required", label: "至少 1 張，可多選" },
+  { value: "multiple-optional", label: "不限張數（可不選、可多選）" },
+];
+
+const ruleKeyOf = (group: PurchaseItemGroupDraft): RuleKey =>
+  `${group.selectionMode}-${group.required ? "required" : "optional"}` as RuleKey;
+
+const parseRuleKey = (
+  key: RuleKey
+): { selectionMode: "single" | "multiple"; required: boolean } => {
+  const [mode, req] = key.split("-");
+  return {
+    selectionMode: mode === "multiple" ? "multiple" : "single",
+    required: req === "required",
+  };
+};
 
 /**
  * 票券內容卡：票券清單＋票券區塊（一級功能）。
@@ -51,6 +77,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
     purchaseItems,
     priceTiers,
     groups,
+    groupExclusions,
     openPurchaseItemAdder,
     openPurchaseItemEditor,
     deletePurchaseItem,
@@ -67,6 +94,26 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   const useGroups = groups.length > 0;
   const indexedItems = purchaseItems.map((item, index) => ({ item, index }));
 
+  /**
+   * 「必選 + 互斥」是個做得出來、但報名者過不了的組合：
+   * 後端 `validateGroupSelection` 先跑 required 檢查、再跑互斥檢查，所以只要另一個區塊
+   * 有選取就會被必選擋下 —— 那個區塊等於永遠選不到。前端 `groupsSatisfied` 反而把被鎖住的
+   * 必選區塊當作已滿足，會一路放行到送出才吃 400，因此在設定當下就先警告。
+   */
+  const conflictingTitles = (
+    group: PurchaseItemGroupDraft,
+    groupIndex: number
+  ): string[] => {
+    if (!group.required) return [];
+    const selfKey = groupKeyOf(group, groupIndex);
+    const partnerKeys = groupExclusions
+      .filter((pair) => pair.includes(selfKey))
+      .map(([a, b]) => (a === selfKey ? b : a));
+    return groups
+      .filter((g, gi) => partnerKeys.includes(groupKeyOf(g, gi)))
+      .map((g) => g.title || "（未命名區塊）");
+  };
+
   const renderItemRow = (
     item: PurchaseItemDraft,
     i: number,
@@ -74,26 +121,29 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   ) => {
     const sold = item.soldCount ?? 0;
     const canDelete = sold === 0;
+    // 有時段時只顯示各段價格（時段順序），不再另外露出 amount ——
+    // amount 就是最後一段的價格，重複顯示只會讓人以為是另一個獨立的數字。
+    const tierPriceLabel = priceTiers
+      .map((tier, tierIndex) => {
+        const price = (item.prices ?? []).find((p) =>
+          tier.id != null ? p.tierId === tier.id : p.tierDraftIndex === tierIndex
+        );
+        return price
+          ? `${tier.name || `第 ${tierIndex + 1} 段`} $${price.amount.toLocaleString()}`
+          : null;
+      })
+      .filter((label): label is string => label !== null)
+      .join(" → ");
+
     const itemBody = (
       <>
-        {item.name} — ${item.amount}
+        {item.name}
         {item.hidden ? (
           <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
         ) : null}
-        {item.prices && item.prices.length > 0 ? (
-          <span className="block text-xs text-gray-400 sm:ml-2 sm:inline">
-            （
-            {item.prices
-              .map((p) => {
-                const tier =
-                  priceTiers.find((t) => t.id != null && t.id === p.tierId) ??
-                  (p.tierDraftIndex != null ? priceTiers[p.tierDraftIndex] : undefined);
-                return `${tier?.name ?? "時段"} ${p.amount}`;
-              })
-              .join(" / ")}
-            ）
-          </span>
-        ) : null}
+        <span className="block text-xs text-gray-500 sm:ml-2 sm:inline">
+          {tierPriceLabel || `$${item.amount.toLocaleString()}`}
+        </span>
       </>
     );
     return (
@@ -241,50 +291,14 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                 key={group.id ?? `draft-${gi}`}
                 className="flex flex-col gap-2 border-l-2 border-brand/70 pl-3 sm:pl-4"
               >
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Input
-                    className="w-full sm:w-auto sm:min-w-[8rem] sm:flex-1"
+                    className="min-w-0 flex-1"
                     placeholder="區塊名稱（如 主票種）"
                     value={group.title}
                     onChange={(e) => updateGroup(gi, "title", e.target.value)}
                     onBlur={() => persistGroup(gi)}
                   />
-                  <SegmentedToggle
-                    aria-label="選擇方式"
-                    value={group.selectionMode}
-                    options={[
-                      { value: "single", label: "單選" },
-                      { value: "multiple", label: "可複選" },
-                    ]}
-                    onChange={(mode) => {
-                      updateGroup(gi, "selectionMode", mode);
-                      persistGroup(gi, { selectionMode: mode });
-                    }}
-                  />
-                  <SegmentedToggle
-                    aria-label="是否必選"
-                    value={group.required ? "required" : "optional"}
-                    options={[
-                      { value: "required", label: "必選" },
-                      { value: "optional", label: "可跳過" },
-                    ]}
-                    onChange={(v) => {
-                      const required = v === "required";
-                      updateGroup(gi, "required", required);
-                      persistGroup(gi, { required });
-                    }}
-                  />
-                  <Popover>
-                    <PopoverTrigger
-                      className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-600 data-[state=open]:text-gray-600"
-                      aria-label="區塊規則說明"
-                    >
-                      <Info className="size-4" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto max-w-64 px-3 py-2">
-                      <p className="text-xs text-gray-600">{groupRuleSentence(group)}</p>
-                    </PopoverContent>
-                  </Popover>
                   <button
                     type="button"
                     onClick={() => handleRemoveGroup(gi)}
@@ -294,6 +308,41 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                     <X className="size-4" />
                   </button>
                 </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label
+                    htmlFor={`group-rule-${gi}`}
+                    className="text-sm text-gray-600"
+                  >
+                    報名者要怎麼選？
+                  </label>
+                  <select
+                    id={`group-rule-${gi}`}
+                    className="h-9 min-w-0 flex-1 rounded-md border-0 bg-field px-2 text-sm text-ink sm:flex-none sm:min-w-[15rem]"
+                    value={ruleKeyOf(group)}
+                    onChange={(e) => {
+                      const next = parseRuleKey(e.target.value as RuleKey);
+                      updateGroup(gi, "selectionMode", next.selectionMode);
+                      updateGroup(gi, "required", next.required);
+                      persistGroup(gi, next);
+                    }}
+                  >
+                    {RULE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {conflictingTitles(group, gi).length > 0 && (
+                  <p className="flex items-start gap-1.5 text-xs text-amber-700">
+                    <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                    <span>
+                      這個區塊設為必選，又和「{conflictingTitles(group, gi).join("、")}
+                      」互斥 —— 報名者一旦選了那邊就會被擋下來，等於那個區塊永遠選不到。
+                      改成「可以不選」，或移除互斥規則。
+                    </span>
+                  </p>
+                )}
                 {groupItems.length > 0 ? (
                   <ul className="flex flex-col divide-y divide-hairline">
                     {groupItems.map(({ item, index }) => renderItemRow(item, index))}

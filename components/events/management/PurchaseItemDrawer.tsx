@@ -88,36 +88,98 @@ export function PurchaseItemDrawer({
   const tierKey = (tier: PriceTierDraft, index: number) =>
     tier.id != null ? `id-${tier.id}` : `draft-${index}`;
 
-  /** 收集已填的時段價，轉成 draft 用的 prices 陣列 */
+  /**
+   * 有設票價時段時，價格一律由「每段各填一次」決定，不再另外問一次「預設金額」。
+   *
+   * `eventPurchaseItems.amount` 的角色本來就是「未設時段價時的 fallback」
+   *（見 docs/ticketing-architecture.md §3），而最後一段就是那個 fallback 段，
+   * 所以直接把最後一段的價格寫回 amount —— 使用者不必把同一個數字打兩次。
+   */
+  const useTiers = priceTiers.length > 0;
+  const lastTierKey = useTiers
+    ? tierKey(priceTiers[priceTiers.length - 1], priceTiers.length - 1)
+    : null;
+
+  const parseTierAmount = (raw: string | undefined): number | null => {
+    if (raw == null || raw.trim() === "") return null;
+    const n = Math.floor(Number(raw));
+    return Number.isInteger(n) && n >= 0 ? n : null;
+  };
+
+  /** 每段都要有價；回傳第一個沒填好的時段名稱 */
+  const firstUnpricedTier = (): string | null => {
+    for (const [index, tier] of priceTiers.entries()) {
+      if (parseTierAmount(tierAmounts[tierKey(tier, index)]) == null) {
+        return tier.name || `第 ${index + 1} 段`;
+      }
+    }
+    return null;
+  };
+
+  /** 收集各時段價，轉成 draft 用的 prices 陣列 */
   const buildPrices = (): ItemTierPriceDraft[] => {
     const prices: ItemTierPriceDraft[] = [];
     priceTiers.forEach((tier, index) => {
-      const raw = tierAmounts[tierKey(tier, index)];
-      if (raw == null || raw.trim() === "") return;
-      const n = Math.floor(Number(raw));
-      if (!Number.isInteger(n) || n < 0) return;
+      const n = parseTierAmount(tierAmounts[tierKey(tier, index)]);
+      if (n == null) return;
       if (tier.id != null) prices.push({ tierId: tier.id, amount: n });
       else prices.push({ tierDraftIndex: index, amount: n });
     });
     return prices;
   };
 
+  /** 把第一個填好的價格帶進其餘空欄位，省得同樣的數字打好幾次 */
+  const fillEmptyTiersFromFirst = () => {
+    const firstFilled = priceTiers
+      .map((tier, index) => tierAmounts[tierKey(tier, index)])
+      .find((raw) => parseTierAmount(raw) != null);
+    if (firstFilled == null) return;
+    setTierAmounts((prev) => {
+      const next = { ...prev };
+      priceTiers.forEach((tier, index) => {
+        const key = tierKey(tier, index);
+        if (parseTierAmount(next[key]) == null) next[key] = firstFilled;
+      });
+      return next;
+    });
+  };
+
+  const hasEmptyTier = useTiers && firstUnpricedTier() != null;
+  const hasAnyTierFilled =
+    useTiers &&
+    priceTiers.some((tier, index) =>
+      parseTierAmount(tierAmounts[tierKey(tier, index)]) != null
+    );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     const trimmedName = name.trim();
-    const amountNum = Math.floor(Number(amount));
     if (!trimmedName) {
       setError("請輸入名稱");
-      return;
-    }
-    if (!Number.isInteger(amountNum) || amountNum < 0) {
-      setError("請輸入有效金額（非負整數）");
       return;
     }
     if (useGroups && !groupKey) {
       setError("請選擇所屬區塊");
       return;
+    }
+
+    // 有時段：每段都要有價，amount 取最後一段（fallback 段）的價格
+    // 沒有時段：維持單一金額欄位
+    let amountNum: number;
+    if (useTiers) {
+      const unpriced = firstUnpricedTier();
+      if (unpriced) {
+        setError(`請填寫「${unpriced}」的價格`);
+        return;
+      }
+      amountNum = parseTierAmount(tierAmounts[lastTierKey!])!;
+    } else {
+      amountNum = Math.floor(Number(amount));
+      if (!Number.isInteger(amountNum) || amountNum < 0) {
+        setError("請輸入有效金額（非負整數）");
+        return;
+      }
     }
     const prices = buildPrices();
     const group = resolveGroup();
@@ -264,27 +326,23 @@ export function PurchaseItemDrawer({
           </select>
         </div>
       )}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="item-amount">
-          {priceTiers.length > 0 ? "預設金額 *" : "金額 *"}
-        </Label>
-        {priceTiers.length > 0 && (
-          <p className="-mt-1 text-xs text-gray-500">
-            某個時段沒填價格時，就會用這個金額。
-          </p>
-        )}
-        <Input
-          id="item-amount"
-          placeholder="輸入金額"
-          type="number"
-          min={0}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-      </div>
-      {priceTiers.length > 0 && (
+      {useTiers ? (
         <div className="flex flex-col gap-2">
-          <Label>各時段價格（選填，留空則用預設金額）</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>票價 *</Label>
+            {hasAnyTierFilled && hasEmptyTier && (
+              <button
+                type="button"
+                onClick={fillEmptyTiersFromFirst}
+                className="rounded text-xs font-medium text-brand underline-offset-2 hover:underline"
+              >
+                其餘時段帶入同價
+              </button>
+            )}
+          </div>
+          <p className="-mt-1 text-xs text-gray-500">
+            這場活動有 {priceTiers.length} 個票價時段，每段都要有價格。
+          </p>
           {priceTiers.map((tier, index) => {
             const key = tierKey(tier, index);
             return (
@@ -300,10 +358,27 @@ export function PurchaseItemDrawer({
                   onChange={(e) =>
                     setTierAmounts((prev) => ({ ...prev, [key]: e.target.value }))
                   }
+                  aria-label={`${tier.name || `第 ${index + 1} 段`}的價格`}
                 />
               </div>
             );
           })}
+          <p className="text-xs text-gray-500">
+            「{priceTiers[priceTiers.length - 1]?.name || "最後一段"}
+            」是最後一段，會作為這張票的基準價。
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="item-amount">金額 *</Label>
+          <Input
+            id="item-amount"
+            placeholder="輸入金額"
+            type="number"
+            min={0}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
         </div>
       )}
       <div className="flex justify-end gap-2 pt-2">

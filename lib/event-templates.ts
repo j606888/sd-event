@@ -3,6 +3,7 @@ import type {
   PurchaseItemGroupDraft,
   PurchaseItemDraft,
 } from "@/hooks/use-event-form";
+import { taipeiDateInput } from "@/lib/format-event-date";
 
 /** 活動類型；用於決定購買項目範本 */
 export type EventType = "Party" | "Workshop" | "Festival";
@@ -39,16 +40,49 @@ export type EventTemplate = {
   groupExclusions: Array<[string, string]>;
 };
 
+/**
+ * 範本裡的時段用「距今幾天」表示，取用時才換算成實際日期。
+ *
+ * 時段是依 `sortOrder` 取第一個尚未截止的段（`lib/pricing.ts` 的 `resolveActiveTier`），
+ * 所以除了最後的 fallback 段以外，每一段都必須有截止日 —— 否則整場活動會永遠停在第一段
+ * （早鳥價收到天荒地老）。範本先給一組合理的預設日期，主辦人再依實際檔期調整。
+ *
+ * `daysFromNow: null` = fallback 段（現場價），永不過期。
+ */
+type TemplateTier = {
+  name: string;
+  sortOrder: number;
+  daysFromNow: number | null;
+};
+
+type EventTemplateSource = Omit<EventTemplate, "priceTiers"> & {
+  priceTiers: TemplateTier[];
+};
+
+/** 距今 n 天的台北日期，轉成 date input 用的 "YYYY-MM-DD" */
+function dateInputInDays(days: number): string {
+  return taipeiDateInput(new Date(Date.now() + days * 86_400_000).toISOString());
+}
+
+/** 範本時段 → draft 時段（把 daysFromNow 換算成實際截止日） */
+function resolveTemplateTiers(tiers: TemplateTier[]): PriceTierDraft[] {
+  return tiers.map((t) => ({
+    name: t.name,
+    sortOrder: t.sortOrder,
+    endsAt: t.daysFromNow == null ? "" : dateInputInDays(t.daysFromNow),
+  }));
+}
+
 /** 把 amounts[i] 對應到 tierDraftIndex i，產生範本用的時段價陣列（範例價，使用者可改） */
 function pricesFor(amounts: number[]) {
   return amounts.map((amount, i) => ({ tierDraftIndex: i, amount }));
 }
 
-const PARTY_TEMPLATE: EventTemplate = {
+const PARTY_TEMPLATE: EventTemplateSource = {
   priceTiers: [
-    { name: "超早鳥", endsAt: "", sortOrder: 0 },
-    { name: "早鳥", endsAt: "", sortOrder: 1 },
-    { name: "一般 / 現場", endsAt: "", sortOrder: 2 },
+    { name: "超早鳥", daysFromNow: 14, sortOrder: 0 },
+    { name: "早鳥", daysFromNow: 28, sortOrder: 1 },
+    { name: "一般 / 現場", daysFromNow: null, sortOrder: 2 },
   ],
   groups: [],
   purchaseItems: [
@@ -57,10 +91,10 @@ const PARTY_TEMPLATE: EventTemplate = {
   groupExclusions: [],
 };
 
-const WORKSHOP_TEMPLATE: EventTemplate = {
+const WORKSHOP_TEMPLATE: EventTemplateSource = {
   priceTiers: [
-    { name: "早鳥", endsAt: "", sortOrder: 0 },
-    { name: "一般 / 現場", endsAt: "", sortOrder: 1 },
+    { name: "早鳥", daysFromNow: 30, sortOrder: 0 },
+    { name: "一般 / 現場", daysFromNow: null, sortOrder: 1 },
   ],
   groups: [
     { title: "課程方案", selectionMode: "single", required: true, sortOrder: 0 },
@@ -89,12 +123,12 @@ const WORKSHOP_TEMPLATE: EventTemplate = {
   groupExclusions: [],
 };
 
-const FESTIVAL_TEMPLATE: EventTemplate = {
+const FESTIVAL_TEMPLATE: EventTemplateSource = {
   priceTiers: [
-    { name: "超早鳥", endsAt: "", sortOrder: 0 },
-    { name: "早鳥", endsAt: "", sortOrder: 1 },
-    { name: "一般", endsAt: "", sortOrder: 2 },
-    { name: "現場", endsAt: "", sortOrder: 3 },
+    { name: "超早鳥", daysFromNow: 21, sortOrder: 0 },
+    { name: "早鳥", daysFromNow: 45, sortOrder: 1 },
+    { name: "一般", daysFromNow: 75, sortOrder: 2 },
+    { name: "現場", daysFromNow: null, sortOrder: 3 },
   ],
   groups: [
     { title: "Pass 方案", selectionMode: "single", required: true, sortOrder: 0 },
@@ -144,7 +178,7 @@ const FESTIVAL_TEMPLATE: EventTemplate = {
   groupExclusions: [],
 };
 
-const TEMPLATES: Record<EventType, EventTemplate> = {
+const TEMPLATES: Record<EventType, EventTemplateSource> = {
   Party: PARTY_TEMPLATE,
   Workshop: WORKSHOP_TEMPLATE,
   Festival: FESTIVAL_TEMPLATE,
@@ -154,7 +188,7 @@ const TEMPLATES: Record<EventType, EventTemplate> = {
 export function getEventTemplate(type: EventType): EventTemplate {
   const t = TEMPLATES[type] ?? PARTY_TEMPLATE;
   return {
-    priceTiers: t.priceTiers.map((x) => ({ ...x })),
+    priceTiers: resolveTemplateTiers(t.priceTiers),
     groups: t.groups.map((x) => ({ ...x })),
     purchaseItems: t.purchaseItems.map((x) => ({
       ...x,

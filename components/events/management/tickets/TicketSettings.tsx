@@ -89,8 +89,9 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
           }`}
           aria-disabled={readOnly || undefined}
         >
-          <TicketGroupsCard form={form} />
+          {/* 票價依賴時段，所以先設時段再設票券 —— 避免「先填了金額才發現要分時段」 */}
           <PriceTiersCard form={form} />
+          <TicketGroupsCard form={form} />
           <CouponsCard form={form} />
 
           {/* 進階：互斥規則＋金額計算（使用區塊時金額一律自動計算） */}

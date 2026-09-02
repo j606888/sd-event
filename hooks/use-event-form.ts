@@ -8,6 +8,10 @@ import {
   taipeiDateTimeLocal,
   fromTaipeiDateTimeLocal,
 } from "@/lib/format-event-date";
+import {
+  remapPricesAfterTierRemoval,
+  shiftPricesAfterTierInsert,
+} from "@/lib/ticket-draft-prices";
 
 export type DrawerType =
   | null
@@ -188,9 +192,12 @@ export function useEventForm({
 
   const initializedEventIdRef = useRef<number | null>(null);
 
-  // 以 in-flight 計數器追蹤自動儲存中的請求；全部完成後顯示「已自動儲存」
+  // 以 in-flight 計數器追蹤自動儲存中的請求；全部完成後顯示「已自動儲存」。
+  // 每次開始新的自動儲存都先清掉上一次的錯誤 —— 否則一次失敗後，
+  // 就算後續每一筆都存成功，「儲存失敗，請重試」也會一直掛在畫面上。
   const trackAutoSave = async <T,>(work: Promise<T>): Promise<T> => {
     autoSaveInFlightRef.current += 1;
+    setSaveError(null);
     setAutoSaveStatus("saving");
     try {
       return await work;
@@ -683,31 +690,146 @@ export function useEventForm({
   };
 
   // ===== 票價時段 =====
+
+  /**
+   * 時段依 sortOrder 升冪解析，取第一個尚未截止的段（`lib/pricing.ts` 的 `resolveActiveTier`），
+   * 所以**最後一段必須是唯一沒有截止日的 fallback 段**。排在 fallback 之後的時段永遠輪不到，
+   * 新增時段因此一律插在 fallback 之前，而不是接在最後面。
+   */
+  const fallbackTierIndex = (tiers: PriceTierDraft[]) =>
+    tiers.length === 0 ? -1 : tiers.length - 1;
+
+  /** 距今 n 天的台北日期字串（date input 用） */
+  const dateInputInDays = (days: number) =>
+    taipeiDateInput(new Date(Date.now() + days * 86_400_000).toISOString());
+
+  /**
+   * 把 sortOrder 對齊陣列索引。
+   *
+   * 舊版新增用 `priceTiers.length`、刪除又不重編號，於是刪掉再新增就會出現重複的 sortOrder，
+   * 「哪一段生效」變成不確定。這裡在每次增刪後統一重編，順帶修好既有活動已經撞號的資料。
+   */
+  const renumberPriceTiers = async (next: PriceTierDraft[]) => {
+    if (mode !== "edit" || eventId == null) return;
+    await Promise.all(
+      next.map(async (tier, index) => {
+        if (tier.id == null || tier.sortOrder === index) return;
+        try {
+          await fetch(`/api/events/${eventId}/price-tiers/${tier.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ sortOrder: index }),
+          });
+        } catch {
+          setSaveError("時段排序更新失敗");
+        }
+      })
+    );
+  };
+
+  /** 新增時段的預設截止日：前一段截止日 + 14 天，沒有前一段就用 30 天後 */
+  const defaultEndsAtForInsert = (tiers: PriceTierDraft[], insertAt: number) => {
+    const prev = insertAt > 0 ? tiers[insertAt - 1] : undefined;
+    if (prev?.endsAt) {
+      const prevMs = new Date(`${prev.endsAt}T00:00:00+08:00`).getTime();
+      if (!Number.isNaN(prevMs)) {
+        return taipeiDateInput(new Date(prevMs + 14 * 86_400_000).toISOString());
+      }
+    }
+    return dateInputInDays(30);
+  };
+
+  /**
+   * create 模式專用：在 `from` 位置插入時段後，把後面項目價格的 `tierDraftIndex` 往後移。
+   * 少了這步，插在中間的時段會讓後面時段的價格默默綁到別段去。
+   */
+  const shiftTierDraftIndexes = (from: number) => {
+    setPurchaseItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        prices: shiftPricesAfterTierInsert(item.prices ?? [], from),
+      }))
+    );
+  };
+
   const addPriceTier = async () => {
-    const sortOrder = priceTiers.length;
+    // 第一段就是 fallback 段（永不過期）；之後的新增都插在 fallback 之前並帶截止日
+    const isFirst = priceTiers.length === 0;
+    const insertAt = isFirst ? 0 : fallbackTierIndex(priceTiers);
+    const name = isFirst ? "現場" : "新時段";
+    const endsAt = isFirst ? "" : defaultEndsAtForInsert(priceTiers, insertAt);
+
     if (mode === "edit" && eventId != null) {
       try {
         const res = await fetch(`/api/events/${eventId}/price-tiers`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name: "新時段", endsAt: "", sortOrder }),
+          body: JSON.stringify({ name, endsAt, sortOrder: insertAt }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setSaveError(data.error || "新增時段失敗");
           return;
         }
-        setPriceTiers((prev) => [
-          ...prev,
-          { id: data.priceTier?.id, name: "新時段", endsAt: "", sortOrder },
-        ]);
+        const next = [...priceTiers];
+        next.splice(insertAt, 0, {
+          id: data.priceTier?.id,
+          name,
+          endsAt,
+          sortOrder: insertAt,
+        });
+        setPriceTiers(next.map((t, i) => ({ ...t, sortOrder: i })));
+        await renumberPriceTiers(next);
       } catch {
         setSaveError("新增時段失敗");
       }
       return;
     }
-    setPriceTiers((prev) => [...prev, { name: "新時段", endsAt: "", sortOrder }]);
+
+    setPriceTiers((prev) => {
+      const next = [...prev];
+      next.splice(insertAt, 0, { name, endsAt, sortOrder: insertAt });
+      return next.map((t, i) => ({ ...t, sortOrder: i }));
+    });
+    // create 模式：插在中間會讓後面時段的 draft index 整體後移，項目價格要跟著搬
+    if (!isFirst) shiftTierDraftIndexes(insertAt);
+  };
+
+  /** 空狀態一鍵建立「早鳥 + 現場」兩段，省得使用者自己拼出合法的時段梯 */
+  const seedDefaultPriceTiers = async () => {
+    const seeds: { name: string; endsAt: string }[] = [
+      { name: "早鳥", endsAt: dateInputInDays(30) },
+      { name: "現場", endsAt: "" },
+    ];
+
+    if (mode === "edit" && eventId != null) {
+      const created: PriceTierDraft[] = [];
+      for (const [index, seed] of seeds.entries()) {
+        try {
+          const res = await fetch(`/api/events/${eventId}/price-tiers`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ ...seed, sortOrder: index }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setSaveError(data.error || "新增時段失敗");
+            break;
+          }
+          created.push({ id: data.priceTier?.id, ...seed, sortOrder: index });
+        } catch {
+          setSaveError("新增時段失敗");
+          break;
+        }
+      }
+      if (created.length > 0) setPriceTiers(created);
+      return;
+    }
+
+    setPriceTiers(seeds.map((seed, index) => ({ ...seed, sortOrder: index })));
   };
 
   const updatePriceTier = (
@@ -757,16 +879,20 @@ export function useEventForm({
         return;
       }
     }
-    setPriceTiers((prev) => prev.filter((_, i) => i !== index));
-    // 同步移除本地草稿項目中參照到此時段的價格
+    // remaining 保留原本的 sortOrder，renumberPriceTiers 才看得出哪幾段需要改；
+    // 先 normalize 再傳進去的話 `tier.sortOrder === index` 永遠成立，一筆都不會送出
+    const remaining = priceTiers.filter((_, i) => i !== index);
+    setPriceTiers(remaining.map((t, i) => ({ ...t, sortOrder: i })));
+
+    // 同步移除本地草稿項目中參照到此時段的價格，並把後面的 tierDraftIndex 往前移一格
     setPurchaseItems((prev) =>
       prev.map((item) => ({
         ...item,
-        prices: (item.prices ?? []).filter(
-          (p) => p.tierDraftIndex !== index && p.tierId !== tier?.id
-        ),
+        prices: remapPricesAfterTierRemoval(item.prices ?? [], index, tier?.id),
       }))
     );
+
+    await renumberPriceTiers(remaining);
   };
 
   // ===== 票種群組 =====
@@ -870,19 +996,37 @@ export function useEventForm({
         return;
       }
     }
-    setGroups((prev) => prev.filter((_, i) => i !== index));
-    // 同步清掉本地項目對此群組的歸屬
-    setPurchaseItems((prev) =>
-      prev.map((item) =>
-        item.groupDraftIndex === index || (group?.id != null && item.groupId === group.id)
-          ? { ...item, groupId: null, groupDraftIndex: undefined }
-          : item
-      )
+    setGroups((prev) =>
+      prev.filter((_, i) => i !== index).map((g, i) => ({ ...g, sortOrder: i }))
     );
-    // 同步移除任何指向此群組的互斥配對
+    // 同步清掉本地項目對此群組的歸屬。
+    // 後面群組的 draft index 會整體前移一格，項目的 groupDraftIndex 要跟著搬，
+    // 否則 create 模式刪掉中間的群組會讓後面的票券默默歸到別的區塊。
+    setPurchaseItems((prev) =>
+      prev.map((item) => {
+        if (
+          item.groupDraftIndex === index ||
+          (group?.id != null && item.groupId === group.id)
+        ) {
+          return { ...item, groupId: null, groupDraftIndex: undefined };
+        }
+        if (item.groupDraftIndex != null && item.groupDraftIndex > index) {
+          return { ...item, groupDraftIndex: item.groupDraftIndex - 1 };
+        }
+        return item;
+      })
+    );
+    // 同步移除任何指向此群組的互斥配對；剩下的 `draft-<index>` key 一併前移
     const removedKey = group?.id != null ? `id-${group.id}` : `draft-${index}`;
+    const shiftKey = (key: string) => {
+      if (!key.startsWith("draft-")) return key;
+      const n = Number(key.slice(6));
+      return Number.isInteger(n) && n > index ? `draft-${n - 1}` : key;
+    };
     setGroupExclusions((prev) => {
-      const next = prev.filter((p) => p[0] !== removedKey && p[1] !== removedKey);
+      const next = prev
+        .filter((p) => p[0] !== removedKey && p[1] !== removedKey)
+        .map(([a, b]): [string, string] => [shiftKey(a), shiftKey(b)]);
       if (next.length !== prev.length) void persistGroupExclusions(next);
       return next;
     });
@@ -1329,6 +1473,7 @@ export function useEventForm({
     setPurchaseItemHidden: withAutoSave(setPurchaseItemHidden),
     assignItemGroup: withAutoSave(assignItemGroup),
     addPriceTier: withAutoSave(addPriceTier),
+    seedDefaultPriceTiers: withAutoSave(seedDefaultPriceTiers),
     updatePriceTier,
     persistPriceTier: withAutoSave(persistPriceTier),
     removePriceTier: withAutoSave(removePriceTier),
