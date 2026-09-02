@@ -136,6 +136,8 @@ export function useCheckIn(
         queryKey: ["registration", eventId, selectedRegistrationId],
       });
       queryClient.invalidateQueries({ queryKey: ["registrations", eventId] });
+      // 入場數會直接影響統計分頁的入場進度，漏掉會讓數字停在舊值
+      queryClient.invalidateQueries({ queryKey: ["eventStats", eventId] });
     },
   });
 }
