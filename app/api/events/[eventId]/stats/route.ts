@@ -81,6 +81,7 @@ export async function GET(_request: Request, { params }: Params) {
         pending: 0,
       },
       purchaseItemSummary: [],
+      discountTotal: 0,
     });
   }
 
@@ -261,6 +262,9 @@ export async function GET(_request: Request, { params }: Params) {
     });
   }
 
+  // 折扣碼折抵總額：讓前端能把「項目統計（折扣前）」和「全部付款可收（折扣後）」對起來。
+  const discountTotal = regs.reduce((sum, r) => sum + r.discountAmount, 0);
+
   const purchaseItemSummary = Array.from(summaryMap.values()).sort(
     (a, b) => b.attendeeCount - a.attendeeCount || a.amount - b.amount
   );
@@ -272,5 +276,6 @@ export async function GET(_request: Request, { params }: Params) {
     paymentAmountTotals,
     paymentCounts,
     purchaseItemSummary,
+    discountTotal,
   });
 }

@@ -28,6 +28,8 @@ type StatsData = {
     attendeeCount: number;
     revenue: number;
   }>;
+  /** 折扣碼折抵總額，用來把項目統計（折扣前）與款項（折扣後）對起來。 */
+  discountTotal: number;
 };
 
 /** 款項明細各列點下去要套用的報名者篩選。 */
@@ -84,11 +86,14 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
     paymentAmountTotals,
     paymentCounts,
     purchaseItemSummary,
+    discountTotal,
   } = data;
 
   const roles = roleDistribution(roleCounts);
   const checkIn = checkInSummary(totalAttendees, checkedInCount);
   const payments = paymentSummary(paymentAmountTotals, paymentCounts);
+  // 項目統計是折扣前金額，扣掉折抵後就會等於上方的「全部付款可收」。
+  const itemsSubtotal = purchaseItemSummary.reduce((sum, item) => sum + item.revenue, 0);
 
   /** 沒帶 handler 時退化成純文字，不會出現點了沒反應的按鈕。 */
   const drillDown = (filters: RegistrationFilterRequest) =>
@@ -260,7 +265,7 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
       <section className="py-6">
         <h3 className="mb-1 font-display text-sm font-bold text-ink">報名項目統計</h3>
         <p className="mb-3 text-xs text-gray-400">
-          金額為各筆報名成交價加總（含時段價，未扣折扣碼折抵）
+          金額為各筆報名成交價加總（含時段價，折扣碼折抵另列於下方）
         </p>
         {purchaseItemSummary.length === 0 ? (
           <p className="text-sm text-gray-500">尚無報名項目資料</p>
@@ -283,6 +288,27 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
               </li>
             ))}
           </ul>
+        )}
+
+        {purchaseItemSummary.length > 0 && (
+          <dl className="mt-3 space-y-1.5 border-t border-hairline pt-3 text-[13px]">
+            <div className="flex items-baseline justify-between">
+              <dt className="text-gray-500">項目小計</dt>
+              <dd className="tabular-nums text-gray-700">{money(itemsSubtotal)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <dt className="text-gray-500">折扣碼折抵</dt>
+              <dd className="tabular-nums text-gray-700">
+                {discountTotal > 0 ? `− ${money(discountTotal)}` : money(0)}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between pt-1">
+              <dt className="font-medium text-ink">折抵後應收</dt>
+              <dd className="font-display text-[15px] font-semibold text-ink tabular-nums">
+                {money(itemsSubtotal - discountTotal)}
+              </dd>
+            </div>
+          </dl>
         )}
       </section>
     </div>
