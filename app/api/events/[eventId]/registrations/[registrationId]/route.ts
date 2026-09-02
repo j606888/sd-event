@@ -75,7 +75,10 @@ export async function GET(_request: Request, { params }: Params) {
   const attendees = await db
     .select()
     .from(eventAttendees)
-    .where(eq(eventAttendees.registrationId, registrationId));
+    .where(eq(eventAttendees.registrationId, registrationId))
+    // 沒有 ORDER BY 的話，任何一次 UPDATE（例如入場）都會讓 Postgres
+    // 回傳不同的順序，畫面上的參加者就會在按下入場後跳位
+    .orderBy(asc(eventAttendees.id));
 
   // 取得購買項目（單選或多選）。單選舊資料沒有單價快照，
   // 以報名時間回推當時生效的時段價，避免顯示成 fallback 段（現場價）。

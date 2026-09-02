@@ -9,7 +9,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { eq, desc, or, like, and, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, asc, desc, or, like, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { matchesCheckInFilter, type CheckInFilter } from "@/lib/registration-list-filters";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -126,6 +126,8 @@ export async function GET(request: Request, { params }: Params) {
           .select()
           .from(eventAttendees)
           .where(inArray(eventAttendees.registrationId, registrationIds))
+          // 固定順序，CSV 每次匯出的參加者列順序才會一致
+          .orderBy(asc(eventAttendees.id))
       : [];
 
   const multiItems =
