@@ -190,3 +190,23 @@ export function fromTaipeiDateTimeLocal(value: string | null | undefined): strin
   const d = new Date(`${value.trim()}:00${TAIPEI_OFFSET}`);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
+
+/**
+ * 列表用的短時間格式（Asia/Taipei）：07/12 21:04
+ * 同一場活動的報名多半集中在幾週內，年份反而是雜訊，故省略。
+ */
+export function formatShortTimestamp(isoString: string): string {
+  const date = new Date(isoString);
+  const { month, day } = getDatePartsInTz(date);
+  const { hour, minute } = getTimePartsInTz(date);
+  return (
+    `${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")} ` +
+    `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+  );
+}
+
+/** 只有時分（Asia/Taipei）：21:04。用於「已入場 21:04」這種當天情境。 */
+export function formatClockTime(isoString: string): string {
+  const { hour, minute } = getTimePartsInTz(new Date(isoString));
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
