@@ -236,25 +236,22 @@ export async function PATCH(request: Request, { params }: Params) {
           : String(body.paymentNote);
     }
 
-    // 如果提供了截圖或備註，將狀態更新為 "reported"
+    // 提供截圖或備註即視為「已回報付款」。
+    // 被退回（rejected）的人重新回報時也要能回到 reported，否則狀態會卡在已拒絕。
     if (
       (updates.paymentScreenshotUrl !== undefined ||
         updates.paymentNote !== undefined) &&
-      registration.paymentStatus === "pending" &&
+      (registration.paymentStatus === "pending" ||
+        registration.paymentStatus === "rejected") &&
       (updates.paymentScreenshotUrl !== null || updates.paymentNote !== null)
     ) {
       updates.paymentStatus = "reported";
     }
 
-    // 允許手動更新付款狀態（用於主辦方確認）
-    if (
-      typeof body.paymentStatus === "string" &&
-      ["pending", "reported", "confirmed", "rejected"].includes(
-        body.paymentStatus
-      )
-    ) {
-      updates.paymentStatus = body.paymentStatus;
-    }
+    // 這支端點只靠 registrationKey 辨識、不需登入，因此「不接受」body 指定付款狀態：
+    // 否則持有自己報名連結的人就能把自己標記為 confirmed，繞過主辦確認收款。
+    // 主辦端的狀態變更一律走需要登入的
+    // PATCH /api/events/[eventId]/registrations/[registrationId]。
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ registration });
