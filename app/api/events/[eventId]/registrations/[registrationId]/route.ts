@@ -9,11 +9,13 @@ import {
   eventPriceTiers,
   eventRegistrationPurchaseItems,
   teamMembers,
-  eventLocations,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
-import { sendPaymentConfirmedEmail } from "@/lib/email";
+import {
+  loadConfirmationEmailContext,
+  sendConfirmationEmail,
+} from "@/lib/registration-email";
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
 
@@ -350,34 +352,11 @@ export async function PATCH(request: Request, { params }: Params) {
       updates.paymentStatus === "confirmed" &&
       registration.paymentStatus !== "confirmed"
     ) {
-      let location: { name: string; googleMapUrl: string | null } | null = null;
-      if (event.locationId) {
-        const [loc] = await db
-          .select({
-            name: eventLocations.name,
-            googleMapUrl: eventLocations.googleMapUrl,
-          })
-          .from(eventLocations)
-          .where(eq(eventLocations.id, event.locationId))
-          .limit(1);
-        if (loc) {
-          location = {
-            name: loc.name,
-            googleMapUrl: loc.googleMapUrl ?? null,
-          };
-        }
-      }
-
-      sendPaymentConfirmedEmail(
-        updated.contactEmail,
-        updated.registrationKey,
-        event.title ?? undefined,
-        event.startAt ? new Date(event.startAt).toISOString() : undefined,
-        event.endAt ? new Date(event.endAt).toISOString() : undefined,
-        location
-      ).catch((err) =>
-        console.error("Payment confirmed email error:", err)
-      );
+      const contactEmail = updated.contactEmail;
+      const registrationKey = updated.registrationKey;
+      loadConfirmationEmailContext(event)
+        .then((ctx) => sendConfirmationEmail(ctx, contactEmail, registrationKey))
+        .catch((err) => console.error("Payment confirmed email error:", err));
     }
 
     return NextResponse.json({ registration: updated });

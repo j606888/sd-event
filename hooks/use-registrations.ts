@@ -139,3 +139,20 @@ export function useCheckIn(
     },
   });
 }
+
+/** 重寄收款確認信。只寄信、不改狀態，所以不需要 invalidate 任何查詢。 */
+export function useResendConfirmationEmail(eventId: string) {
+  return useMutation({
+    mutationFn: async (registrationId: number) => {
+      const res = await fetch(
+        `/api/events/${eventId}/registrations/${registrationId}/resend-confirmation`,
+        { method: "POST", credentials: "include" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error || "重寄失敗");
+      }
+      return data as { ok: true; sentTo: string };
+    },
+  });
+}

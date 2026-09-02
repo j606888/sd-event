@@ -1,12 +1,18 @@
 /**
  * One-off script to resend the payment-confirmed email for a registration.
+ *
+ * 主辦端現在也能從報名詳情的「⋯ → 重寄確認信」直接重寄；
+ * 這支保留給沒有登入環境時（例如線上支援）使用。
  * Usage: npx tsx scripts/resend-payment-confirmed-email.ts <eventId> <registrationId>
  * Example: npx tsx scripts/resend-payment-confirmed-email.ts 1 1
  */
 import "dotenv/config";
 import { db } from "@/db";
-import { events, eventRegistrations, eventLocations } from "@/db/schema";
-import { sendPaymentConfirmedEmail } from "@/lib/email";
+import { events, eventRegistrations } from "@/db/schema";
+import {
+  loadConfirmationEmailContext,
+  sendConfirmationEmail,
+} from "@/lib/registration-email";
 import { eq, and } from "drizzle-orm";
 
 async function main() {
@@ -51,32 +57,12 @@ async function main() {
     process.exit(1);
   }
 
-  let location: { name: string; googleMapUrl: string | null } | null = null;
-  if (event.locationId) {
-    const [loc] = await db
-      .select({
-        name: eventLocations.name,
-        googleMapUrl: eventLocations.googleMapUrl,
-      })
-      .from(eventLocations)
-      .where(eq(eventLocations.id, event.locationId))
-      .limit(1);
-    if (loc) {
-      location = {
-        name: loc.name,
-        googleMapUrl: loc.googleMapUrl ?? null,
-      };
-    }
-  }
-
   console.log(`Sending payment-confirmed email to ${registration.contactEmail}...`);
-  const result = await sendPaymentConfirmedEmail(
+  const ctx = await loadConfirmationEmailContext(event);
+  const result = await sendConfirmationEmail(
+    ctx,
     registration.contactEmail,
-    registration.registrationKey,
-    event.title ?? undefined,
-    event.startAt ? new Date(event.startAt).toISOString() : undefined,
-    event.endAt ? new Date(event.endAt).toISOString() : undefined,
-    location
+    registration.registrationKey
   );
 
   if (result.ok) {
