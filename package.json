@@ -16,6 +16,8 @@
     "db:studio:local": "drizzle-kit studio",
     "db:migrate:prod": "dotenv -e .env.production -- drizzle-kit migrate",
     "db:studio:prod": "dotenv -e .env.production -- drizzle-kit studio",
+    "mint-token": "dotenv -e .env -- tsx scripts/mint-token.ts",
+    "mint-token:prod": "dotenv -e .env.production -- tsx scripts/mint-token.ts",
     "fix-tier-tz": "dotenv -e .env -- tsx scripts/fix-tier-endsat-tz.ts",
     "fix-tier-tz:prod": "dotenv -e .env.production -- tsx scripts/fix-tier-endsat-tz.ts",
     "backfill-unit-amounts": "dotenv -e .env -- tsx scripts/backfill-registration-unit-amounts.ts",
