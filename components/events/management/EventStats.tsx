@@ -1,26 +1,26 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RoleBalanceMeter } from "@/components/events/RoleBalanceMeter";
-import { SegmentedToggle } from "@/components/ui/segmented";
-
-type RoleCounts = {
-  Leader: number;
-  Follower: number;
-  "Not sure": number;
-};
+import {
+  checkInSummary,
+  paymentSummary,
+  roleDistribution,
+  type PaymentAmountTotals,
+  type PaymentCounts,
+  type RoleCounts,
+} from "@/lib/event-stats-summary";
+import type {
+  CheckInFilter,
+  PaymentFilter,
+} from "@/lib/registration-list-filters";
 
 type StatsData = {
   roleCounts: RoleCounts;
-  checkedInRoleCounts: RoleCounts;
   totalAttendees: number;
   checkedInCount: number;
-  paymentAmountTotals: {
-    confirmed: number;
-    reported: number;
-    pending: number;
-  };
+  paymentAmountTotals: PaymentAmountTotals;
+  paymentCounts: PaymentCounts;
   purchaseItemSummary: Array<{
     id: number;
     name: string;
@@ -30,23 +30,27 @@ type StatsData = {
   }>;
 };
 
-const ROLE_LABELS: Record<keyof RoleCounts, string> = {
-  Leader: "Leader",
-  Follower: "Follower",
-  "Not sure": "尚未確定",
+/** 款項明細各列點下去要套用的報名者篩選。 */
+const PAYMENT_DRILL_DOWN: Record<"confirmed" | "reported" | "pending", PaymentFilter> = {
+  confirmed: "confirmed",
+  reported: "reported",
+  pending: "pending",
 };
 
-// 角色分布配色沿用品牌 token：Leader 藍／Follower 珊瑚／中性灰
-const COLORS = ["var(--leader)", "var(--follower)", "#b4b4b4"];
+type RegistrationFilterRequest = {
+  payment?: PaymentFilter;
+  checkIn?: CheckInFilter;
+};
 
 type EventStatsProps = {
   eventId: string;
+  /** 帶入時，款項與入場的數字可點擊，跳到「報名者」分頁並套用篩選。 */
+  onFilterRegistrations?: (filters: RegistrationFilterRequest) => void;
 };
 
-export function EventStats({ eventId }: EventStatsProps) {
-  const [balanceMode, setBalanceMode] = useState<"registered" | "checkedIn">(
-    "registered"
-  );
+const money = (n: number) => `NT$ ${n.toLocaleString()}`;
+
+export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["eventStats", eventId],
     queryFn: async () => {
@@ -75,134 +79,180 @@ export function EventStats({ eventId }: EventStatsProps) {
 
   const {
     roleCounts,
-    checkedInRoleCounts,
     totalAttendees,
     checkedInCount,
     paymentAmountTotals,
+    paymentCounts,
     purchaseItemSummary,
   } = data;
 
-  // Lead/Follow 平衡：可切換「報名」與「已入場」兩種視角
-  const balanceCounts =
-    balanceMode === "checkedIn" ? checkedInRoleCounts ?? roleCounts : roleCounts;
-  const leaderN = balanceCounts.Leader;
-  const followerN = balanceCounts.Follower;
+  const roles = roleDistribution(roleCounts);
+  const checkIn = checkInSummary(totalAttendees, checkedInCount);
+  const payments = paymentSummary(paymentAmountTotals, paymentCounts);
+
+  /** 沒帶 handler 時退化成純文字，不會出現點了沒反應的按鈕。 */
+  const drillDown = (filters: RegistrationFilterRequest) =>
+    onFilterRegistrations ? () => onFilterRegistrations(filters) : undefined;
 
   return (
     <div className="flex max-w-4xl flex-col divide-y divide-hairline">
       {/* Signature: Leader / Follower balance — the hero stat for a dance event */}
       <section className="pb-8">
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-baseline justify-between">
           <h3 className="font-display text-base font-bold text-ink">舞伴平衡</h3>
-          <SegmentedToggle
-            value={balanceMode}
-            onChange={setBalanceMode}
-            options={[
-              { value: "registered", label: "報名" },
-              { value: "checkedIn", label: "已入場" },
-            ]}
-          />
-        </div>
-        <RoleBalanceMeter
-          leader={leaderN}
-          follower={followerN}
-          notSure={balanceCounts["Not sure"]}
-          size="lg"
-        />
-        <p className="mt-4 text-xs text-gray-400">統計僅包含「未隱藏」的報名資料。</p>
-      </section>
-
-      {/* Headline numbers — editorial stat row */}
-      <section className="grid max-w-md grid-cols-2 divide-x divide-hairline py-6">
-        <div className="pr-6">
-          <div className="text-xs font-medium tracking-wide text-gray-500">總參加人數</div>
-          <div className="font-display text-4xl font-semibold text-ink tabular-nums">
-            {totalAttendees}
+          <div className="text-xs text-gray-500">
+            報名人數{" "}
+            <span className="font-display text-[15px] font-semibold text-ink tabular-nums">
+              {roles.total}
+            </span>{" "}
+            人
           </div>
         </div>
-        <div className="pl-6">
-          <div className="text-xs font-medium tracking-wide text-gray-500">已入場</div>
-          <div className="font-display text-4xl font-semibold text-ink tabular-nums">
-            {checkedInCount}
-          </div>
-        </div>
-      </section>
 
-      {/* Role breakdown — proportion of all three roles */}
-      <section className="py-6">
-        <h3 className="mb-4 font-display text-sm font-bold text-ink">角色分布</h3>
-        {totalAttendees === 0 ? (
+        {roles.total === 0 ? (
           <p className="py-6 text-sm text-gray-500">尚無參加者資料</p>
         ) : (
           <>
-            <div className="flex h-3 w-full overflow-hidden rounded-full bg-gray-100">
-              {(Object.entries(roleCounts) as [keyof RoleCounts, number][]).map(
-                ([role, count], index) =>
-                  count > 0 ? (
-                    <div
-                      key={role}
-                      title={`${ROLE_LABELS[role]} ${count}`}
-                      style={{
-                        width: `${(count / totalAttendees) * 100}%`,
-                        backgroundColor: COLORS[index % COLORS.length],
-                      }}
-                    />
-                  ) : null
-              )}
-            </div>
-            <ul className="mt-4 space-y-2">
-              {(Object.entries(roleCounts) as [keyof RoleCounts, number][]).map(
-                ([role, count], index) => (
-                  <li
-                    key={role}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="flex items-center gap-2 text-gray-700">
-                      <span
-                        className="size-2.5 rounded-full"
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      {ROLE_LABELS[role]}
-                    </span>
-                    <span className="font-medium text-gray-900 tabular-nums">{count} 人</span>
-                  </li>
-                )
-              )}
+            <RoleBalanceMeter
+              leader={roleCounts.Leader}
+              follower={roleCounts.Follower}
+              notSure={roleCounts["Not sure"]}
+              size="lg"
+            />
+            <ul className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-x-7">
+              {roles.rows.map((row) => (
+                <li key={row.key} className="flex items-center gap-2 text-[13px]">
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: row.color }}
+                    aria-hidden
+                  />
+                  <span className="flex-1 text-gray-600 sm:flex-none">{row.label}</span>
+                  <span className="order-3 w-11 text-right font-medium text-ink tabular-nums sm:order-none sm:w-auto">
+                    {row.count} 人
+                  </span>
+                  <span className="text-gray-400 tabular-nums">{row.pct}%</span>
+                </li>
+              ))}
             </ul>
           </>
         )}
+
+        <p className="mt-4 text-xs text-gray-400">
+          比例以報名人數計，僅包含「未隱藏」的報名資料。
+        </p>
       </section>
 
-      {/* Money — flat columns with status dots instead of tinted boxes */}
+      {/* Check-in — headcount only; the role split after the door doesn't matter */}
       <section className="py-6">
-        <h3 className="mb-4 font-display text-sm font-bold text-ink">款項</h3>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-0 md:divide-x md:divide-hairline">
-          <div className="md:pr-6">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-              <span className="size-1.5 rounded-full bg-green-500" aria-hidden />
-              已入帳（已確認）
-            </div>
-            <div className="font-display text-2xl font-semibold text-green-700 tabular-nums">
-              NT$ {paymentAmountTotals.confirmed.toLocaleString()}
-            </div>
+        <div className="mb-4 flex items-baseline justify-between">
+          <h3 className="font-display text-sm font-bold text-ink">入場狀況</h3>
+          <div className="font-display text-sm font-semibold text-ink tabular-nums">
+            {checkIn.pct}%
           </div>
-          <div className="md:px-6">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-              <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
-              處理中（待確認）
-            </div>
-            <div className="font-display text-2xl font-semibold text-amber-600 tabular-nums">
-              NT$ {paymentAmountTotals.reported.toLocaleString()}
-            </div>
+        </div>
+
+        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="bg-ink transition-all duration-500"
+            style={{ width: `${checkIn.pct}%` }}
+          />
+        </div>
+
+        <div className="mt-4 grid max-w-md grid-cols-2 divide-x divide-hairline">
+          <StatColumn
+            className="pr-6"
+            dotClassName="bg-ink"
+            label="已入場"
+            value={checkIn.entered}
+            valueClassName="text-ink"
+            onClick={drillDown({ checkIn: "all_entered" })}
+          />
+          <StatColumn
+            className="pl-6"
+            dotClassName="bg-gray-300"
+            label="未入場"
+            value={checkIn.notEntered}
+            valueClassName="text-gray-400"
+            onClick={drillDown({ checkIn: "none" })}
+          />
+        </div>
+      </section>
+
+      {/* Money — what's banked, what's in flight, and the ceiling if everyone pays */}
+      <section className="py-6">
+        <div className="mb-3.5 flex items-baseline justify-between">
+          <h3 className="font-display text-sm font-bold text-ink">款項</h3>
+          <div className="text-xs text-gray-500">
+            收款進度{" "}
+            <span className="font-display text-sm font-semibold text-ink tabular-nums">
+              {payments.collectedPct}%
+            </span>
           </div>
-          <div className="md:px-6">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-              <span className="size-1.5 rounded-full bg-gray-300" aria-hidden />
-              應收未收（尚未付款）
-            </div>
-            <div className="font-display text-2xl font-semibold text-gray-600 tabular-nums">
-              NT$ {paymentAmountTotals.pending.toLocaleString()}
-            </div>
+        </div>
+
+        <div className="mb-3.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <div className="font-display text-[38px] leading-none font-semibold text-green-700 tabular-nums">
+            {money(payments.collected)}
+          </div>
+          <div className="text-[13px] text-gray-500">已入帳</div>
+        </div>
+
+        <div className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-full bg-gray-200">
+          {payments.rows
+            .filter((row) => row.pct > 0)
+            .map((row) => (
+              <div
+                key={row.key}
+                className="transition-all duration-500"
+                style={{ width: `${row.pct}%`, backgroundColor: row.color }}
+              />
+            ))}
+        </div>
+
+        <div className="mt-4">
+          {payments.rows.map((row) => {
+            const onClick = drillDown({ payment: PAYMENT_DRILL_DOWN[row.key] });
+            const content = (
+              <>
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: row.color }}
+                  aria-hidden
+                />
+                <span className="flex-1 text-left text-gray-600">{row.label}</span>
+                <span className="text-gray-400 tabular-nums">{row.count} 筆</span>
+                <span className="min-w-[92px] text-right font-display text-[15px] font-semibold text-ink tabular-nums">
+                  {money(row.amount)}
+                </span>
+              </>
+            );
+
+            return (
+              <div key={row.key} className="border-b border-hairline/70">
+                {onClick ? (
+                  <button
+                    type="button"
+                    onClick={onClick}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-md py-2.5 text-[13px] transition-colors hover:bg-gray-50"
+                  >
+                    {content}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 py-2.5 text-[13px]">
+                    {content}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="flex items-baseline gap-2 pt-3 text-[13px]">
+            <span className="flex-1 font-medium text-ink">全部付款可收</span>
+            <span className="text-gray-400 tabular-nums">{payments.totalCount} 筆</span>
+            <span className="min-w-[92px] text-right font-display text-xl font-semibold text-ink tabular-nums">
+              {money(payments.expectedTotal)}
+            </span>
           </div>
         </div>
       </section>
@@ -227,7 +277,7 @@ export function EventStats({ eventId }: EventStatsProps) {
                     {item.attendeeCount} 人
                   </span>
                   <span className="ml-3 text-gray-500 tabular-nums">
-                    NT$ {item.revenue.toLocaleString()}
+                    {money(item.revenue)}
                   </span>
                 </span>
               </li>
@@ -235,6 +285,55 @@ export function EventStats({ eventId }: EventStatsProps) {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+type StatColumnProps = {
+  label: string;
+  value: number;
+  className?: string;
+  dotClassName: string;
+  valueClassName: string;
+  onClick?: () => void;
+};
+
+/** 入場的兩個大數字；帶 onClick 時整欄可點，跳到報名者分頁。 */
+function StatColumn({
+  label,
+  value,
+  className = "",
+  dotClassName,
+  valueClassName,
+  onClick,
+}: StatColumnProps) {
+  const inner = (
+    <>
+      <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+        <span className={`size-[7px] rounded-full ${dotClassName}`} aria-hidden />
+        {label}
+      </div>
+      <div
+        className={`mt-1 font-display text-4xl font-semibold tabular-nums ${valueClassName}`}
+      >
+        {value}
+      </div>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className={className}>{inner}</div>;
+  }
+
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full cursor-pointer rounded-md py-1 text-left transition-colors hover:bg-gray-50"
+      >
+        {inner}
+      </button>
     </div>
   );
 }

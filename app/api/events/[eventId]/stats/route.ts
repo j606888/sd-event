@@ -68,10 +68,14 @@ export async function GET(_request: Request, { params }: Params) {
   if (registrationIds.length === 0) {
     return NextResponse.json({
       roleCounts: { Leader: 0, Follower: 0, "Not sure": 0 },
-      checkedInRoleCounts: { Leader: 0, Follower: 0, "Not sure": 0 },
       totalAttendees: 0,
       checkedInCount: 0,
       paymentAmountTotals: {
+        confirmed: 0,
+        reported: 0,
+        pending: 0,
+      },
+      paymentCounts: {
         confirmed: 0,
         reported: 0,
         pending: 0,
@@ -94,19 +98,19 @@ export async function GET(_request: Request, { params }: Params) {
   const totalAttendees = attendeeStats.reduce((s, r) => s + Number(r.total), 0);
   const checkedInCount = attendeeStats.reduce((s, r) => s + Number(r.checkedInCount), 0);
   const roleCounts: Record<string, number> = { Leader: 0, Follower: 0, "Not sure": 0 };
-  const checkedInRoleCounts: Record<string, number> = { Leader: 0, Follower: 0, "Not sure": 0 };
   for (const row of attendeeStats) {
     if (row.role in roleCounts) {
       roleCounts[row.role] = Number(row.total);
-      checkedInRoleCounts[row.role] = Number(row.checkedInCount);
     }
   }
 
-  // Query 2: Payment amount totals via GROUP BY.
+  // Query 2: Payment amount totals + registration counts via GROUP BY.
+  // 筆數是「報名筆」而非人數 —— 付款狀態掛在 registration 上。
   const paymentStats = await db
     .select({
       paymentStatus: eventRegistrations.paymentStatus,
       total: sql<number>`cast(sum(${eventRegistrations.totalAmount}) as int)`,
+      count: count(),
     })
     .from(eventRegistrations)
     .where(
@@ -118,14 +122,19 @@ export async function GET(_request: Request, { params }: Params) {
     .groupBy(eventRegistrations.paymentStatus);
 
   const paymentAmountTotals = { confirmed: 0, reported: 0, pending: 0 };
+  const paymentCounts = { confirmed: 0, reported: 0, pending: 0 };
   for (const row of paymentStats) {
     if (row.paymentStatus === "confirmed") {
       paymentAmountTotals.confirmed = Number(row.total);
+      paymentCounts.confirmed = Number(row.count);
     } else if (row.paymentStatus === "reported") {
       paymentAmountTotals.reported = Number(row.total);
+      paymentCounts.reported = Number(row.count);
     } else {
       // Treat pending/rejected/unknown as receivable-uncollected bucket.
+      // 被退回（rejected）的人會被引導「重新回報」，所以仍算應收，不是壞帳。
       paymentAmountTotals.pending += Number(row.total);
+      paymentCounts.pending += Number(row.count);
     }
   }
 
@@ -258,10 +267,10 @@ export async function GET(_request: Request, { params }: Params) {
 
   return NextResponse.json({
     roleCounts,
-    checkedInRoleCounts,
     totalAttendees,
     checkedInCount,
     paymentAmountTotals,
+    paymentCounts,
     purchaseItemSummary,
   });
 }

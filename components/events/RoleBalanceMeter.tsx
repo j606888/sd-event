@@ -7,12 +7,15 @@
  * organizer checks most often gets the boldest treatment: a split bar in the two
  * role colors (Leader blue / Follower coral) with the counts called out. Three
  * sizes so the same idea reads on a stats hero, an event card, and a list header.
+ *
+ * 比例的分母是「報名總人數」，尚未選角色的人以中性灰佔一段 —— 讓「還有多少人沒決定」
+ * 一眼看得到，而不是被擠出畫面。平衡判定（多幾位）仍只比 Leader 與 Follower。
  */
 
 type RoleBalanceMeterProps = {
   leader: number;
   follower: number;
-  /** Attendees who haven't picked a role yet — shown as a side note, not in the bar. */
+  /** Attendees who haven't picked a role yet — a neutral third segment in the bar. */
   notSure?: number;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -26,6 +29,24 @@ function balanceLabel(leader: number, follower: number) {
   return diff > 0 ? `Leader 多 ${diff} 位` : `Follower 多 ${-diff} 位`;
 }
 
+/**
+ * 三段 bar。寬度為 0 的段不渲染 —— 否則 flex 的 gap 會在只有一種角色時
+ * 留下一條看起來像破圖的細縫。
+ */
+function segments(leader: number, follower: number, notSure: number) {
+  const total = leader + follower + notSure;
+  if (total === 0) return [];
+  return (
+    [
+      { key: "leader", count: leader, color: "var(--leader)" },
+      { key: "follower", count: follower, color: "var(--follower)" },
+      { key: "notSure", count: notSure, color: "#b4b4b4" },
+    ] as const
+  )
+    .filter((s) => s.count > 0)
+    .map((s) => ({ ...s, pct: (s.count / total) * 100 }));
+}
+
 export function RoleBalanceMeter({
   leader,
   follower,
@@ -33,10 +54,8 @@ export function RoleBalanceMeter({
   size = "lg",
   className = "",
 }: RoleBalanceMeterProps) {
-  const pairTotal = leader + follower;
-  const leaderPct = pairTotal > 0 ? (leader / pairTotal) * 100 : 50;
+  const parts = segments(leader, follower, notSure);
   const label = balanceLabel(leader, follower);
-  const empty = pairTotal === 0;
 
   // Compact single-line meter for cards and list headers.
   if (size === "sm") {
@@ -45,9 +64,14 @@ export function RoleBalanceMeter({
         <span className="font-display text-sm font-semibold text-leader tabular-nums">
           {leader}
         </span>
-        <div className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
-          <div style={{ width: `${leaderPct}%`, backgroundColor: "var(--leader)" }} />
-          <div className="flex-1" style={{ backgroundColor: "var(--follower)" }} />
+        <div className="flex h-1.5 flex-1 gap-0.5 overflow-hidden rounded-full bg-gray-200">
+          {parts.map((part) => (
+            <div
+              key={part.key}
+              className="transition-all duration-500"
+              style={{ width: `${part.pct}%`, backgroundColor: part.color }}
+            />
+          ))}
         </div>
         <span className="font-display text-sm font-semibold text-follower tabular-nums">
           {follower}
@@ -60,13 +84,13 @@ export function RoleBalanceMeter({
 
   return (
     <div className={className}>
-      <div className="mb-2 flex items-end justify-between">
+      <div className="mb-2.5 flex items-end justify-between">
         <div className="leading-none">
           <div className="text-xs font-medium uppercase tracking-wide text-leader">
             Leader
           </div>
           <div
-            className={`font-display font-semibold text-leader tabular-nums ${
+            className={`mt-1.5 font-display font-semibold text-leader tabular-nums ${
               big ? "text-4xl" : "text-2xl"
             }`}
           >
@@ -83,7 +107,7 @@ export function RoleBalanceMeter({
             Follower
           </div>
           <div
-            className={`font-display font-semibold text-follower tabular-nums ${
+            className={`mt-1.5 font-display font-semibold text-follower tabular-nums ${
               big ? "text-4xl" : "text-2xl"
             }`}
           >
@@ -92,28 +116,18 @@ export function RoleBalanceMeter({
         </div>
       </div>
       <div
-        className={`flex w-full overflow-hidden rounded-full bg-gray-100 ${
+        className={`flex w-full gap-0.5 overflow-hidden rounded-full bg-gray-100 ${
           big ? "h-3.5" : "h-2.5"
         }`}
       >
-        {empty ? (
-          <div className="flex-1" />
-        ) : (
-          <>
-            <div
-              className="transition-all duration-500"
-              style={{ width: `${leaderPct}%`, backgroundColor: "var(--leader)" }}
-            />
-            <div
-              className="flex-1 transition-all duration-500"
-              style={{ backgroundColor: "var(--follower)" }}
-            />
-          </>
-        )}
+        {parts.map((part) => (
+          <div
+            key={part.key}
+            className="transition-all duration-500"
+            style={{ width: `${part.pct}%`, backgroundColor: part.color }}
+          />
+        ))}
       </div>
-      {notSure > 0 && (
-        <p className="mt-2 text-xs text-muted-ink">尚未選擇角色 {notSure} 位</p>
-      )}
     </div>
   );
 }

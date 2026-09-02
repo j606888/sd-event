@@ -137,6 +137,22 @@ function EventDetailPageInner() {
     }
   };
 
+  // 統計分頁的款項／入場數字點下去，跳到「報名者」並套用對應篩選。
+  // 未指定的那個篩選重設為「全部」，避免上次留下的條件把結果篩空。
+  const handleStatsDrillDown = ({
+    payment,
+    checkIn,
+  }: {
+    payment?: PaymentFilter;
+    checkIn?: CheckInFilter;
+  }) => {
+    setPaymentFilter(payment ?? "all");
+    setCheckInFilter(checkIn ?? "all");
+    setPage(1);
+    setSelectedRegistrationId(null);
+    setTab("registrations");
+  };
+
   // 依目前篩選條件匯出 CSV（GET + cookie 認證，瀏覽器直接下載）
   const handleExportCsv = () => {
     const qs = new URLSearchParams({
@@ -389,7 +405,10 @@ function EventDetailPageInner() {
           </>
         )}
         {activeTab === "stats" && eventId && (
-          <EventStats eventId={eventId} />
+          <EventStats
+            eventId={eventId}
+            onFilterRegistrations={handleStatsDrillDown}
+          />
         )}
         {activeTab === "verify" && (
           <div className="max-w-md space-y-4">
