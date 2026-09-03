@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin } from "lucide-react";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
+import { stripMarkdown } from "@/lib/markdown";
 
 export type EventLocation = {
   id: number;
@@ -44,6 +45,8 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
   };
 
   const statusBadge = getStatusBadge();
+  // 描述支援 Markdown，卡片只要兩行摘要，先把語法符號去掉
+  const descriptionPreview = event.description ? stripMarkdown(event.description) : "";
 
   return (
     <Link
@@ -84,9 +87,9 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
         </h3>
 
         {/* Description */}
-        {event.description && (
+        {descriptionPreview && (
           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-            {event.description}
+            {descriptionPreview}
           </p>
         )}
 

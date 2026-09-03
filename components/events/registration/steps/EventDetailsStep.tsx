@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
+import { Markdown } from "@/components/ui/markdown";
 import { getEventDateLabel, getEventTimeRange, formatTierDeadline } from "@/lib/format-event-date";
 import { TicketPriceLine } from "../TicketPriceLine";
 import type { EventPurchaseItem, PublicEventData } from "@/types/event";
@@ -117,8 +118,10 @@ export function EventDetailsStep({
           </div>
 
           {event.description && (
-            <div className="text-gray-800 whitespace-pre-wrap text-[15px] leading-relaxed border-b border-gray-200 pb-6">
-              {event.description}
+            <div className="border-b border-gray-200 pb-6">
+              <Markdown className="text-[15px] leading-relaxed text-gray-800">
+                {event.description}
+              </Markdown>
             </div>
           )}
 

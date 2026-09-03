@@ -13,9 +13,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SegmentedToggle } from "@/components/ui/segmented";
+import { Markdown } from "@/components/ui/markdown";
 import { LocationSelect } from "./LocationSelect";
 import { EVENT_TYPES, isEventType, type EventType } from "@/lib/event-templates";
 import type { UseEventFormReturn } from "@/hooks/use-event-form";
+
+const DESCRIPTION_PLACEHOLDER = `輸入活動描述，可使用 Markdown
+
+## 活動時程
+- 14:00 Workshop 第一堂
+- 16:00 Workshop 第二堂
+
+**注意事項**：請提早 10 分鐘到場`;
 
 type BasicInfoFieldsProps = {
   mode: "create" | "edit";
@@ -47,6 +56,7 @@ export function BasicInfoFields({ mode, form }: BasicInfoFieldsProps) {
   } = form;
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [descriptionTab, setDescriptionTab] = useState<"write" | "preview">("write");
   const coverSrc = previewUrl || coverUrl || "";
 
   // 切換活動類型：create 模式會以新範本覆蓋販售項目（需確認）；edit 模式僅變更類型
@@ -106,15 +116,42 @@ export function BasicInfoFields({ mode, form }: BasicInfoFieldsProps) {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="description">活動描述</Label>
-        <textarea
-          id="description"
-          placeholder="輸入活動描述"
-          rows={12}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full min-w-0 rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus:ring-2 focus:ring-brand/30 placeholder:text-gray-400 md:text-sm"
-        />
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="description">活動描述</Label>
+          <SegmentedToggle
+            value={descriptionTab}
+            onChange={setDescriptionTab}
+            aria-label="活動描述編輯模式"
+            options={[
+              { value: "write", label: "編輯" },
+              { value: "preview", label: "預覽" },
+            ]}
+          />
+        </div>
+        {descriptionTab === "write" ? (
+          <textarea
+            id="description"
+            placeholder={DESCRIPTION_PLACEHOLDER}
+            rows={12}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full min-w-0 rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus:ring-2 focus:ring-brand/30 placeholder:text-gray-400 md:text-sm"
+          />
+        ) : (
+          <div className="min-h-[18rem] w-full min-w-0 rounded-md bg-field px-3 py-2 text-sm leading-relaxed text-gray-800 shadow-xs">
+            {description.trim() ? (
+              <Markdown>{description}</Markdown>
+            ) : (
+              <p className="text-gray-400">還沒有輸入活動描述</p>
+            )}
+          </div>
+        )}
+        <p className="text-xs text-gray-400">
+          支援 Markdown：<code className="font-mono">## 小標題</code>、
+          <code className="font-mono">**粗體**</code>、
+          <code className="font-mono">- 項目</code>、
+          <code className="font-mono">[文字](網址)</code>；直接換行也會保留。
+        </p>
       </div>
       <div className="flex flex-col gap-2">
         <Label>活動封面</Label>
