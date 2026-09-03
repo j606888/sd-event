@@ -135,29 +135,39 @@ export function EventDetailsStep({
                   </span>
                 )}
               </div>
-              {/* 整份清單共用一個 grid，價格右軌跨區塊對齊成一直線 */}
-              <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-3">
+              {/* 每個區塊自成一段：hairline 分隔 + 深色標題 + 色條，讓「有哪幾類方案」一眼分得出來。
+                  每段各自一個 grid，價格仍靠右，右緣跨區塊維持一直線。 */}
+              <div className="divide-y divide-gray-100">
                 {introSections.map((section) => (
-                  <Fragment key={section.key}>
+                  <div
+                    key={section.key}
+                    className="space-y-2.5 py-4 first:pt-0 last:pb-0"
+                  >
                     {section.title && (
-                      <h3 className="col-span-2 mt-1.5 text-sm font-semibold text-gray-500 first:mt-0">
+                      <h3 className="flex items-center gap-2 font-display text-[15px] font-semibold text-ink">
+                        <span
+                          aria-hidden
+                          className="h-4 w-1 shrink-0 rounded-full bg-follower"
+                        />
                         {section.title}
                       </h3>
                     )}
-                    {section.items.map((item) => (
-                      <Fragment key={item.id}>
-                        <div className="min-w-0 pt-0.5 text-[15px] text-gray-900">
-                          {item.name}
-                        </div>
-                        <TicketPriceLine
-                          variant="intro"
-                          amount={item.amount}
-                          fullAmount={item.fullAmount}
-                          fullTierName={event.fullPriceTierName}
-                        />
-                      </Fragment>
-                    ))}
-                  </Fragment>
+                    <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-3">
+                      {section.items.map((item) => (
+                        <Fragment key={item.id}>
+                          <div className="min-w-0 pt-0.5 text-[15px] text-gray-900">
+                            {item.name}
+                          </div>
+                          <TicketPriceLine
+                            variant="intro"
+                            amount={item.amount}
+                            fullAmount={item.fullAmount}
+                            fullTierName={event.fullPriceTierName}
+                          />
+                        </Fragment>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
