@@ -110,6 +110,7 @@ export function ApplicationFormStep({
             purchaseItems={event.purchaseItems}
             allowMultiplePurchase={event.allowMultiplePurchase}
             activeTierName={event.activeTier?.name ?? null}
+            fullTierName={event.fullPriceTierName ?? null}
             selectedByGroup={formData.selectedByGroup}
             selectedPlanId={formData.selectedPlanId}
             selectedPlanIds={formData.selectedPlanIds}

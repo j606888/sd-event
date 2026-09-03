@@ -1,10 +1,12 @@
 "use client";
 
+import { Fragment } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { getEventDateLabel, getEventTimeRange, formatTierDeadline } from "@/lib/format-event-date";
-import type { PublicEventData } from "@/types/event";
+import { TicketPriceLine } from "../TicketPriceLine";
+import type { EventPurchaseItem, PublicEventData } from "@/types/event";
 import { Clock, MapPin, Disc3 } from "lucide-react";
 import { siInstagram, siLine, siFacebook } from "simple-icons";
 import { isRenderableImageSrc } from "@/lib/utils";
@@ -25,6 +27,28 @@ export function EventDetailsStep({
   onNext,
 }: EventDetailsStepProps) {
   const hasCover = isRenderableImageSrc(event.coverUrl);
+
+  // 方案介紹依票券區塊分段，讓報名者先看懂「有哪幾類方案」再進報名步驟。
+  // 未使用區塊的活動（groups 為空）維持單一無標題清單。
+  const introSections: { key: string; title: string | null; items: EventPurchaseItem[] }[] =
+    event.groups.length > 0
+      ? [
+          ...event.groups
+            .filter((group) => group.items.length > 0)
+            .map((group) => ({
+              key: `group-${group.id}`,
+              title: group.title,
+              items: group.items,
+            })),
+          // 區塊被刪除後 group_id 會變成 null，這些孤兒票券仍要列出來
+          ...(() => {
+            const ungrouped = event.purchaseItems.filter((i) => i.groupId == null);
+            return ungrouped.length > 0
+              ? [{ key: "ungrouped", title: null, items: ungrouped }]
+              : [];
+          })(),
+        ]
+      : [{ key: "all", title: null, items: event.purchaseItems }];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
@@ -99,7 +123,7 @@ export function EventDetailsStep({
           )}
 
           {event.purchaseItems.length > 0 && (
-            <div className="space-y-2 pb-6 border-b border-gray-200">
+            <div className="space-y-3 pb-6 border-b border-gray-200">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="font-display text-base font-semibold text-ink">方案介紹</h2>
                 {event.activeTier?.endsAt && (
@@ -108,17 +132,29 @@ export function EventDetailsStep({
                   </span>
                 )}
               </div>
-              <div className="space-y-2">
-                {event.purchaseItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between text-[15px]"
-                  >
-                    <div className="text-gray-900">{item.name}</div>
-                    <div className="font-display font-semibold text-ink tabular-nums">
-                      ${item.amount}
-                    </div>
-                  </div>
+              {/* 整份清單共用一個 grid，價格右軌跨區塊對齊成一直線 */}
+              <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-3">
+                {introSections.map((section) => (
+                  <Fragment key={section.key}>
+                    {section.title && (
+                      <h3 className="col-span-2 mt-1.5 text-sm font-semibold text-gray-500 first:mt-0">
+                        {section.title}
+                      </h3>
+                    )}
+                    {section.items.map((item) => (
+                      <Fragment key={item.id}>
+                        <div className="min-w-0 pt-0.5 text-[15px] text-gray-900">
+                          {item.name}
+                        </div>
+                        <TicketPriceLine
+                          variant="intro"
+                          amount={item.amount}
+                          fullAmount={item.fullAmount}
+                          fullTierName={event.fullPriceTierName}
+                        />
+                      </Fragment>
+                    ))}
+                  </Fragment>
                 ))}
               </div>
             </div>

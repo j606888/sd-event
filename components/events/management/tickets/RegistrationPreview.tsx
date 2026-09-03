@@ -46,13 +46,18 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     p.tierDraftIndex ??
     priceTiers.findIndex((t) => t.id != null && t.id === p.tierId);
 
-  const priceOf = (itemIndex: number) => {
+  const priceAtTier = (itemIndex: number, tierIdx: number) => {
     const item = purchaseItems[itemIndex];
     const mapped = (item.prices ?? [])
       .map((p) => ({ tierId: tierIndexOfPrice(p), amount: p.amount }))
       .filter((p) => p.tierId >= 0);
-    return getItemUnitPrice(item.amount, mapped, tierIndex >= 0 ? tierIndex : null);
+    return getItemUnitPrice(item.amount, mapped, tierIdx >= 0 ? tierIdx : null);
   };
+  const priceOf = (itemIndex: number) => priceAtTier(itemIndex, tierIndex);
+  // 原價＝最後一段（一般／現場）；預覽切到最後一段時省錢徽章自然消失
+  const lastTierIndex = priceTiers.length - 1;
+  const fullTierName =
+    lastTierIndex >= 0 ? priceTiers[lastTierIndex]?.name ?? null : null;
 
   const groupKeyToIndex = (key: string): number => {
     if (key.startsWith("draft-")) return Number(key.slice(6));
@@ -84,6 +89,7 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     id: itemIndex,
     name: purchaseItems[itemIndex].name || "（未命名票券）",
     amount: priceOf(itemIndex),
+    fullAmount: priceAtTier(itemIndex, lastTierIndex),
   });
 
   // 與公開報名頁一致：隱藏票券不出現
@@ -164,6 +170,7 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
             purchaseItems={publicFlatItems}
             allowMultiplePurchase={allowMultiple}
             activeTierName={activeTierName}
+            fullTierName={fullTierName}
             selectedByGroup={selectedByGroup}
             selectedPlanId={selectedPlanId}
             selectedPlanIds={selectedPlanIds}

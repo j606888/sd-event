@@ -65,8 +65,9 @@ export default function NewEventPage() {
     );
   }
 
+  // 票券設定是左右兩欄（編輯器＋報名頁預覽），與編輯頁同寬才不會把左欄擠成一條
   return (
-    <div className="w-full max-w-3xl px-4 py-6 md:px-8 md:py-8">
+    <div className="w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">
       <h1 className="mb-8 font-display text-3xl font-semibold text-ink">建立新活動</h1>
       <EventForm
         mode="create"

@@ -78,14 +78,18 @@ export function EventForm({
     <div className="w-full">
       <form className="flex flex-col gap-5" onSubmit={onSubmit}>
         {saveError && (
-          <p className="flex items-center gap-1.5 text-sm text-red-600">
+          <p className="flex max-w-2xl items-center gap-1.5 text-sm text-red-600">
             <span className="size-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
             {saveError}
           </p>
         )}
 
         {/* 分段切換：基本資訊 / 票券設定 */}
-        <div className="grid grid-cols-2 gap-1 rounded-full bg-gray-100 p-1" role="tablist">
+        {/* 只有票券設定需要吃滿寬（左右兩欄），其餘控制項維持窄欄，與編輯頁一致 */}
+        <div
+          className="grid max-w-2xl grid-cols-2 gap-1 rounded-full bg-gray-100 p-1"
+          role="tablist"
+        >
           {SECTIONS.map((s) => (
             <button
               key={s.id}
@@ -106,7 +110,7 @@ export function EventForm({
 
         {/* 基本資訊（含主辦與收款） */}
         <div
-          className={`flex-col gap-4 ${
+          className={`max-w-2xl flex-col gap-4 ${
             activeSection === "basic" ? "flex" : "hidden"
           }`}
         >
@@ -119,7 +123,7 @@ export function EventForm({
           <TicketSettings mode={mode} form={form} />
         </div>
 
-        <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+        <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:max-w-2xl sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
           {mode === "create" && (
             <Button type="button" variant="outline" asChild className="flex-1 min-w-[100px]">
               <Link href="/events">取消</Link>

@@ -128,31 +128,33 @@ export async function GET(_request: Request, { params }: Params) {
 
   // 解析當下生效時段（伺服器時間），把每個項目的 amount 換成該時段的有效價。
   const activeTier = resolveActiveTier(priceTiers, new Date());
-  let itemsWithPrice = purchaseItems;
-  if (activeTier) {
-    const itemIds = purchaseItems.map((i) => i.id);
-    const priceRows =
-      itemIds.length > 0
-        ? await db
-            .select()
-            .from(eventPurchaseItemPrices)
-            .where(inArray(eventPurchaseItemPrices.purchaseItemId, itemIds))
-        : [];
-    const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
-    for (const row of priceRows) {
-      const arr = pricesByItem.get(row.purchaseItemId) ?? [];
-      arr.push({ tierId: row.tierId, amount: row.amount });
-      pricesByItem.set(row.purchaseItemId, arr);
-    }
-    itemsWithPrice = purchaseItems.map((item) => ({
-      ...item,
-      amount: getItemUnitPrice(
-        item.amount,
-        pricesByItem.get(item.id) ?? [],
-        activeTier.id
-      ),
-    }));
+  // 最後一段（endsAt = null 的一般／現場價）視為原價，報名頁據此顯示「現省多少」。
+  const lastTier =
+    priceTiers.length > 0
+      ? [...priceTiers].sort((a, b) => a.sortOrder - b.sortOrder).at(-1)!
+      : null;
+  const itemIds = purchaseItems.map((i) => i.id);
+  const priceRows =
+    priceTiers.length > 0 && itemIds.length > 0
+      ? await db
+          .select()
+          .from(eventPurchaseItemPrices)
+          .where(inArray(eventPurchaseItemPrices.purchaseItemId, itemIds))
+      : [];
+  const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
+  for (const row of priceRows) {
+    const arr = pricesByItem.get(row.purchaseItemId) ?? [];
+    arr.push({ tierId: row.tierId, amount: row.amount });
+    pricesByItem.set(row.purchaseItemId, arr);
   }
+  const itemsWithPrice = purchaseItems.map((item) => {
+    const prices = pricesByItem.get(item.id) ?? [];
+    return {
+      ...item,
+      amount: getItemUnitPrice(item.amount, prices, activeTier?.id ?? null),
+      fullAmount: getItemUnitPrice(item.amount, prices, lastTier?.id ?? null),
+    };
+  });
 
   // 組裝群組：每個群組帶入其下（已解析時段價、未隱藏）的項目
   const itemsByGroup = new Map<number, typeof itemsWithPrice>();
@@ -191,6 +193,8 @@ export async function GET(_request: Request, { params }: Params) {
       activeTier: activeTier
         ? { name: activeTier.name, endsAt: activeTier.endsAt }
         : null,
+      // 原價所屬時段名稱（供「原價」的無障礙說明用）
+      fullPriceTierName: lastTier?.name ?? null,
       noticeItems,
       // 報名表僅在活動確實設有折扣碼時顯示輸入欄位
       hasCoupons: couponRows.length > 0,
