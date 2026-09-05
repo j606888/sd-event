@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { bankInfos, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
   }
 
-  const forbidden = await requireTeamMember(teamId, session.userId);
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
   if (forbidden) return forbidden;
 
   const list = await db
@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
   }
 
-  const forbidden = await requireTeamMember(teamId, session.userId);
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
   if (forbidden) return forbidden;
 
   const body = await request.json().catch(() => ({}));

@@ -1,10 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTeams, getActiveTeamId, updateActiveTeam } from "@/lib/api/teams";
+import { getTeams, getActiveTeamId, updateActiveTeam, type Team } from "@/lib/api/teams";
 import { useEffect } from "react";
-
-type Team = { id: number; name: string };
 
 export function useCurrentTeam() {
   const queryClient = useQueryClient();
@@ -43,6 +41,8 @@ export function useCurrentTeam() {
   return {
     team,
     teamId: team?.id ?? null,
+    /** 當前使用者在這個團隊的角色，載入中為 null */
+    role: team?.role ?? null,
     teams,
     activeTeamId,
     isLoading: teamsLoading || activeLoading,

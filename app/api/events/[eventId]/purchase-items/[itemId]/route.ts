@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import {
-  events,
   eventPurchaseItems,
   eventPurchaseItemPrices,
   eventRegistrations,
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth } from "@/lib/api-auth";
+import { requireEventAdmin } from "@/lib/event-access";
 import { and, eq, sql } from "drizzle-orm";
 
 /** 計算某購買項目目前綁定的「未隱藏」報名數（新模式 + 舊單選模式合計） */
@@ -54,14 +54,6 @@ function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
 
 type Params = { params: Promise<{ eventId: string; itemId: string }> };
 
-async function getEventAndCheckAccess(eventId: number, userId: number) {
-  const rows = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
-  const event = rows[0];
-  if (!event) return { error: NextResponse.json({ error: "找不到活動" }, { status: 404 }) };
-  const forbidden = await requireTeamMember(event.teamId, userId);
-  if (forbidden) return { error: forbidden };
-  return { event };
-}
 
 /** 更新購買項目（hidden / 名稱 / 金額 / 各時段價）。提供哪個欄位就更新哪個。 */
 export async function PATCH(request: Request, { params }: Params) {
@@ -78,7 +70,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 id" }, { status: 400 });
   }
 
-  const access = await getEventAndCheckAccess(eventId, session.userId);
+  const access = await requireEventAdmin(eventId, session.userId);
   if ("error" in access) return access.error;
 
   const body = await request.json().catch(() => ({}));
@@ -171,7 +163,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 id" }, { status: 400 });
   }
 
-  const access = await getEventAndCheckAccess(eventId, session.userId);
+  const access = await requireEventAdmin(eventId, session.userId);
   if ("error" in access) return access.error;
 
   const activeCount = await countActiveRegistrations(eventId, itemId);

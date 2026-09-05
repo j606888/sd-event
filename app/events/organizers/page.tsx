@@ -10,6 +10,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { UploadDropzone } from "@/lib/uploadthing";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import { isRenderableImageSrc } from "@/lib/utils";
+import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
 
 type Organizer = {
   id: number;
@@ -24,6 +25,8 @@ type Organizer = {
 };
 
 export default function EventOrganizersPage() {
+  // 驗票人員看不到團隊/常用資訊設定，導回活動列表
+  const { ready: isTeamAdminReady } = useRequireTeamAdmin();
   const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +123,15 @@ export default function EventOrganizersPage() {
       setSubmitError(isEditing ? "更新失敗" : "新增失敗");
     }
   };
+
+  // 角色確認為管理員之前不 render 內容，避免驗票人員閃過一眼管理畫面
+  if (!isTeamAdminReady) {
+    return (
+      <div className="p-6">
+        <p className="text-gray-500">載入中…</p>
+      </div>
+    );
+  }
 
   if (teamLoading || (teamId == null && !teamError)) {
     return (

@@ -21,6 +21,8 @@ import type { Registration } from "@/types/registration";
 
 type RegistrationsListProps = {
   registrations: Registration[];
+  /** 驗票人員為 false：不顯示金額與折扣碼 */
+  canSeeMoney?: boolean;
   onSelect: (registrationId: number) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -80,6 +82,7 @@ function getAttendanceTag(attendeeCount: number, checkedInCount: number) {
 
 export function RegistrationsList({
   registrations,
+  canSeeMoney = true,
   onSelect,
   searchQuery,
   onSearchChange,
@@ -172,14 +175,16 @@ export function RegistrationsList({
               onChange={onCheckInFilterChange}
             />
           </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">折扣碼</h3>
-            <FilterPills
-              options={COUPON_OPTIONS}
-              value={couponFilter}
-              onChange={onCouponFilterChange}
-            />
-          </div>
+          {canSeeMoney && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">折扣碼</h3>
+              <FilterPills
+                options={COUPON_OPTIONS}
+                value={couponFilter}
+                onChange={onCouponFilterChange}
+              />
+            </div>
+          )}
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">顯示</h3>
             <FilterPills
@@ -241,10 +246,12 @@ export function RegistrationsList({
                           現場
                         </span>
                       )}
-                      <span className="text-sm text-gray-600">
-                        NT ${reg.totalAmount.toLocaleString()}
-                      </span>
-                      {reg.couponCode && (
+                      {canSeeMoney && reg.totalAmount != null && (
+                        <span className="text-sm text-gray-600">
+                          NT ${reg.totalAmount.toLocaleString()}
+                        </span>
+                      )}
+                      {canSeeMoney && reg.couponCode && (
                         <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium font-mono bg-brand/10 text-brand">
                           {reg.couponCode}
                         </span>

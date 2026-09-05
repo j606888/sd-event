@@ -11,7 +11,9 @@ import {
   teamMembers,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { getTeamRole, requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
+import { isTeamAdmin } from "@/lib/team-roles";
+import { applyRegistrationVisibility } from "@/lib/registration-visibility";
 import {
   loadConfirmationEmailContext,
   sendConfirmationEmail,
@@ -146,19 +148,25 @@ export async function GET(_request: Request, { params }: Params) {
     ? [legacyPurchaseItem]
     : [];
 
+  // 驗票人員看得到報名內容與報到狀態，但看不到金額
+  const canSeeMoney = isTeamAdmin(await getTeamRole(event.teamId, session.userId));
+
   return NextResponse.json({
-    registration: {
-      ...registration,
-      attendees: attendees.map((a) => ({
-        id: a.id,
-        name: a.name,
-        role: a.role,
-        checkedIn: a.checkedIn || false,
-        checkedInAt: a.checkedInAt,
-      })),
-      purchaseItem: legacyPurchaseItem, // For backward compatibility
-      purchaseItems, // Array of purchase items (for multiple selection)
-    },
+    registration: applyRegistrationVisibility(
+      {
+        ...registration,
+        attendees: attendees.map((a) => ({
+          id: a.id,
+          name: a.name,
+          role: a.role,
+          checkedIn: a.checkedIn || false,
+          checkedInAt: a.checkedInAt,
+        })),
+        purchaseItem: legacyPurchaseItem, // For backward compatibility
+        purchaseItems, // Array of purchase items (for multiple selection)
+      },
+      canSeeMoney
+    ),
   });
 }
 
@@ -193,7 +201,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
   }
 
-  const forbidden = await requireTeamMember(event.teamId, session.userId);
+  const forbidden = await requireTeamAdmin(event.teamId, session.userId);
   if (forbidden) return forbidden;
 
   // 取得報名記錄

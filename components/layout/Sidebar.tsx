@@ -16,6 +16,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
+import { useTeamRole } from "@/hooks/use-team-role";
+import { TEAM_ROLE_LABEL } from "@/lib/team-roles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,8 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
   const router = useRouter();
   const pathname = usePathname();
   const { isSuperAdmin } = useSession();
+  // 驗票人員只需要看到活動列表，其餘管理功能一律不顯示
+  const { isAdmin, isStaff } = useTeamRole();
   const [createTeamDrawerOpen, setCreateTeamDrawerOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
@@ -179,36 +183,48 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
             </Select>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setCreateTeamDrawerOpen(true);
-              setTeamName("");
-              setCreateError(null);
-            }}
-            className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-follower hover:text-follower-hover transition-colors"
-          >
-            <Plus className="size-3.5" />
-            建立新團隊
-          </button>
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={() => {
+                setCreateTeamDrawerOpen(true);
+                setTeamName("");
+                setCreateError(null);
+              }}
+              className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-follower hover:text-follower-hover transition-colors"
+            >
+              <Plus className="size-3.5" />
+              建立新團隊
+            </button>
+          ) : (
+            <div className="mb-6 px-2">
+              <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/70">
+                {isStaff ? TEAM_ROLE_LABEL.staff : ""}
+              </span>
+            </div>
+          )}
 
           {/* Nav List */}
           <div className="space-y-6">
             <nav className="flex flex-col gap-1">
               <SidebarLink href="/events" icon={Calendar} label="所有活動" active={isActive("/events")} onClick={onClose} />
-              <SidebarLink href="/teams" icon={Users} label="團隊管理" active={isActive("/teams")} onClick={onClose} />
+              {isAdmin && (
+                <SidebarLink href="/teams" icon={Users} label="團隊管理" active={isActive("/teams")} onClick={onClose} />
+              )}
             </nav>
 
-            <div>
-              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-white/35">
-                常用資訊
-              </p>
-              <nav className="flex flex-col gap-1">
-                <SidebarLink href="/events/locations" icon={MapPin} label="活動地點" active={isActive("/events/locations")} onClick={onClose} />
-                <SidebarLink href="/events/organizers" icon={Building2} label="主辦單位" active={isActive("/events/organizers")} onClick={onClose} />
-                <SidebarLink href="/events/bank" icon={Landmark} label="銀行資訊" active={isActive("/events/bank")} onClick={onClose} />
-              </nav>
-            </div>
+            {isAdmin && (
+              <div>
+                <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-white/35">
+                  常用資訊
+                </p>
+                <nav className="flex flex-col gap-1">
+                  <SidebarLink href="/events/locations" icon={MapPin} label="活動地點" active={isActive("/events/locations")} onClick={onClose} />
+                  <SidebarLink href="/events/organizers" icon={Building2} label="主辦單位" active={isActive("/events/organizers")} onClick={onClose} />
+                  <SidebarLink href="/events/bank" icon={Landmark} label="銀行資訊" active={isActive("/events/bank")} onClick={onClose} />
+                </nav>
+              </div>
+            )}
 
             {isSuperAdmin && (
               <div>

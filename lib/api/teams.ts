@@ -1,5 +1,15 @@
 // lib/api/teams.ts
-export async function getTeams() {
+import type { TeamRole } from "@/lib/team-roles";
+
+export type Team = {
+  id: number;
+  name: string;
+  createdAt: string;
+  /** 當前使用者在這個團隊的角色 */
+  role: TeamRole;
+};
+
+export async function getTeams(): Promise<Team[]> {
   const res = await fetch("/api/teams", { credentials: "include" });
   if (!res.ok) throw new Error("無法載入團隊");
   const data = await res.json();

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
 import { useCurrentTeam } from "@/hooks/use-current-team";
+import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
 
 type Location = {
   id: number;
@@ -20,6 +21,8 @@ type Location = {
 };
 
 export default function EventLocationsPage() {
+  // 驗票人員看不到團隊/常用資訊設定，導回活動列表
+  const { ready: isTeamAdminReady } = useRequireTeamAdmin();
   const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,6 +115,15 @@ export default function EventLocationsPage() {
       setSubmitError(isEditing ? "更新失敗" : "新增失敗");
     }
   };
+
+  // 角色確認為管理員之前不 render 內容，避免驗票人員閃過一眼管理畫面
+  if (!isTeamAdminReady) {
+    return (
+      <div className="p-6">
+        <p className="text-gray-500">載入中…</p>
+      </div>
+    );
+  }
 
   if (teamLoading || (teamId == null && !teamError)) {
     return (

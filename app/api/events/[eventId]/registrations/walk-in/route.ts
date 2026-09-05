@@ -13,7 +13,8 @@ import {
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { isTeamAdmin } from "@/lib/team-roles";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { eq, and, inArray, asc } from "drizzle-orm";
 
@@ -57,6 +58,11 @@ export async function POST(request: Request, { params }: Params) {
 
     const forbidden = await requireTeamMember(event.teamId, session.userId);
     if (forbidden) return forbidden;
+
+    // 驗票人員可以現場報名收現金，但不能自訂價格
+    const canOverrideAmount = isTeamAdmin(
+      await getTeamRole(event.teamId, session.userId)
+    );
 
     const body = await request.json().catch(() => ({}));
 
@@ -209,10 +215,11 @@ export async function POST(request: Request, { params }: Params) {
         0
       ) * validAttendees.length;
 
-    // 主辦可覆寫金額：body.totalAmount 為正整數時以其為準，否則用系統算出的值
+    // 管理員可覆寫金額：body.totalAmount 為正整數時以其為準，否則用系統算出的值。
+    // 驗票人員一律使用依時段價算出的金額，忽略 body.totalAmount。
     const overrideAmount = Number(body.totalAmount);
     const finalTotalAmount =
-      Number.isInteger(overrideAmount) && overrideAmount > 0
+      canOverrideAmount && Number.isInteger(overrideAmount) && overrideAmount > 0
         ? overrideAmount
         : computedTotal;
 

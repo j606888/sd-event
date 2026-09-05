@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { organizers, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { eq, and } from "drizzle-orm";
 
 type Params = {
@@ -25,7 +25,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 teamId 或 organizerId" }, { status: 400 });
   }
 
-  const forbidden = await requireTeamMember(teamId, session.userId);
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
   if (forbidden) return forbidden;
 
   // 確認 organizer 屬於該 team

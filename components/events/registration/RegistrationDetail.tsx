@@ -37,6 +37,11 @@ import type { RegistrationDetailData } from "@/types/registration";
 
 type RegistrationDetailProps = {
   registration: RegistrationDetailData;
+  /**
+   * 管理員為 true。驗票人員為 false：隱藏所有金額與付款操作，
+   * 只留下報名內容與入場按鈕。
+   */
+  canManage?: boolean;
   /** 在所有符合條件的報名中的位置（0-based），跨頁 */
   currentIndex: number;
   /** 符合目前篩選的總筆數，非當前頁筆數 */
@@ -143,6 +148,7 @@ function ContactRow({
 
 export function RegistrationDetail({
   registration,
+  canManage = true,
   currentIndex,
   totalCount,
   onBack,
@@ -284,13 +290,16 @@ export function RegistrationDetail({
             )}
           </div>
           <div className="font-display text-sm tabular-nums text-gray-600">
-            {attendees.length} 人 · NT${registration.totalAmount.toLocaleString()} ·{" "}
+            {attendees.length} 人 ·{" "}
+            {canManage && registration.totalAmount != null && (
+              <>NT${registration.totalAmount.toLocaleString()} · </>
+            )}
             {registration.source === "walk_in" ? "現場報名" : "線上報名"}{" "}
             {formatTimestamp(registration.createdAt)}
           </div>
         </div>
 
-        {!readOnly && (
+        {!readOnly && canManage && (
           <div className="flex shrink-0 items-center gap-2">
             {isAwaitingPayment ? (
               <Button
@@ -503,9 +512,11 @@ export function RegistrationDetail({
                           </span>
                         )}
                       </span>
-                      <span className="font-display tabular-nums text-gray-900">
-                        {item.amount.toLocaleString()}
-                      </span>
+                      {canManage && item.amount != null && (
+                        <span className="font-display tabular-nums text-gray-900">
+                          {item.amount.toLocaleString()}
+                        </span>
+                      )}
                     </div>
                   ))
                 : registration.purchaseItem && (
@@ -513,13 +524,15 @@ export function RegistrationDetail({
                       <span className="text-gray-900">
                         {registration.purchaseItem.name}
                       </span>
-                      <span className="font-display tabular-nums text-gray-900">
-                        {registration.purchaseItem.amount.toLocaleString()}
-                      </span>
+                      {canManage && registration.purchaseItem.amount != null && (
+                        <span className="font-display tabular-nums text-gray-900">
+                          {registration.purchaseItem.amount.toLocaleString()}
+                        </span>
+                      )}
                     </div>
                   )}
 
-              {(registration.discountAmount ?? 0) > 0 && (
+              {canManage && (registration.discountAmount ?? 0) > 0 && (
                 <div className="flex justify-between gap-3">
                   <span className="text-gray-500">
                     折扣碼
@@ -535,19 +548,21 @@ export function RegistrationDetail({
                 </div>
               )}
 
-              <div className="flex justify-between gap-3 border-t border-hairline pt-2.5">
-                <span className="text-gray-500">應收總額</span>
-                <span className="font-display font-bold tabular-nums text-ink">
-                  {(registration.discountAmount ?? 0) > 0 && (
-                    <span className="mr-2 font-normal text-gray-400 line-through">
-                      {(
-                        registration.totalAmount + (registration.discountAmount ?? 0)
-                      ).toLocaleString()}
-                    </span>
-                  )}
-                  NT${registration.totalAmount.toLocaleString()}
-                </span>
-              </div>
+              {canManage && registration.totalAmount != null && (
+                <div className="flex justify-between gap-3 border-t border-hairline pt-2.5">
+                  <span className="text-gray-500">應收總額</span>
+                  <span className="font-display font-bold tabular-nums text-ink">
+                    {(registration.discountAmount ?? 0) > 0 && (
+                      <span className="mr-2 font-normal text-gray-400 line-through">
+                        {(
+                          registration.totalAmount + (registration.discountAmount ?? 0)
+                        ).toLocaleString()}
+                      </span>
+                    )}
+                    NT${registration.totalAmount.toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -618,9 +633,11 @@ export function RegistrationDetail({
             <span className="text-gray-600">
               {registration.contactName} · {attendees.length} 人
             </span>
-            <span className="font-display font-bold tabular-nums text-ink">
-              NT${registration.totalAmount.toLocaleString()}
-            </span>
+            {registration.totalAmount != null && (
+              <span className="font-display font-bold tabular-nums text-ink">
+                NT${registration.totalAmount.toLocaleString()}
+              </span>
+            )}
           </div>
         }
         confirmLabel="仍要確認收款"

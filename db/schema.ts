@@ -14,7 +14,7 @@ import {
 
 // ============ Enums ============
 export const userRoleEnum = pgEnum("user_role", ["Organizer"]);
-export const teamMemberRoleEnum = pgEnum("team_member_role", ["owner", "member"]);
+export const teamMemberRoleEnum = pgEnum("team_member_role", ["owner", "member", "staff"]);
 export const eventStatusEnum = pgEnum("event_status", ["draft", "published"]);
 export const eventTypeEnum = pgEnum("event_type", ["Party", "Workshop", "Festival"]);
 export const couponDiscountTypeEnum = pgEnum("coupon_discount_type", ["fixed", "percent"]);

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import {
-  events,
   eventPurchaseItems,
   eventPurchaseItemPrices,
   eventRegistrations,
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth } from "@/lib/api-auth";
+import { requireEventAdmin } from "@/lib/event-access";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 /** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
@@ -23,14 +23,6 @@ function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
 
 type Params = { params: Promise<{ eventId: string }> };
 
-async function getEventAndCheckAccess(eventId: number, userId: number) {
-  const rows = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
-  const event = rows[0];
-  if (!event) return { error: NextResponse.json({ error: "找不到活動" }, { status: 404 }) };
-  const forbidden = await requireTeamMember(event.teamId, userId);
-  if (forbidden) return { error: forbidden };
-  return { event };
-}
 
 /** 取得活動的購買項目列表 */
 export async function GET(_request: Request, { params }: Params) {
@@ -45,7 +37,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
   }
 
-  const access = await getEventAndCheckAccess(eventId, session.userId);
+  const access = await requireEventAdmin(eventId, session.userId);
   if ("error" in access) return access.error;
 
   const list = await db
@@ -142,7 +134,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
   }
 
-  const access = await getEventAndCheckAccess(eventId, session.userId);
+  const access = await requireEventAdmin(eventId, session.userId);
   if ("error" in access) return access.error;
 
   const body = await request.json().catch(() => ({}));

@@ -9,6 +9,11 @@ import type { ScannedRegistration } from "@/types/registration";
 
 type ScannedRegistrationDetailProps = {
   registration: ScannedRegistration;
+  /**
+   * 管理員為 true，掃碼後顯示金額。驗票人員為 false：只顯示報名內容與付款狀態。
+   * 付款狀態一定要留著 —— 門口靠它判斷未付款要不要放行。
+   */
+  canSeeMoney?: boolean;
   onBack: () => void;
   onCheckIn: (attendeeId: number) => Promise<void>;
   backLabel?: string;
@@ -16,6 +21,7 @@ type ScannedRegistrationDetailProps = {
 
 export function ScannedRegistrationDetail({
   registration,
+  canSeeMoney = true,
   onBack,
   onCheckIn,
   backLabel = "返回 QR Code 掃描",
@@ -81,7 +87,9 @@ export function ScannedRegistrationDetail({
               {registration.contactName}
             </h2>
             <div className="text-sm text-gray-600 mt-1">
-              {attendeeCount}人 · NT ${registration.totalAmount.toLocaleString()}
+              {attendeeCount}人
+              {canSeeMoney && registration.totalAmount != null &&
+                ` · NT $${registration.totalAmount.toLocaleString()}`}
             </div>
             <div className="mt-2">
               <PaymentStatusBadge status={registration.paymentStatus} />
@@ -105,7 +113,8 @@ export function ScannedRegistrationDetail({
             <div className="space-y-1">
               {registration.purchaseItems.map((item) => (
                 <div key={item.id} className="text-sm text-gray-900">
-                  {item.name} ${item.amount}
+                  {item.name}
+                  {canSeeMoney && item.amount != null && ` $${item.amount}`}
                 </div>
               ))}
             </div>

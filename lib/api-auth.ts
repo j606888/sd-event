@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { teamMembers, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import { isTeamAdmin, type TeamRole } from "@/lib/team-roles";
 
 export type Session = { userId: number; email: string; impersonatorId?: number };
 
@@ -20,18 +21,46 @@ export async function requireAuth(): Promise<NextResponse | null> {
   return null;
 }
 
-/** 檢查是否為該團隊成員；若不是則回傳 403 Response */
+/** 取得使用者在該團隊的角色；非成員回傳 null */
+export async function getTeamRole(
+  teamId: number,
+  userId: number
+): Promise<TeamRole | null> {
+  const rows = await db
+    .select({ role: teamMembers.role })
+    .from(teamMembers)
+    .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)))
+    .limit(1);
+  return rows[0]?.role ?? null;
+}
+
+/**
+ * 檢查是否為該團隊成員（含驗票人員）；若不是則回傳 403 Response。
+ * 只用於驗票人員也該能用的功能：報到、報名名單、現場報名。
+ * 其他一律用 requireTeamAdmin。
+ */
 export async function requireTeamMember(
   teamId: number,
   userId: number
 ): Promise<NextResponse | null> {
-  const rows = await db
-    .select({ teamId: teamMembers.teamId })
-    .from(teamMembers)
-    .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)))
-    .limit(1);
-  if (rows.length === 0) {
+  const role = await getTeamRole(teamId, userId);
+  if (!role) {
     return NextResponse.json({ error: "無權限操作此團隊" }, { status: 403 });
+  }
+  return null;
+}
+
+/** 要求為該團隊的管理員；驗票人員一律 403 */
+export async function requireTeamAdmin(
+  teamId: number,
+  userId: number
+): Promise<NextResponse | null> {
+  const role = await getTeamRole(teamId, userId);
+  if (!role) {
+    return NextResponse.json({ error: "無權限操作此團隊" }, { status: 403 });
+  }
+  if (!isTeamAdmin(role)) {
+    return NextResponse.json({ error: "此功能僅限管理員" }, { status: 403 });
   }
   return null;
 }
