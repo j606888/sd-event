@@ -85,8 +85,11 @@ export type EntryVoucherPageData = {
 export type PurchaseItem = {
   id: number;
   name: string;
-  /** 報名當下的成交單價（含時段）；舊資料無快照時為項目定價 */
-  amount: number;
+  /**
+   * 報名當下的成交單價（含時段）；舊資料無快照時為項目定價。
+   * 驗票人員（staff）看不到金額，伺服器會剝除此欄位。
+   */
+  amount?: number;
   /** 報名當下生效的時段名稱（如「早鳥」）；無時段或舊資料為 null */
   tierName?: string | null;
 };
@@ -101,7 +104,8 @@ export type Registration = {
   contactName: string;
   contactPhone: string | null;
   contactEmail: string | null;
-  totalAmount: number;
+  /** 驗票人員（staff）看不到金額，伺服器會剝除此欄位 */
+  totalAmount?: number;
   couponCode?: string | null;
   paymentStatus: PaymentStatus;
   source?: RegistrationSource | string;
@@ -119,13 +123,16 @@ export type RegistrationDetailData = {
   contactPhone: string | null;
   contactEmail: string | null;
   paymentMethod: string | null;
-  /** 實付金額（已折扣）；原價 = totalAmount + discountAmount */
-  totalAmount: number;
+  /**
+   * 實付金額（已折扣）；原價 = totalAmount + discountAmount。
+   * 驗票人員（staff）看不到金額，伺服器會剝除此欄位。
+   */
+  totalAmount?: number;
   couponCode?: string | null;
   discountAmount?: number;
   paymentStatus: PaymentStatus;
   source?: RegistrationSource | string;
-  paymentScreenshotUrl: string | null;
+  paymentScreenshotUrl?: string | null;
   paymentNote: string | null;
   hidden?: boolean;
   createdAt: string;
@@ -145,7 +152,7 @@ export type ScannedRegistration = {
   id: number;
   registrationKey: string;
   contactName: string;
-  totalAmount: number;
+  totalAmount?: number;
   paymentStatus: string;
   purchaseItem: PurchaseItem | null;
   purchaseItems?: PurchaseItem[];

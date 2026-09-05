@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { events, eventRegistrations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import {
   loadConfirmationEmailContext,
   sendConfirmationEmail,
@@ -43,7 +43,7 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
   }
 
-  const forbidden = await requireTeamMember(event.teamId, session.userId);
+  const forbidden = await requireTeamAdmin(event.teamId, session.userId);
   if (forbidden) return forbidden;
 
   // 一併比對 eventId，避免用別場活動的 id 取到這筆報名

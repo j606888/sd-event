@@ -3,7 +3,7 @@ import { customAlphabet } from "nanoid";
 import { db } from "@/db";
 import { events, eventRegistrations, teamMembers, eventLocations, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
 import { isEventType } from "@/lib/event-templates";
 import { eq, inArray, desc, count, and } from "drizzle-orm";
 
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const forbidden = await requireTeamMember(teamId, session.userId);
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
   if (forbidden) return forbidden;
 
   const type = isEventType(body.type) ? body.type : "Party";

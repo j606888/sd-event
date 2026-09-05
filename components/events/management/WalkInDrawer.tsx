@@ -18,12 +18,23 @@ type Participant = { id: string; name: string; role: string };
 type WalkInDrawerProps = {
   open: boolean;
   eventId: number;
+  /**
+   * 管理員為 true，可修改收取金額。
+   * 驗票人員為 false：金額改為唯讀（伺服器端同樣會忽略覆寫）。
+   */
+  canOverrideAmount?: boolean;
   onClose: () => void;
   /** 建立成功後回呼（用於提示或刷新） */
   onSuccess?: () => void;
 };
 
-export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawerProps) {
+export function WalkInDrawer({
+  open,
+  eventId,
+  canOverrideAmount = true,
+  onClose,
+  onSuccess,
+}: WalkInDrawerProps) {
   const eventQuery = useEvent(String(eventId));
   const publicKey = eventQuery.data?.publicKey;
   const publicEventQuery = usePublicEvent(publicKey);
@@ -356,14 +367,20 @@ export function WalkInDrawer({ open, eventId, onClose, onSuccess }: WalkInDrawer
 
           {/* 金額 */}
           <div className="space-y-2">
-            <Label htmlFor="walkin-amount">收取金額（自動帶入，可修改）</Label>
+            <Label htmlFor="walkin-amount">
+              {canOverrideAmount ? "收取金額（自動帶入，可修改）" : "應收金額"}
+            </Label>
             <Input
               id="walkin-amount"
               type="number"
               min={0}
               placeholder="金額"
               value={amountInput}
+              readOnly={!canOverrideAmount}
+              aria-readonly={!canOverrideAmount}
+              className={canOverrideAmount ? undefined : "bg-field text-gray-600"}
               onChange={(e) => {
+                if (!canOverrideAmount) return;
                 setAmountEdited(true);
                 setAmountInput(e.target.value);
               }}

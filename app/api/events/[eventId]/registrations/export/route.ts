@@ -8,7 +8,7 @@ import {
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { eq, asc, desc, or, like, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { matchesCheckInFilter, type CheckInFilter } from "@/lib/registration-list-filters";
 
@@ -67,7 +67,7 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
   }
 
-  const forbidden = await requireTeamMember(event.teamId, session.userId);
+  const forbidden = await requireTeamAdmin(event.teamId, session.userId);
   if (forbidden) return forbidden;
 
   const { searchParams } = new URL(request.url);

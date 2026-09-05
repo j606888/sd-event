@@ -5,11 +5,14 @@ import { useState } from "react";
 import { QRScanner } from "@/components/events/registration/QRScanner";
 import { WalkInDrawer } from "@/components/events/management/WalkInDrawer";
 import { useReadOnly } from "@/hooks/use-session";
+import { useTeamRole } from "@/hooks/use-team-role";
 
 export default function ScanPage() {
   const params = useParams();
   const router = useRouter();
   const readOnly = useReadOnly();
+  // 驗票人員掃碼後不顯示金額，現場報名的金額也不能改
+  const { isAdmin } = useTeamRole();
   const eventId = Number(params?.eventId);
   const [showScanner, setShowScanner] = useState(true);
   const [walkInOpen, setWalkInOpen] = useState(false);
@@ -54,6 +57,7 @@ export default function ScanPage() {
       {showScanner && (
         <QRScanner
           eventId={eventId}
+          canSeeMoney={isAdmin}
           onScanSuccess={handleScanSuccess}
           onClose={handleClose}
           onWalkIn={() => setWalkInOpen(true)}
@@ -62,6 +66,7 @@ export default function ScanPage() {
       <WalkInDrawer
         open={walkInOpen}
         eventId={eventId}
+        canOverrideAmount={isAdmin}
         onClose={() => setWalkInOpen(false)}
       />
     </>

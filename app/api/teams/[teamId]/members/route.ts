@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { teamMembers, users, teamInvitations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { isAssignableTeamRole } from "@/lib/team-roles";
 import { eq, and, asc, isNull } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -20,7 +21,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
   }
 
-  const forbidden = await requireTeamMember(teamId, session.userId);
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
   if (forbidden) return forbidden;
 
   const members = await db
@@ -42,7 +43,7 @@ export async function GET(_request: Request, { params }: Params) {
   return NextResponse.json({ members });
 }
 
-/** 邀請新成員（需為該團隊成員） */
+/** 邀請新成員（需為管理員，可指定角色） */
 export async function POST(request: Request, { params }: Params) {
   const authError = await requireAuth();
   if (authError) return authError;
@@ -55,14 +56,23 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
   }
 
-  const forbidden = await requireTeamMember(teamId, session.userId);
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
   if (forbidden) return forbidden;
 
   const body = await request.json().catch(() => ({}));
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  // 未指定角色時預設為管理員，維持既有行為
+  const role = isAssignableTeamRole(body.role) ? body.role : "member";
 
   if (!email) {
     return NextResponse.json({ error: "請提供 email" }, { status: 400 });
+  }
+
+  if (body.role != null && !isAssignableTeamRole(body.role)) {
+    return NextResponse.json(
+      { error: "請提供有效的 role (member 或 staff)" },
+      { status: 400 }
+    );
   }
 
   // 檢查使用者是否存在
@@ -96,7 +106,7 @@ export async function POST(request: Request, { params }: Params) {
       .values({
         teamId,
         userId: user.id,
-        role: "member",
+        role,
       })
       .returning();
 
@@ -141,7 +151,7 @@ export async function POST(request: Request, { params }: Params) {
       .values({
         teamId,
         email,
-        role: "member",
+        role,
       })
       .returning();
 

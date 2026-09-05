@@ -23,6 +23,8 @@ type EventTabBarProps = {
   activeTab: EventTabId;
   onSelect: (tab: EventTabId) => void;
   registrationCount: number;
+  /** 可見分頁；預設全部。驗票人員只拿到 STAFF_TAB_IDS */
+  tabIds?: readonly EventTabId[];
 };
 
 /**
@@ -30,12 +32,18 @@ type EventTabBarProps = {
  * - sm 以上：上方水平分頁（active = 品牌色 + 底線）
  * - 手機：固定底部導覽列，icon + 短標籤，免橫向捲動
  */
-export function EventTabBar({ activeTab, onSelect, registrationCount }: EventTabBarProps) {
+export function EventTabBar({ activeTab, onSelect, registrationCount, tabIds }: EventTabBarProps) {
+  const tabs = tabIds
+    ? tabIds
+        .map((id) => EVENT_TABS.find((t) => t.id === id))
+        .filter((t): t is (typeof EVENT_TABS)[number] => Boolean(t))
+    : EVENT_TABS;
+
   return (
     <>
       {/* 桌機/平板：上方分頁，靠左排列 */}
       <div className="hidden border-b border-hairline sm:flex">
-        {EVENT_TABS.map((tab) => {
+        {tabs.map((tab) => {
           const active = activeTab === tab.id;
           return (
             <button
@@ -71,7 +79,7 @@ export function EventTabBar({ activeTab, onSelect, registrationCount }: EventTab
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hairline bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] sm:hidden"
         aria-label="活動管理分頁"
       >
-        {EVENT_TABS.map((tab) => {
+        {tabs.map((tab) => {
           const active = activeTab === tab.id;
           const { icon: Icon, shortLabel } = TAB_META[tab.id];
           return (

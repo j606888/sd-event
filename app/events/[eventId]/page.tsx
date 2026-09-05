@@ -16,7 +16,8 @@ import { ArrowLeft, Check, Link2, UserPlus, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "@/hooks/use-event-detail";
 import { useReadOnly } from "@/hooks/use-session";
-import { FORM_TAB_IDS, useTabParam } from "@/hooks/use-tab-param";
+import { useTeamRole } from "@/hooks/use-team-role";
+import { EVENT_TABS, FORM_TAB_IDS, STAFF_TAB_IDS, useTabParam } from "@/hooks/use-tab-param";
 import {
   useRegistrations,
   useRegistrationDetail,
@@ -53,14 +54,19 @@ function EventDetailSkeleton() {
   );
 }
 
+const ALL_TAB_IDS = EVENT_TABS.map((t) => t.id);
+
 function EventDetailPageInner() {
   const params = useParams();
   const eventId = params?.eventId as string;
   const queryClient = useQueryClient();
   const readOnly = useReadOnly();
+  // 驗票人員只看得到驗票與報名名單，且名單上不顯示任何金額
+  const { isAdmin, isLoading: roleLoading } = useTeamRole();
+  const allowedTabs = isAdmin ? ALL_TAB_IDS : STAFF_TAB_IDS;
 
   // 分頁狀態同步至網址 ?tab=，可深連結、重新整理不跳走
-  const [activeTab, setTab] = useTabParam();
+  const [activeTab, setTab] = useTabParam(allowedTabs);
   const [shareCopied, setShareCopied] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -198,7 +204,8 @@ function EventDetailPageInner() {
     window.location.href = `/api/events/${eventId}/registrations/export?${qs}`;
   };
 
-  if (eventQuery.isLoading) {
+  // 角色未知前先顯示骨架，避免驗票人員閃過一瞬間的管理分頁與金額
+  if (eventQuery.isLoading || roleLoading) {
     return <EventDetailSkeleton />;
   }
 
@@ -217,7 +224,7 @@ function EventDetailPageInner() {
     );
   }
 
-  const isFormTab = (FORM_TAB_IDS as readonly string[]).includes(activeTab);
+  const isFormTab = isAdmin && (FORM_TAB_IDS as readonly string[]).includes(activeTab);
 
   return (
     <div className="flex w-full max-w-6xl flex-1 flex-col">
@@ -234,7 +241,7 @@ function EventDetailPageInner() {
           <h1 className="min-w-0 flex-1 truncate font-display text-xl font-bold text-ink md:text-2xl">
             {event.title}
           </h1>
-          {event.status === "draft" && (
+          {event.status === "draft" && isAdmin && (
             <>
               <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-amber-700">
                 <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
@@ -287,6 +294,7 @@ function EventDetailPageInner() {
       <div className="px-4 md:px-8">
         <EventTabBar
           activeTab={activeTab}
+          tabIds={allowedTabs}
           registrationCount={visibleRegistrationCount}
           onSelect={(tab) => {
             setTab(tab);
@@ -298,6 +306,7 @@ function EventDetailPageInner() {
       {/* Tab content（手機底部預留導覽列高度） */}
       <div className="flex-1 px-4 pt-5 pb-24 sm:pb-8 md:px-8 md:pt-6">
         {/* 表單三分頁常駐 mounted：未儲存的編輯在切到其他分頁時不會消失 */}
+        {isAdmin && (
         <div className={isFormTab ? "" : "hidden"}>
           <EventEditTabs
             teamId={event.teamId}
@@ -310,6 +319,7 @@ function EventDetailPageInner() {
             }
           />
         </div>
+        )}
         {activeTab === "registrations" && (
           <>
             {selectedRegistrationId && registrationDetailQuery.isLoading ? (
@@ -317,6 +327,7 @@ function EventDetailPageInner() {
             ) : selectedRegistration ? (
               <RegistrationDetail
                 registration={selectedRegistration}
+                canManage={isAdmin}
                 currentIndex={selectedGlobalIndex}
                 totalCount={matchedTotal}
                 onBack={() => {
@@ -372,17 +383,19 @@ function EventDetailPageInner() {
             ) : (
               <div className="space-y-3">
                 <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportCsv}
-                    disabled={registrations.length === 0}
-                    className="gap-1.5"
-                  >
-                    <Download className="size-4" />
-                    匯出 CSV
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleExportCsv}
+                      disabled={registrations.length === 0}
+                      className="gap-1.5"
+                    >
+                      <Download className="size-4" />
+                      匯出 CSV
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="sm"
@@ -397,6 +410,7 @@ function EventDetailPageInner() {
                 </div>
                 <RegistrationsList
                   registrations={registrations}
+                  canSeeMoney={isAdmin}
                   onSelect={(id) => setSelectedRegistrationId(id)}
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
@@ -451,7 +465,7 @@ function EventDetailPageInner() {
               )}
           </>
         )}
-        {activeTab === "stats" && eventId && (
+        {activeTab === "stats" && eventId && isAdmin && (
           <EventStats
             eventId={eventId}
             onFilterRegistrations={handleStatsDrillDown}
@@ -476,11 +490,12 @@ function EventDetailPageInner() {
 
       <WalkInDrawer
         open={walkInOpen}
+        canOverrideAmount={isAdmin}
         eventId={event.id}
         onClose={() => setWalkInOpen(false)}
       />
 
-      {selectedRegistration && (
+      {selectedRegistration && isAdmin && (
         <RegistrationEditDrawer
           open={editOpen}
           registration={selectedRegistration}

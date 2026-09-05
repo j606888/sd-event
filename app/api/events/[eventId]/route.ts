@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { events, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
 import { isEventType, type EventType } from "@/lib/event-templates";
 import { and, eq } from "drizzle-orm";
 
@@ -60,7 +60,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
   }
 
-  const forbidden = await requireTeamMember(existing.teamId, session.userId);
+  const forbidden = await requireTeamAdmin(existing.teamId, session.userId);
   if (forbidden) return forbidden;
 
   const body = await request.json().catch(() => ({}));
@@ -129,7 +129,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
   }
 
-  const forbidden = await requireTeamMember(existing.teamId, session.userId);
+  const forbidden = await requireTeamAdmin(existing.teamId, session.userId);
   if (forbidden) return forbidden;
 
   // Allow deletion only for event creator or team owner

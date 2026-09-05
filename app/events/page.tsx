@@ -11,6 +11,7 @@ import {
 } from "@/components/events/management/EventListRow";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import { useReadOnly } from "@/hooks/use-session";
+import { useTeamRole } from "@/hooks/use-team-role";
 import type { EventLocation } from "@/types/event";
 
 type EventItem = {
@@ -35,6 +36,8 @@ export default function EventsPage() {
   const [error, setError] = useState<string | null>(null);
   const { teamId, isLoading: teamLoading } = useCurrentTeam();
   const readOnly = useReadOnly();
+  // 驗票人員不能建立活動
+  const { isAdmin } = useTeamRole();
 
   useEffect(() => {
     if (teamId == null && !teamLoading) return;
@@ -109,7 +112,7 @@ export default function EventsPage() {
         <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
           所有活動
         </h1>
-        {readOnly ? (
+        {!isAdmin ? null : readOnly ? (
           <span
             className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-400"
             title="模擬檢視為唯讀模式"
@@ -131,7 +134,7 @@ export default function EventsPage() {
 
       {events.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 py-16 md:py-20 text-center text-gray-500">
-          尚無活動，點擊「建立活動」開始
+          {isAdmin ? "尚無活動，點擊「建立活動」開始" : "此團隊尚無活動"}
         </div>
       ) : (
         <div className="space-y-10">
@@ -157,7 +160,7 @@ export default function EventsPage() {
       )}
 
       {/* Mobile FAB: only show when there are events */}
-      {events.length > 0 && (
+      {events.length > 0 && isAdmin && (
         <Link
           href="/events/new"
           className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-brand text-white shadow-lg hover:opacity-90 z-10"

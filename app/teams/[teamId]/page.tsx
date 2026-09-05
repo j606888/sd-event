@@ -7,10 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
+import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
+import {
+  ASSIGNABLE_TEAM_ROLES,
+  TEAM_ROLE_DESCRIPTION,
+  TEAM_ROLE_LABEL,
+  isTeamAdmin,
+  type AssignableTeamRole,
+  type TeamRole,
+} from "@/lib/team-roles";
 
 type TeamMember = {
   userId: number;
-  role: "owner" | "member";
+  role: TeamRole;
   createdAt: string;
   user: {
     id: number;
@@ -22,7 +31,7 @@ type TeamMember = {
 type TeamInvitation = {
   id: number;
   email: string;
-  role: "owner" | "member";
+  role: TeamRole;
   createdAt: string;
 };
 
@@ -33,6 +42,8 @@ type Team = {
 };
 
 export default function TeamDetailPage() {
+  // 驗票人員看不到團隊/常用資訊設定，導回活動列表
+  const { ready: isTeamAdminReady } = useRequireTeamAdmin();
   const params = useParams();
   const router = useRouter();
   const teamId = Number(params?.teamId);
@@ -43,8 +54,9 @@ export default function TeamDetailPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formEmail, setFormEmail] = useState("");
+  const [formRole, setFormRole] = useState<AssignableTeamRole>("member");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<"owner" | "member" | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<TeamRole | null>(null);
 
   const fetchTeam = useCallback(async () => {
     if (!Number.isInteger(teamId)) return;
@@ -127,6 +139,7 @@ export default function TeamDetailPage() {
   const openDrawer = () => {
     setSubmitError(null);
     setFormEmail("");
+    setFormRole("member");
     setDrawerOpen(true);
   };
 
@@ -144,7 +157,7 @@ export default function TeamDetailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, role: formRole }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -168,7 +181,8 @@ export default function TeamDetailPage() {
         credentials: "include",
       });
       if (!res.ok) {
-        alert("移除失敗");
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "移除失敗");
         return;
       }
       fetchMembers();
@@ -177,7 +191,7 @@ export default function TeamDetailPage() {
     }
   };
 
-  const handleUpdateRole = async (userId: number, newRole: "owner" | "member") => {
+  const handleUpdateRole = async (userId: number, newRole: AssignableTeamRole) => {
     if (!Number.isInteger(teamId)) return;
     try {
       const res = await fetch(`/api/teams/${teamId}/members/${userId}`, {
@@ -187,7 +201,8 @@ export default function TeamDetailPage() {
         body: JSON.stringify({ role: newRole }),
       });
       if (!res.ok) {
-        alert("更新失敗");
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "更新失敗");
         return;
       }
       fetchMembers();
@@ -195,6 +210,15 @@ export default function TeamDetailPage() {
       alert("更新失敗");
     }
   };
+
+  // 角色確認為管理員之前不 render 內容，避免驗票人員閃過一眼管理畫面
+  if (!isTeamAdminReady) {
+    return (
+      <div className="p-6">
+        <p className="text-gray-500">載入中…</p>
+      </div>
+    );
+  }
 
   if (loading && members.length === 0) {
     return (
@@ -221,10 +245,12 @@ export default function TeamDetailPage() {
             建立於 {new Date(team.createdAt).toLocaleDateString("zh-TW")}
           </p>
         </div>
-        <Button onClick={openDrawer} className="gap-2">
-          <Plus className="size-4" />
-          邀請成員
-        </Button>
+        {isTeamAdmin(currentUserRole) && (
+          <Button onClick={openDrawer} className="gap-2">
+            <Plus className="size-4" />
+            邀請成員
+          </Button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -236,8 +262,10 @@ export default function TeamDetailPage() {
         ) : (
           <ul className="divide-y divide-hairline">
             {members.map((member) => {
-              const canManage = currentUserRole === "owner"; // Only owners can manage members
+              // 管理員都能管成員；但擁有者這一列誰都不能動（避免團隊被鎖死）
+              const canManage = isTeamAdmin(currentUserRole);
               const isCurrentUser = member.userId === currentUserId;
+              const isOwnerRow = member.role === "owner";
 
               return (
                 <li
@@ -250,32 +278,32 @@ export default function TeamDetailPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-gray-900">{member.user.name}</p>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                        {member.role === "owner" ? "擁有者" : "成員"}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          member.role === "staff"
+                            ? "bg-follower/15 text-follower"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {TEAM_ROLE_LABEL[member.role]}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500">{member.user.email}</p>
                   </div>
-                  {canManage && !isCurrentUser && (
+                  {canManage && !isCurrentUser && !isOwnerRow && (
                     <div className="flex items-center gap-2">
-                      {member.role === "member" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUpdateRole(member.userId, "owner")}
-                        >
-                          設為擁有者
-                        </Button>
-                      )}
-                      {member.role === "owner" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUpdateRole(member.userId, "member")}
-                        >
-                          設為成員
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleUpdateRole(
+                            member.userId,
+                            member.role === "staff" ? "member" : "staff"
+                          )
+                        }
+                      >
+                        {member.role === "staff" ? "設為管理員" : "設為驗票人員"}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -312,6 +340,9 @@ export default function TeamDetailPage() {
                       <Clock className="size-3" />
                       待註冊
                     </span>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                      {TEAM_ROLE_LABEL[invitation.role]}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-500">
                     邀請於 {new Date(invitation.createdAt).toLocaleDateString("zh-TW")} 送出
@@ -343,8 +374,39 @@ export default function TeamDetailPage() {
               placeholder="輸入成員 email"
             />
             <p className="text-xs text-gray-500">
-              請輸入已註冊使用者的 email 來邀請加入團隊
+              已註冊的使用者會直接加入團隊；未註冊的會建立邀請，註冊後自動入隊
             </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>權限</Label>
+            <div className="flex flex-col gap-2">
+              {ASSIGNABLE_TEAM_ROLES.map((role) => (
+                <label
+                  key={role}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                    formRole === role
+                      ? "border-brand bg-brand/5"
+                      : "border-hairline hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="member-role"
+                    className="mt-1 accent-brand"
+                    checked={formRole === role}
+                    onChange={() => setFormRole(role)}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-gray-900">
+                      {TEAM_ROLE_LABEL[role]}
+                    </span>
+                    <span className="block text-xs text-gray-500">
+                      {TEAM_ROLE_DESCRIPTION[role]}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>

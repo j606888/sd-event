@@ -9,13 +9,21 @@ import type { ScannedRegistration } from "@/types/registration";
 
 type QRScannerProps = {
   eventId: number;
+  /** 驗票人員為 false：掃描結果不顯示金額 */
+  canSeeMoney?: boolean;
   onScanSuccess?: (attendeeId: number, attendeeName: string) => void;
   onClose: () => void;
   /** 提供時於掃描畫面顯示「現場報名」按鈕 */
   onWalkIn?: () => void;
 };
 
-export function QRScanner({ eventId, onScanSuccess, onClose, onWalkIn }: QRScannerProps) {
+export function QRScanner({
+  eventId,
+  canSeeMoney = true,
+  onScanSuccess,
+  onClose,
+  onWalkIn,
+}: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -238,6 +246,7 @@ export function QRScanner({ eventId, onScanSuccess, onClose, onWalkIn }: QRScann
           <div className="p-4">
             <ScannedRegistrationDetail
               registration={scannedRegistration}
+              canSeeMoney={canSeeMoney}
               onBack={handleBackToScanner}
               onCheckIn={handleCheckIn}
             />

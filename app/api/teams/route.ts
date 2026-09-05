@@ -18,6 +18,8 @@ export async function GET() {
       id: teams.id,
       name: teams.name,
       createdAt: teams.createdAt,
+      // 前端用來判斷要顯示哪些功能（管理員 vs 驗票人員）
+      role: teamMembers.role,
     })
     .from(teams)
     .innerJoin(teamMembers, eq(teams.id, teamMembers.teamId))

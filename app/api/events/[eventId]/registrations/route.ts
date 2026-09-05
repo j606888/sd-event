@@ -16,7 +16,9 @@ import {
 } from "@/db/schema";
 import { sendRegistrationSuccessEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { isTeamAdmin } from "@/lib/team-roles";
+import { applyRegistrationVisibility } from "@/lib/registration-visibility";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
 import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
@@ -64,6 +66,9 @@ export async function GET(request: Request, { params }: Params) {
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);
   if (forbidden) return forbidden;
+
+  // 驗票人員看得到名單與報到狀態，但看不到金額
+  const canSeeMoney = isTeamAdmin(await getTeamRole(event.teamId, session.userId));
 
   // 取得搜尋參數
   const { searchParams } = new URL(request.url);
@@ -183,7 +188,7 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   return NextResponse.json({
-    registrations: result,
+    registrations: result.map((reg) => applyRegistrationVisibility(reg, canSeeMoney)),
     pagination: { total: Number(total), page, pageSize },
   });
 }

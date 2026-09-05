@@ -1,21 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { events, eventCoupons } from "@/db/schema";
+import { eventCoupons } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth } from "@/lib/api-auth";
+import { requireEventAdmin } from "@/lib/event-access";
 import { normalizeCouponCode, validateCouponFields } from "@/lib/coupon";
 import { and, eq, ne } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string; couponId: string }> };
 
-async function getEventAndCheckAccess(eventId: number, userId: number) {
-  const rows = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
-  const event = rows[0];
-  if (!event) return { error: NextResponse.json({ error: "找不到活動" }, { status: 404 }) };
-  const forbidden = await requireTeamMember(event.teamId, userId);
-  if (forbidden) return { error: forbidden };
-  return { event };
-}
 
 /** 更新折扣碼（code / 類型 / 數值 / 使用上限）。修改只影響之後的報名，既有報名為快照。 */
 export async function PATCH(request: Request, { params }: Params) {
@@ -32,7 +25,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 id" }, { status: 400 });
   }
 
-  const access = await getEventAndCheckAccess(eventId, session.userId);
+  const access = await requireEventAdmin(eventId, session.userId);
   if ("error" in access) return access.error;
 
   const [coupon] = await db
@@ -127,7 +120,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "無效的 id" }, { status: 400 });
   }
 
-  const access = await getEventAndCheckAccess(eventId, session.userId);
+  const access = await requireEventAdmin(eventId, session.userId);
   if ("error" in access) return access.error;
 
   const [deleted] = await db

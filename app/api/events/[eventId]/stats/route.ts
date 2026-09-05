@@ -10,7 +10,7 @@ import {
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { eq, inArray, and, asc, count, sql } from "drizzle-orm";
 import {
   createHistoricalPriceResolver,
@@ -44,7 +44,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
   }
 
-  const forbidden = await requireTeamMember(event.teamId, session.userId);
+  const forbidden = await requireTeamAdmin(event.teamId, session.userId);
   if (forbidden) return forbidden;
 
   // Get non-hidden registrations — only id and purchaseItemId needed now.
