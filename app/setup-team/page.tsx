@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { loginPath } from "@/lib/safe-next-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,13 @@ export default function SetupTeamPage() {
       try {
         const res = await fetch("/api/teams", { credentials: "include" });
         if (res.status === 401) {
-          if (!cancelled) router.replace("/login");
+          if (!cancelled) {
+            router.replace(
+              loginPath(window.location.pathname + window.location.search, {
+                expired: true,
+              })
+            );
+          }
           return;
         }
         if (!res.ok) {

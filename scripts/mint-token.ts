@@ -8,6 +8,11 @@
  * Usage (local):
  *   npm run mint-token -- user@example.com
  *
+ * An optional second argument overrides the lifetime (default 2h) — handy for
+ * exercising the session-expiry paths locally:
+ *   npm run mint-token -- user@example.com -1h   # already expired
+ *   npm run mint-token -- user@example.com 40s   # about to expire → sliding refresh
+ *
  * Then in the browser devtools console on the target site:
  *   document.cookie = "auth_token=<TOKEN>; path=/";
  * ...and reload. Remember to clear it (or just wait for it to expire) when done.
@@ -17,14 +22,15 @@ import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema";
 
-const EXPIRES_IN = "2h"; // keep short — this grants full access to the account
+const DEFAULT_EXPIRES_IN = "2h"; // keep short — this grants full access to the account
 
 async function main() {
   const arg = process.argv[2];
   if (!arg) {
-    console.error("Usage: mint-token <email | userId>");
+    console.error("Usage: mint-token <email | userId> [expiresIn]");
     process.exit(1);
   }
+  const expiresIn = process.argv[3] || DEFAULT_EXPIRES_IN;
 
   const secretStr = process.env.JWT_SECRET;
   if (!secretStr) {
@@ -47,11 +53,11 @@ async function main() {
   const token = await new SignJWT({ userId: user.id, email: user.email })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(EXPIRES_IN)
+    .setExpirationTime(expiresIn)
     .sign(new TextEncoder().encode(secretStr));
 
   console.log(`\nUser:    #${user.id}  ${user.email}`);
-  console.log(`Expires: in ${EXPIRES_IN}\n`);
+  console.log(`Expires: in ${expiresIn}\n`);
   console.log("auth_token:\n");
   console.log(token);
   console.log(`\nPaste in devtools console on the target site, then reload:`);

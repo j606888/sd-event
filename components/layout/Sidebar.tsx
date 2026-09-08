@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   X,
   ChevronsUpDown,
@@ -37,6 +38,7 @@ type SidebarProps = {
 
 export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }: SidebarProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const { isSuperAdmin } = useSession();
   // 驗票人員只需要看到活動列表，其餘管理功能一律不顯示
@@ -107,6 +109,8 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    // 不清掉的話舊的 ["teams"] / ["me"] 會活過登出，下一個登入的人會先看到前一位的資料
+    queryClient.clear();
     router.push("/login");
     router.refresh();
   };

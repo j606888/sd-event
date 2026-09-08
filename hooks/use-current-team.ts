@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTeams, getActiveTeamId, updateActiveTeam, type Team } from "@/lib/api/teams";
+import { isUnauthorizedError } from "@/lib/api/errors";
 import { useEffect } from "react";
 
 export function useCurrentTeam() {
@@ -12,7 +13,11 @@ export function useCurrentTeam() {
     queryFn: getTeams,
   });
 
-  const { data: activeTeamId, isLoading: activeLoading } = useQuery({
+  const {
+    data: activeTeamId,
+    isLoading: activeLoading,
+    error: activeError,
+  } = useQuery({
     queryKey: ["active-team-id"],
     queryFn: getActiveTeamId,
   });
@@ -47,6 +52,9 @@ export function useCurrentTeam() {
     activeTeamId,
     isLoading: teamsLoading || activeLoading,
     error: teamsError ? "無法載入團隊" : null,
+    /** 登入已過期 —— AppShell 會據此把使用者導回登入頁 */
+    isUnauthorized:
+      isUnauthorizedError(teamsError) || isUnauthorizedError(activeError),
     changeTeam,
     refetch: handleRefetch,
   };
