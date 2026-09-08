@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldCheck, Users, Calendar, ArrowLeft } from "lucide-react";
-import { getSession } from "@/lib/auth";
+import { getSessionState } from "@/lib/auth";
+import { getGuardContext } from "@/lib/request-path";
+import { loginPath } from "@/lib/safe-next-path";
 import { isSuperAdminUser } from "@/lib/api-auth";
 
 export default async function AdminLayout({
@@ -9,8 +11,12 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const state = await getSessionState();
+  if (state.status !== "valid") {
+    const { path, expired } = await getGuardContext();
+    redirect(loginPath(path, { expired: expired || state.status === "expired" }));
+  }
+  const session = state.session;
   // 模擬檢視中不得進入總後台（middleware 也會擋，這裡是第二層保險）
   if (typeof session.impersonatorId === "number") redirect("/events");
   if (!(await isSuperAdminUser(session.userId))) redirect("/events");

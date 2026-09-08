@@ -34,14 +34,20 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { teamId, isLoading: teamLoading } = useCurrentTeam();
+  const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const readOnly = useReadOnly();
   // 驗票人員不能建立活動
   const { isAdmin } = useTeamRole();
 
   useEffect(() => {
-    if (teamId == null && !teamLoading) return;
-    if (teamId == null) return;
+    // 團隊還在載入 → 維持載入中；載完了但沒有團隊（或載失敗）→ 結束載入，
+    // 交給下面的錯誤／導向分支處理。這裡一定要把 loading 收掉，否則整頁會永遠
+    // 停在「載入中…」，連錯誤畫面跟導向都跑不到。
+    if (teamLoading) return;
+    if (teamId == null) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     fetch("/api/events", { credentials: "include" })
@@ -55,12 +61,12 @@ export default function EventsPage() {
   }, [teamId, teamLoading]);
 
   useEffect(() => {
-    if (!loading && !teamLoading && !error && teamId == null) {
+    if (!loading && !teamLoading && !error && !teamError && teamId == null) {
       router.replace("/setup-team");
     }
-  }, [loading, teamLoading, error, teamId, router]);
+  }, [loading, teamLoading, error, teamError, teamId, router]);
 
-  if (loading && events.length === 0) {
+  if ((loading || teamLoading) && events.length === 0 && !teamError) {
     return (
       <div className="min-h-screen p-6">
         <p className="text-gray-500">載入中…</p>
@@ -68,11 +74,14 @@ export default function EventsPage() {
     );
   }
 
-  if (error) {
+  if (error || teamError) {
     return (
       <div className="min-h-screen p-6">
-        <p className="text-red-500">{error}</p>
-        <Link href="/login" className="mt-2 inline-block text-brand underline">
+        <p className="text-red-500">{error ?? teamError}</p>
+        <Link
+          href="/login?next=%2Fevents"
+          className="mt-2 inline-block text-brand underline"
+        >
           前往登入
         </Link>
       </div>
