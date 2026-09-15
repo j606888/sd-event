@@ -30,6 +30,19 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ file }) => {
       return { url: file.ufsUrl };
     }),
+  // 活動描述內文插入的圖片，可一次貼上／拖放多張
+  descriptionImage: f({
+    image: {
+      maxFileSize: "4MB",
+      maxFileCount: 5,
+    },
+  })
+    .middleware(async () => {
+      return {};
+    })
+    .onUploadComplete(async ({ file }) => {
+      return { url: file.ufsUrl };
+    }),
   organizerPhoto: f({
     image: {
       maxFileSize: "4MB",
