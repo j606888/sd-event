@@ -69,6 +69,8 @@ export const teamMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: teamMemberRoleEnum("role").notNull().default("member"),
+    /** 有新的線上報名時是否寄通知信（僅管理員可開啟） */
+    notifyOnRegistration: boolean("notify_on_registration").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => ({ pk: primaryKey({ columns: [t.teamId, t.userId] }) })
