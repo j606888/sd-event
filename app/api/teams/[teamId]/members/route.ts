@@ -28,6 +28,7 @@ export async function GET(_request: Request, { params }: Params) {
     .select({
       userId: teamMembers.userId,
       role: teamMembers.role,
+      notifyOnRegistration: teamMembers.notifyOnRegistration,
       createdAt: teamMembers.createdAt,
       user: {
         id: users.id,

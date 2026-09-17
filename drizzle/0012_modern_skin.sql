@@ -1,0 +1,1 @@
+ALTER TABLE "team_members" ADD COLUMN "notify_on_registration" boolean DEFAULT false NOT NULL;

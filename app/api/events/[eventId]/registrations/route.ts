@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { customAlphabet } from "nanoid";
 import { db } from "@/db";
 import {
@@ -13,8 +13,9 @@ import {
   eventRegistrationPurchaseItems,
   eventCoupons,
   teamMembers,
+  users,
 } from "@/db/schema";
-import { sendRegistrationSuccessEmail } from "@/lib/email";
+import { sendNewRegistrationNotificationEmail, sendRegistrationSuccessEmail } from "@/lib/email";
 import { getSession } from "@/lib/auth";
 import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
@@ -380,10 +381,14 @@ export async function POST(request: Request, { params }: Params) {
     const [selectedItems, tiers, priceRows] = await Promise.all([
       selectedIds.length > 0
         ? db
-            .select({ id: eventPurchaseItems.id, amount: eventPurchaseItems.amount })
+            .select({
+              id: eventPurchaseItems.id,
+              name: eventPurchaseItems.name,
+              amount: eventPurchaseItems.amount,
+            })
             .from(eventPurchaseItems)
             .where(inArray(eventPurchaseItems.id, selectedIds))
-        : Promise.resolve([] as { id: number; amount: number }[]),
+        : Promise.resolve([] as { id: number; name: string; amount: number }[]),
       db
         .select()
         .from(eventPriceTiers)
@@ -533,12 +538,53 @@ export async function POST(request: Request, { params }: Params) {
       return reg;
     });
 
-    // Send confirmation email to contact (non-blocking, outside transaction)
-    sendRegistrationSuccessEmail(
-      contactEmail,
-      registration.registrationKey,
-      event.title ?? undefined
-    ).catch((err) => console.error("Registration success email error:", err));
+    // 回應送出後才寄信（outside transaction）；用 after() 確保 Vercel 不會在寄完前中止
+    after(async () => {
+      await sendRegistrationSuccessEmail(
+        contactEmail,
+        registration.registrationKey,
+        event.title ?? undefined
+      ).catch((err) => console.error("Registration success email error:", err));
+    });
+
+    // 通知有開啟「新報名通知信」的團隊管理員。只在正式環境寄：本機 .env 也有 RESEND_API_KEY，
+    // 否則本機測試會把信寄給真的管理員
+    if (process.env.VERCEL_ENV === "production") {
+      after(async () => {
+        try {
+          const recipients = await db
+            .select({ email: users.email })
+            .from(teamMembers)
+            .innerJoin(users, eq(teamMembers.userId, users.id))
+            .where(
+              and(
+                eq(teamMembers.teamId, event.teamId),
+                eq(teamMembers.notifyOnRegistration, true),
+                inArray(teamMembers.role, ["owner", "member"])
+              )
+            );
+          await sendNewRegistrationNotificationEmail(
+            recipients.map((r) => r.email),
+            {
+              eventId,
+              eventTitle: event.title,
+              contactName: registration.contactName,
+              contactPhone: registration.contactPhone,
+              contactEmail: registration.contactEmail,
+              attendees: validAttendees.map((a: { name: string; role: string }) => ({ name: a.name.trim(), role: a.role })),
+              itemNames: selectedItems.map((item) => item.name),
+              tierName: activeTier?.name ?? null,
+              paymentMethod: registration.paymentMethod,
+              totalAmount: registration.totalAmount,
+              couponCode: registration.couponCode,
+              discountAmount: registration.discountAmount,
+            }
+          );
+        } catch (err) {
+          console.error("New registration notification email error:", err);
+        }
+      });
+    }
 
     return NextResponse.json({
       registration: {

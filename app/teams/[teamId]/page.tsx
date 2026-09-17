@@ -20,6 +20,7 @@ import {
 type TeamMember = {
   userId: number;
   role: TeamRole;
+  notifyOnRegistration: boolean;
   createdAt: string;
   user: {
     id: number;
@@ -211,6 +212,29 @@ export default function TeamDetailPage() {
     }
   };
 
+  const handleToggleNotify = async (userId: number, next: boolean) => {
+    if (!Number.isInteger(teamId)) return;
+    // 先樂觀更新，失敗再還原
+    setMembers((prev) =>
+      prev.map((m) => (m.userId === userId ? { ...m, notifyOnRegistration: next } : m))
+    );
+    try {
+      const res = await fetch(`/api/teams/${teamId}/members/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ notifyOnRegistration: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "更新失敗");
+      }
+    } catch {
+      alert("更新失敗");
+    }
+    fetchMembers();
+  };
+
   // 角色確認為管理員之前不 render 內容，避免驗票人員閃過一眼管理畫面
   if (!isTeamAdminReady) {
     return (
@@ -289,6 +313,30 @@ export default function TeamDetailPage() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-500">{member.user.email}</p>
+                    {canManage && isTeamAdmin(member.role) && (
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={member.notifyOnRegistration}
+                        onClick={() =>
+                          handleToggleNotify(member.userId, !member.notifyOnRegistration)
+                        }
+                        className="mt-1.5 inline-flex items-center gap-2 text-xs text-gray-600"
+                      >
+                        <span
+                          className={`relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors ${
+                            member.notifyOnRegistration ? "bg-brand" : "bg-gray-300"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 size-3 rounded-full bg-white shadow transition-transform ${
+                              member.notifyOnRegistration ? "translate-x-3.5" : "translate-x-0.5"
+                            }`}
+                          />
+                        </span>
+                        新報名通知信
+                      </button>
+                    )}
                   </div>
                   {canManage && !isCurrentUser && !isOwnerRow && (
                     <div className="flex items-center gap-2">

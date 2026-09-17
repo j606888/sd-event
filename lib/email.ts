@@ -119,3 +119,87 @@ export async function sendPaymentConfirmedEmail(
   }
   return { ok: true };
 }
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export type NewRegistrationNotification = {
+  eventId: number;
+  eventTitle: string | null;
+  contactName: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  attendees: { name: string; role: string }[];
+  itemNames: string[];
+  tierName: string | null;
+  paymentMethod: string | null;
+  totalAmount: number | null;
+  couponCode: string | null;
+  discountAmount: number | null;
+};
+
+/**
+ * 有新的線上報名時，通知有開啟「新報名通知信」的團隊管理員。
+ * 每位收件者各寄一封，避免管理員之間互相看到 email。
+ */
+export async function sendNewRegistrationNotificationEmail(
+  recipients: string[],
+  n: NewRegistrationNotification
+): Promise<{ ok: boolean; error?: string }> {
+  if (recipients.length === 0) return { ok: true };
+  if (!resend) {
+    console.warn("RESEND_API_KEY not set, skipping new registration notification email");
+    return { ok: false, error: "Email not configured" };
+  }
+
+  const title = n.eventTitle ?? "活動";
+  const subject = `[新報名] ${title} — ${n.contactName}`;
+  const manageUrl = `${siteUrl}/events/${n.eventId}`;
+  const e = escapeHtml;
+
+  const attendeesHtml = n.attendees
+    .map((a) => `<li>${e(a.name)}（${e(a.role)}）</li>`)
+    .join("");
+  const itemsText = n.itemNames.length > 0 ? n.itemNames.map(e).join("、") : "—";
+  const amountText =
+    n.totalAmount != null
+      ? `NT$ ${n.totalAmount.toLocaleString("en-US")}${
+          n.couponCode
+            ? `（折扣碼 ${e(n.couponCode)}${n.discountAmount ? `，折抵 NT$ ${n.discountAmount.toLocaleString("en-US")}` : ""}）`
+            : ""
+        }`
+      : "—";
+
+  const html = `
+    <p>「${e(title)}」有一筆新的報名：</p>
+    <ul>
+      <li>聯絡人：${e(n.contactName)}</li>
+      ${n.contactPhone ? `<li>電話：${e(n.contactPhone)}</li>` : ""}
+      ${n.contactEmail ? `<li>Email：${e(n.contactEmail)}</li>` : ""}
+      <li>票種：${itemsText}${n.tierName ? `（${e(n.tierName)}）` : ""}</li>
+      <li>金額：${amountText}</li>
+      ${n.paymentMethod ? `<li>付款方式：${e(n.paymentMethod)}</li>` : ""}
+    </ul>
+    <p><strong>參加者（${n.attendees.length} 位）：</strong></p>
+    <ul>${attendeesHtml}</ul>
+    <p><a href="${manageUrl}" style="display: inline-block; padding: 12px 24px; background-color: #5295BC; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">查看報名名單</a></p>
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+    <p style="color: #666; font-size: 12px;">— SD Event｜您收到這封信是因為團隊設定中開啟了「新報名通知信」，可請團隊管理員在團隊頁關閉。</p>
+  `;
+
+  const { error } = await resend.batch.send(
+    recipients.map((to) => ({ from, to: [to], subject, html }))
+  );
+
+  if (error) {
+    console.error("Resend sendNewRegistrationNotificationEmail error:", error);
+    return { ok: false, error: String(error.message) };
+  }
+  return { ok: true };
+}
