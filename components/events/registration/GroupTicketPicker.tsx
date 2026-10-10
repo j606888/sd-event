@@ -1,7 +1,39 @@
 "use client";
 
+import { Users } from "lucide-react";
 import { TicketPriceLine } from "./TicketPriceLine";
 import type { EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
+import { seatCountOf } from "@/lib/seat-count";
+
+/** 票券名稱下方的資訊：套票人數提示、票券說明、目前時段 */
+function TicketItemInfo({
+  item,
+  activeTierName,
+}: {
+  item: EventPurchaseItem;
+  activeTierName: string | null;
+}) {
+  const seats = seatCountOf(item);
+  return (
+    <div className="min-w-0">
+      <div className="font-medium text-gray-900">{item.name}</div>
+      {seats > 1 && (
+        <div className="mt-1 inline-flex items-center gap-1 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand">
+          <Users className="size-3" />
+          {seats} 人套票 · 需填 {seats} 位參加者
+        </div>
+      )}
+      {item.description && (
+        <div className="mt-1 whitespace-pre-line text-xs text-gray-600">
+          {item.description}
+        </div>
+      )}
+      {activeTierName && (
+        <div className="mt-0.5 text-xs text-gray-400">{activeTierName}</div>
+      )}
+    </div>
+  );
+}
 
 type GroupTicketPickerProps = {
   /** 票券區塊（含各自票券與互斥關係）；空陣列 = 未使用區塊，改用 purchaseItems 平面模式 */
@@ -122,21 +154,16 @@ export function GroupTicketPicker({
                         className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
                       />
                       <div className="flex flex-1 items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-medium text-gray-900">
-                            {item.name}
-                          </div>
-                          {activeTierName && (
-                            <div className="mt-0.5 text-xs text-gray-400">
-                              {activeTierName}
-                            </div>
-                          )}
-                        </div>
+                        <TicketItemInfo
+                          item={item}
+                          activeTierName={activeTierName}
+                        />
                         <TicketPriceLine
                           variant="picker"
                           amount={item.amount}
                           fullAmount={item.fullAmount}
                           fullTierName={fullTierName}
+                          seatCount={item.seatCount}
                         />
                       </div>
                     </label>
@@ -204,19 +231,13 @@ export function GroupTicketPicker({
                 className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
               />
               <div className="flex flex-1 items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-medium text-gray-900">{item.name}</div>
-                  {activeTierName && (
-                    <div className="mt-0.5 text-xs text-gray-400">
-                      {activeTierName}
-                    </div>
-                  )}
-                </div>
+                <TicketItemInfo item={item} activeTierName={activeTierName} />
                 <TicketPriceLine
                   variant="picker"
                   amount={item.amount}
                   fullAmount={item.fullAmount}
                   fullTierName={fullTierName}
+                  seatCount={item.seatCount}
                 />
               </div>
             </label>

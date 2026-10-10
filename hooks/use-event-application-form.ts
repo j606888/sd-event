@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicEventData, EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
 import type { FormData, Participant } from "@/components/events/registration/event-application-types";
@@ -8,6 +8,12 @@ import { INITIAL_FORM_DATA } from "@/components/events/registration/event-applic
 import { createRegistration } from "@/lib/api/create-registration";
 import { validateCoupon } from "@/lib/api/validate-coupon";
 import { computeCouponDiscount } from "@/lib/coupon";
+import {
+  computeItemsTotal,
+  isBundleItem,
+  requiredAttendeeCount,
+  validateSeatCount,
+} from "@/lib/seat-count";
 
 export type EventApplicationFormState = {
   step: 1 | 2 | 3;
@@ -57,6 +63,46 @@ export function useEventApplicationForm(event: PublicEventData) {
         formData.selectedPlanIds.includes(item.id)
       );
 
+  // 實際要送出的項目（單選舊制只有 selectedPlan）
+  const chosenItems = useMemo<EventPurchaseItem[]>(
+    () =>
+      useGroups || event.allowMultiplePurchase
+        ? selectedPlans
+        : selectedPlan
+          ? [selectedPlan]
+          : [],
+    [useGroups, event.allowMultiplePurchase, selectedPlans, selectedPlan]
+  );
+
+  // 選了套票（如雙人票）→ 參加者人數固定為套票人數
+  const requiredParticipants = requiredAttendeeCount(chosenItems);
+  const bundleItem = chosenItems.find(isBundleItem) ?? null;
+  const seatError = validateSeatCount(chosenItems, formData.participants.length);
+
+  // 套票人數變動時，自動補齊空白參加者欄位或移除多出的欄位（保留已填的前幾位）
+  useEffect(() => {
+    if (requiredParticipants == null) return;
+    setFormData((prev) => {
+      const current = prev.participants;
+      if (current.length === requiredParticipants) return prev;
+      const next =
+        current.length > requiredParticipants
+          ? current.slice(0, requiredParticipants)
+          : [
+              ...current,
+              ...Array.from(
+                { length: requiredParticipants - current.length },
+                (_, i) => ({
+                  id: `${Date.now()}-${i}`,
+                  name: "",
+                  role: "Leader" as const,
+                })
+              ),
+            ];
+      return { ...prev, participants: next };
+    });
+  }, [requiredParticipants]);
+
   const handleCopy = useCallback(async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -68,6 +114,7 @@ export function useEventApplicationForm(event: PublicEventData) {
   }, []);
 
   const addParticipant = useCallback(() => {
+    if (requiredParticipants != null) return;
     setFormData((prev) => ({
       ...prev,
       participants: [
@@ -75,9 +122,10 @@ export function useEventApplicationForm(event: PublicEventData) {
         { id: String(Date.now()), name: "", role: "Leader" as const },
       ],
     }));
-  }, []);
+  }, [requiredParticipants]);
 
   const removeParticipant = useCallback((id: string) => {
+    if (requiredParticipants != null) return;
     setFormData((prev) => {
       if (prev.participants.length <= 1) return prev;
       const updated = {
@@ -86,7 +134,7 @@ export function useEventApplicationForm(event: PublicEventData) {
       };
       return updated;
     });
-  }, []);
+  }, [requiredParticipants]);
 
   const updateParticipant = useCallback(
     (id: string, field: keyof Participant, value: string) => {
@@ -115,25 +163,11 @@ export function useEventApplicationForm(event: PublicEventData) {
   useEffect(() => {
     if (!useGroups && !event.autoCalcAmount) return;
 
-    let total = 0;
-    if (useGroups) {
-      // 群組模式：Σ(已選項目當下時段價) × 參加者人數
-      total =
-        selectedPlans.reduce((sum, item) => sum + item.amount, 0) *
-        formData.participants.length;
-    } else if (event.allowMultiplePurchase && formData.selectedPlanIds.length > 0) {
-      // Multiple selection: sum of all selected items * participant count
-      const plans = event.purchaseItems.filter(
-        (item) => formData.selectedPlanIds.includes(item.id)
-      );
-      total = plans.reduce((sum, item) => sum + item.amount, 0) * formData.participants.length;
-    } else if (formData.selectedPlanId != null) {
-      // Single selection: selected item amount * participant count
-      const plan = event.purchaseItems.find((item) => item.id === formData.selectedPlanId);
-      if (plan) {
-        total = plan.amount * formData.participants.length;
-      }
-    }
+    // 一般票：當下時段價 × 參加者人數；套票：整組價（與伺服器 computeItemsTotal 一致）
+    const total = computeItemsTotal(
+      chosenItems.map((item) => ({ unitPrice: item.amount, seatCount: item.seatCount })),
+      formData.participants.length
+    );
 
     // 群組模式即使歸零也要同步（清空選取時）；無群組沿用「僅 >0 才回填」舊行為
     if (total > 0 || useGroups) {
@@ -143,7 +177,7 @@ export function useEventApplicationForm(event: PublicEventData) {
           : { ...prev, totalAmount: String(total) }
       );
     }
-  }, [useGroups, event.autoCalcAmount, event.allowMultiplePurchase, event.purchaseItems, formData.selectedByGroup, formData.selectedPlanId, formData.selectedPlanIds, formData.participants.length, selectedPlans]);
+  }, [useGroups, event.autoCalcAmount, formData.participants.length, chosenItems]);
 
   // 折扣預覽：totalAmount 維持折扣前 base，折後金額另行導出，與伺服器計算一致
   const baseAmount = Number(formData.totalAmount) || 0;
@@ -212,6 +246,7 @@ export function useEventApplicationForm(event: PublicEventData) {
       : formData.selectedPlanId !== null;
   const canProceedToStep3 =
     hasSelectedPlan &&
+    seatError == null &&
     formData.contactName.trim() !== "" &&
     formData.contactPhone.trim() !== "" &&
     formData.contactEmail.trim() !== "" &&
@@ -278,6 +313,9 @@ export function useEventApplicationForm(event: PublicEventData) {
     submitError,
     selectedPlan,
     selectedPlans,
+    requiredParticipants,
+    bundleItem,
+    seatError,
     handleCopy,
     addParticipant,
     removeParticipant,

@@ -9,6 +9,8 @@ type TicketPriceLineProps = {
   fullTierName?: string | null;
   /** intro＝方案介紹（19px）；picker＝票券選項卡片內（18px，稍密） */
   variant: "intro" | "picker";
+  /** 套票人數（>1 時在價格後標示「/ N 人」，表示整組價） */
+  seatCount?: number;
 };
 
 /** 現在報名比原價省下的金額；沒有可省的（無時段／已是最後一段／不漲價）回傳 null */
@@ -31,6 +33,7 @@ export function TicketPriceLine({
   fullAmount,
   fullTierName,
   variant,
+  seatCount,
 }: TicketPriceLineProps) {
   const savings = getTicketSavings(amount, fullAmount);
   const originalLabel = `${fullTierName ? `${fullTierName}價` : "原價"} $${fullAmount}`;
@@ -43,6 +46,11 @@ export function TicketPriceLine({
         }`}
       >
         ${amount}
+        {seatCount != null && seatCount > 1 && (
+          <span className="ml-0.5 text-xs font-normal text-gray-500">
+            / {seatCount} 人
+          </span>
+        )}
       </span>
       {savings != null && (
         <span className="text-xs text-gray-400 tabular-nums">

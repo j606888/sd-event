@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronLeft, Trash2, Plus, TicketPercent, X } from "lucide-react";
+import { ChevronLeft, Trash2, Plus, TicketPercent, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { PublicEventData } from "@/types/event";
+import type { EventPurchaseItem, PublicEventData } from "@/types/event";
 import type { FormData, Participant } from "../event-application-types";
 import { GroupTicketPicker } from "../GroupTicketPicker";
 
@@ -22,6 +22,12 @@ type ApplicationFormStepProps = {
   onAddParticipant: () => void;
   onRemoveParticipant: (id: string) => void;
   onUpdateParticipant: (id: string, field: keyof Participant, value: string) => void;
+  /** 選了套票時固定的參加者人數；null = 可自由增減 */
+  requiredParticipants: number | null;
+  /** 已選的套票（顯示其參加條件）；null = 未選套票 */
+  bundleItem: EventPurchaseItem | null;
+  /** 參加者人數不符套票時的錯誤訊息 */
+  seatError: string | null;
   canProceed: boolean;
   onBack: () => void;
   onNext: () => void;
@@ -41,6 +47,9 @@ export function ApplicationFormStep({
   onAddParticipant,
   onRemoveParticipant,
   onUpdateParticipant,
+  requiredParticipants,
+  bundleItem,
+  seatError,
   canProceed,
   onBack,
   onNext,
@@ -126,6 +135,22 @@ export function ApplicationFormStep({
 
           <div className="space-y-4">
             <h2 className="font-semibold text-gray-900">參加者資料</h2>
+            {bundleItem && requiredParticipants != null && (
+              <div className="flex items-start gap-2 rounded-lg border border-brand/30 bg-brand/5 p-3 text-sm text-gray-700">
+                <Users className="mt-0.5 size-4 shrink-0 text-brand" />
+                <div className="space-y-1">
+                  <p>
+                    你選擇了「<span className="font-medium">{bundleItem.name}</span>
+                    」，請填寫剛好 {requiredParticipants} 位參加者。
+                  </p>
+                  {bundleItem.description && (
+                    <p className="whitespace-pre-line text-gray-600">
+                      {bundleItem.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="space-y-4">
               {formData.participants.map((participant, index) => (
                 <div
@@ -136,7 +161,7 @@ export function ApplicationFormStep({
                     <div className="px-3 py-1 bg-brand text-white rounded text-sm font-medium">
                       參加者 {index + 1}
                     </div>
-                    {formData.participants.length > 1 && (
+                    {formData.participants.length > 1 && requiredParticipants == null && (
                       <button
                         onClick={() => onRemoveParticipant(participant.id)}
                         className="text-gray-400 hover:text-red-500"
@@ -190,14 +215,17 @@ export function ApplicationFormStep({
                 </div>
               ))}
             </div>
-            <Button
-              onClick={onAddParticipant}
-              variant="outline"
-              className="w-full border-brand text-brand hover:bg-brand/10"
-            >
-              <Plus className="w-4 h-4" />
-              增加參加者
-            </Button>
+            {requiredParticipants == null && (
+              <Button
+                onClick={onAddParticipant}
+                variant="outline"
+                className="w-full border-brand text-brand hover:bg-brand/10"
+              >
+                <Plus className="w-4 h-4" />
+                增加參加者
+              </Button>
+            )}
+            {seatError && <p className="text-sm text-red-500">{seatError}</p>}
           </div>
 
           <div className="space-y-3">

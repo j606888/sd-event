@@ -9,7 +9,14 @@ import { Label } from "@/components/ui/label";
 import { useEvent } from "@/hooks/use-event-detail";
 import { usePublicEvent } from "@/hooks/use-public-event";
 import { useCreateWalkIn } from "@/hooks/use-registrations";
-import type { PublicEventData } from "@/types/event";
+import type { EventPurchaseItem, PublicEventData } from "@/types/event";
+import {
+  computeItemsTotal,
+  isBundleItem,
+  requiredAttendeeCount,
+  seatCountOf,
+  validateSeatCount,
+} from "@/lib/seat-count";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
 
@@ -90,16 +97,36 @@ export function WalkInDrawer({
     return selectedPlanId != null ? [selectedPlanId] : [];
   };
 
-  // 項目單價（公開 API 已依當下時段解析）
-  const amountById = new Map<number, number>();
+  // 項目（單價已由公開 API 依當下時段解析）
+  const itemById = new Map<number, EventPurchaseItem>();
   if (event) {
-    for (const it of event.purchaseItems) amountById.set(it.id, it.amount);
-    for (const g of event.groups) for (const it of g.items) amountById.set(it.id, it.amount);
+    for (const it of event.purchaseItems) itemById.set(it.id, it);
+    for (const g of event.groups) for (const it of g.items) itemById.set(it.id, it);
   }
+  const selectedItems = selectedItemIds()
+    .map((id) => itemById.get(id))
+    .filter((it): it is EventPurchaseItem => it != null);
 
-  const computedAmount =
-    selectedItemIds().reduce((sum, id) => sum + (amountById.get(id) ?? 0), 0) *
-    participants.length;
+  // 一般票 單價 × 人數、套票 整組價（與伺服器一致）
+  const computedAmount = computeItemsTotal(
+    selectedItems.map((it) => ({ unitPrice: it.amount, seatCount: it.seatCount })),
+    participants.length
+  );
+
+  // 選了套票 → 參加者人數固定為套票人數
+  const requiredParticipants = requiredAttendeeCount(selectedItems);
+  const bundleItem = selectedItems.find(isBundleItem) ?? null;
+  useEffect(() => {
+    if (requiredParticipants == null) return;
+    setParticipants((prev) => {
+      if (prev.length === requiredParticipants) return prev;
+      if (prev.length > requiredParticipants) return prev.slice(0, requiredParticipants);
+      return [
+        ...prev,
+        ...Array.from({ length: requiredParticipants - prev.length }, newParticipant),
+      ];
+    });
+  }, [requiredParticipants]);
 
   // 未手動編輯時，金額隨選取/人數自動更新
   useEffect(() => {
@@ -156,6 +183,11 @@ export function WalkInDrawer({
       .filter((p) => p.name && ROLES.includes(p.role as (typeof ROLES)[number]));
     if (validParticipants.length === 0) {
       setError("請至少填寫一位參加者的姓名與角色");
+      return;
+    }
+    const seatError = validateSeatCount(selectedItems, validParticipants.length);
+    if (seatError) {
+      setError(seatError);
       return;
     }
     const name = contactName.trim() || validParticipants[0].name;
@@ -243,8 +275,11 @@ export function WalkInDrawer({
                             }}
                             className="h-4 w-4 text-brand"
                           />
-                          <span className="flex-1 text-sm text-gray-900">{item.name}</span>
-                          <span className="text-sm text-gray-600">${item.amount}</span>
+                          <WalkInItemName item={item} />
+                          <span className="text-sm text-gray-600">
+                            ${item.amount}
+                            {seatCountOf(item) > 1 && ` / ${seatCountOf(item)} 人`}
+                          </span>
                         </label>
                       );
                     })}
@@ -296,8 +331,11 @@ export function WalkInDrawer({
                       }}
                       className="h-4 w-4 text-brand"
                     />
-                    <span className="flex-1 text-sm text-gray-900">{item.name}</span>
-                    <span className="text-sm text-gray-600">${item.amount}</span>
+                    <WalkInItemName item={item} />
+                    <span className="text-sm text-gray-600">
+                      ${item.amount}
+                      {seatCountOf(item) > 1 && ` / ${seatCountOf(item)} 人`}
+                    </span>
                   </label>
                 );
               })
@@ -307,11 +345,21 @@ export function WalkInDrawer({
           {/* 參加者 */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-900">參加者</h3>
+            {bundleItem && requiredParticipants != null && (
+              <p className="rounded-lg bg-brand/5 p-2.5 text-xs text-gray-700">
+                「{bundleItem.name}」需填剛好 {requiredParticipants} 位參加者。
+                {bundleItem.description && (
+                  <span className="mt-1 block whitespace-pre-line text-gray-600">
+                    {bundleItem.description}
+                  </span>
+                )}
+              </p>
+            )}
             {participants.map((p, index) => (
               <div key={p.id} className="space-y-2 rounded-lg border border-gray-200 p-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-500">參加者 {index + 1}</span>
-                  {participants.length > 1 && (
+                  {participants.length > 1 && requiredParticipants == null && (
                     <button
                       type="button"
                       onClick={() => removeParticipant(p.id)}
@@ -343,15 +391,17 @@ export function WalkInDrawer({
                 </div>
               </div>
             ))}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addParticipant}
-              className="w-full gap-1.5 border-brand text-brand hover:bg-brand/10"
-            >
-              <Plus className="h-4 w-4" />
-              增加參加者
-            </Button>
+            {requiredParticipants == null && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addParticipant}
+                className="w-full gap-1.5 border-brand text-brand hover:bg-brand/10"
+              >
+                <Plus className="h-4 w-4" />
+                增加參加者
+              </Button>
+            )}
           </div>
 
           {/* 聯絡人（選填） */}
@@ -416,5 +466,25 @@ export function WalkInDrawer({
         </div>
       )}
     </Drawer>
+  );
+}
+
+/** 項目名稱 + 套票人數 / 說明（現場報名用的精簡版） */
+function WalkInItemName({ item }: { item: EventPurchaseItem }) {
+  const seats = seatCountOf(item);
+  return (
+    <span className="flex-1 text-sm text-gray-900">
+      {item.name}
+      {seats > 1 && (
+        <span className="ml-1.5 rounded bg-brand/10 px-1 py-0.5 text-xs font-medium text-brand">
+          {seats} 人套票
+        </span>
+      )}
+      {item.description && (
+        <span className="mt-0.5 block whitespace-pre-line text-xs text-gray-500">
+          {item.description}
+        </span>
+      )}
+    </span>
   );
 }

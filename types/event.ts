@@ -35,6 +35,10 @@ export type EventPurchaseItem = {
   fullAmount?: number;
   /** 所屬票種群組；null/undefined = 此活動未使用群組 */
   groupId?: number | null;
+  /** 一張票含幾位參加者；>1 為套票（整組價、參加者人數須剛好等於此值）。未帶 = 1 */
+  seatCount?: number;
+  /** 票券說明（選填），顯示於票券名稱下方 */
+  description?: string | null;
 };
 
 export type EventPurchaseItemGroup = {

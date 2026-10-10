@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye } from "lucide-react";
 import { GroupTicketPicker } from "@/components/events/registration/GroupTicketPicker";
+import { computeItemsTotal, requiredAttendeeCount } from "@/lib/seat-count";
 import {
   endOfDayFromDateInput,
   getItemUnitPrice,
@@ -90,6 +91,8 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     name: purchaseItems[itemIndex].name || "（未命名票券）",
     amount: priceOf(itemIndex),
     fullAmount: priceAtTier(itemIndex, lastTierIndex),
+    seatCount: purchaseItems[itemIndex].seatCount ?? 1,
+    description: purchaseItems[itemIndex].description ?? null,
   });
 
   // 與公開報名頁一致：隱藏票券不出現
@@ -120,10 +123,16 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
       : selectedPlanId != null
         ? [selectedPlanId]
         : selectedPlanIds;
-  const total = selectedItemIndexes.reduce(
-    (sum, i) => (purchaseItems[i] ? sum + priceOf(i) : sum),
-    0
-  );
+  // 試算以 1 位參加者為準；選了套票時改以套票人數試算（一般票仍乘人數）
+  const selectedItems = selectedItemIndexes
+    .filter((i) => purchaseItems[i])
+    .map((i) => ({
+      name: purchaseItems[i].name,
+      seatCount: purchaseItems[i].seatCount,
+      unitPrice: priceOf(i),
+    }));
+  const previewAttendees = requiredAttendeeCount(selectedItems) ?? 1;
+  const total = computeItemsTotal(selectedItems, previewAttendees);
   const autoCalc = groups.length > 0 || autoCalcAmount;
 
   const hasAnythingToShow = visibleIndexes.length > 0 || groups.length > 0;
@@ -183,7 +192,9 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
           <div className="flex items-center justify-between border-t border-gray-200 pt-3 text-sm">
             {autoCalc ? (
               <>
-                <span className="text-gray-500">總金額（自動計算）</span>
+                <span className="text-gray-500">
+                  總金額（自動計算，{previewAttendees} 位參加者）
+                </span>
                 <span className="font-semibold text-gray-900">${total}</span>
               </>
             ) : (

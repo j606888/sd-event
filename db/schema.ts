@@ -196,6 +196,13 @@ export const eventPurchaseItems = pgTable("event_purchase_items", {
   }),
   name: text("name").notNull(),
   amount: integer("amount").notNull(),
+  /**
+   * 一張票含幾位參加者。1 = 一般票（價格 × 參加者人數）；
+   * >1 = 套票（如雙人票）：價格為整組價、不乘人數，且選了此票的報名參加者人數必須剛好等於此值。
+   */
+  seatCount: integer("seat_count").notNull().default(1),
+  /** 票券說明（選填），顯示於報名表票券名稱下方，例如套票的參加條件 */
+  description: text("description"),
   /** 為 true 時不顯示於公開報名表，仍保留於後台與既有報名紀錄 */
   hidden: boolean("hidden").default(false).notNull(),
   sortOrder: integer("sort_order").default(0),

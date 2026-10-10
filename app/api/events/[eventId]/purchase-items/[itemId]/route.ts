@@ -52,10 +52,25 @@ function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
     );
 }
 
+
+/** 套票人數上限；超過這個數字的「套票」應該拆成一般票處理 */
+const MAX_SEAT_COUNT = 10;
+
+/** 解析 seatCount：1..MAX_SEAT_COUNT 的整數，否則 null（無效） */
+function parseSeatCount(raw: unknown): number | null {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= MAX_SEAT_COUNT ? n : null;
+}
+
+/** 解析票券說明：trim 後空字串存成 null */
+function parseDescription(raw: unknown): string | null {
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
+
 type Params = { params: Promise<{ eventId: string; itemId: string }> };
 
 
-/** 更新購買項目（hidden / 名稱 / 金額 / 各時段價）。提供哪個欄位就更新哪個。 */
+/** 更新購買項目（hidden / 名稱 / 金額 / 每張票人數 / 說明 / 各時段價）。提供哪個欄位就更新哪個。 */
 export async function PATCH(request: Request, { params }: Params) {
   const authError = await requireAuth();
   if (authError) return authError;
@@ -80,6 +95,8 @@ export async function PATCH(request: Request, { params }: Params) {
     name?: string;
     amount?: number;
     groupId?: number | null;
+    seatCount?: number;
+    description?: string | null;
     updatedAt: Date;
   } = { updatedAt: new Date() };
 
@@ -103,6 +120,34 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ error: "金額需為非負整數" }, { status: 400 });
     }
     updates.amount = amount;
+  }
+
+  if ("description" in body) updates.description = parseDescription(body.description);
+  if (body.seatCount !== undefined) {
+    const seatCount = parseSeatCount(body.seatCount);
+    if (seatCount == null) {
+      return NextResponse.json(
+        { error: `每張票人數需為 1–${MAX_SEAT_COUNT} 的整數` },
+        { status: 400 }
+      );
+    }
+    // 已售出的票改人數會讓既有報名的收費與統計對不起來（統計以目前 seatCount 回推），故擋下
+    const [current] = await db
+      .select({ seatCount: eventPurchaseItems.seatCount })
+      .from(eventPurchaseItems)
+      .where(
+        and(eq(eventPurchaseItems.id, itemId), eq(eventPurchaseItems.eventId, eventId))
+      )
+      .limit(1);
+    if (current && current.seatCount !== seatCount) {
+      if ((await countActiveRegistrations(eventId, itemId)) > 0) {
+        return NextResponse.json(
+          { error: "已有人報名此票券，無法修改每張票人數（可隱藏後另開新票券）" },
+          { status: 409 }
+        );
+      }
+      updates.seatCount = seatCount;
+    }
   }
 
   const replacePrices = "prices" in body;

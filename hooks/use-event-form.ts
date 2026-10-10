@@ -42,6 +42,10 @@ export type PurchaseItemDraft = {
   groupId?: number | null;
   /** create 模式群組尚無 id 時，暫referer 草稿群組 index */
   groupDraftIndex?: number;
+  /** 一張票含幾位參加者；>1 為套票（如雙人票）。未定義 = 1 */
+  seatCount?: number;
+  /** 票券說明（選填），顯示於報名表票券名稱下方 */
+  description?: string | null;
 };
 
 /** 票種群組草稿 */
@@ -361,6 +365,8 @@ export function useEventForm({
           hidden?: boolean;
           groupId?: number | null;
           soldCount?: number;
+          seatCount?: number;
+          description?: string | null;
           prices?: { tierId: number; amount: number }[];
         }) => ({
           id: i.id,
@@ -368,6 +374,8 @@ export function useEventForm({
           amount: i.amount,
           hidden: Boolean(i.hidden),
           groupId: i.groupId ?? null,
+          seatCount: i.seatCount ?? 1,
+          description: i.description ?? null,
           soldCount: i.soldCount ?? 0,
           prices: (i.prices ?? []).map((p) => ({
             tierId: p.tierId,
@@ -1376,6 +1384,8 @@ export function useEventForm({
                 sortOrder: i,
                 hidden: item.hidden === true,
                 groupId,
+                seatCount: item.seatCount ?? 1,
+                description: item.description ?? null,
                 prices,
               }),
             });
