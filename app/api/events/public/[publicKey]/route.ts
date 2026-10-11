@@ -14,7 +14,12 @@ import {
   eventCoupons,
 } from "@/db/schema";
 import { and, eq, asc, inArray } from "drizzle-orm";
-import { resolveActiveTier, getItemUnitPrice } from "@/lib/pricing";
+import {
+  resolveActiveTier,
+  getItemUnitPrice,
+  isItemSoldInTier,
+  resolveItemSaleStatus,
+} from "@/lib/pricing";
 import { getSession } from "@/lib/auth";
 import { requireTeamMember } from "@/lib/api-auth";
 
@@ -141,18 +146,28 @@ export async function GET(_request: Request, { params }: Params) {
           .from(eventPurchaseItemPrices)
           .where(inArray(eventPurchaseItemPrices.purchaseItemId, itemIds))
       : [];
-  const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
+  const pricesByItem = new Map<
+    number,
+    { tierId: number; amount: number; available: boolean }[]
+  >();
   for (const row of priceRows) {
     const arr = pricesByItem.get(row.purchaseItemId) ?? [];
-    arr.push({ tierId: row.tierId, amount: row.amount });
+    arr.push({ tierId: row.tierId, amount: row.amount, available: row.available });
     pricesByItem.set(row.purchaseItemId, arr);
   }
   const itemsWithPrice = purchaseItems.map((item) => {
     const prices = pricesByItem.get(item.id) ?? [];
+    // 時段限定票（如早鳥限定）不在目前時段販售時仍列出，由報名頁顯示「已截止／尚未開賣」並停用
+    const sale = resolveItemSaleStatus(priceTiers, prices, activeTier);
     return {
       ...item,
       amount: getItemUnitPrice(item.amount, prices, activeTier?.id ?? null),
-      fullAmount: getItemUnitPrice(item.amount, prices, lastTier?.id ?? null),
+      // 最後一段不販售（早鳥限定）就沒有「原價」可比，不顯示省多少
+      fullAmount: isItemSoldInTier(prices, lastTier?.id ?? null)
+        ? getItemUnitPrice(item.amount, prices, lastTier?.id ?? null)
+        : undefined,
+      saleStatus: sale.status,
+      opensTierName: sale.status === "upcoming" ? sale.opensTierName : null,
     };
   });
 

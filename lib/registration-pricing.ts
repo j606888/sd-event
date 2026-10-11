@@ -8,6 +8,7 @@
 import {
   resolveActiveTier,
   getItemUnitPrice,
+  isItemSoldInTier,
   type PriceTier,
   type ItemPrice,
 } from "./pricing";
@@ -89,29 +90,50 @@ export function validateGroupSelection(
  * 回傳當下時段與每個項目的單價（找不到列價則退回項目 fallback amount）。
  */
 export function resolveUnitPrices(
-  selectedItems: { id: number; amount: number }[],
+  selectedItems: { id: number; name: string; amount: number }[],
   tiers: PriceTier[],
-  priceRows: { purchaseItemId: number; tierId: number; amount: number }[],
+  priceRows: PriceRow[],
   now: Date
-): { activeTier: PriceTier | null; unitPriceById: Map<number, number> } {
+): {
+  activeTier: PriceTier | null;
+  unitPriceById: Map<number, number>;
+  /** 選取項目中目前時段不販售者（如早鳥限定票已截止）的錯誤訊息；null = 全部可購買 */
+  unavailableError: string | null;
+} {
   const activeTier = resolveActiveTier(tiers, now);
-
-  const pricesByItem = new Map<number, ItemPrice[]>();
-  for (const row of priceRows) {
-    const arr = pricesByItem.get(row.purchaseItemId) ?? [];
-    arr.push({ tierId: row.tierId, amount: row.amount });
-    pricesByItem.set(row.purchaseItemId, arr);
-  }
+  const pricesByItem = groupPriceRows(priceRows);
 
   const unitPriceById = new Map<number, number>();
+  let unavailableError: string | null = null;
   for (const item of selectedItems) {
+    const prices = pricesByItem.get(item.id) ?? [];
+    if (unavailableError == null && !isItemSoldInTier(prices, activeTier?.id ?? null)) {
+      unavailableError = `「${item.name}」目前（${activeTier?.name ?? ""}）不販售，請重新整理後改選其他票券`;
+    }
     unitPriceById.set(
       item.id,
-      getItemUnitPrice(item.amount, pricesByItem.get(item.id) ?? [], activeTier?.id ?? null)
+      getItemUnitPrice(item.amount, prices, activeTier?.id ?? null)
     );
   }
 
-  return { activeTier, unitPriceById };
+  return { activeTier, unitPriceById, unavailableError };
+}
+
+export type PriceRow = {
+  purchaseItemId: number;
+  tierId: number;
+  amount: number;
+  available?: boolean;
+};
+
+function groupPriceRows(priceRows: PriceRow[]): Map<number, ItemPrice[]> {
+  const pricesByItem = new Map<number, ItemPrice[]>();
+  for (const row of priceRows) {
+    const arr = pricesByItem.get(row.purchaseItemId) ?? [];
+    arr.push({ tierId: row.tierId, amount: row.amount, available: row.available });
+    pricesByItem.set(row.purchaseItemId, arr);
+  }
+  return pricesByItem;
 }
 
 /**
@@ -125,18 +147,13 @@ export function resolveUnitPrices(
  */
 export function createHistoricalPriceResolver(
   tiers: PriceTier[],
-  priceRows: { purchaseItemId: number; tierId: number; amount: number }[]
+  priceRows: PriceRow[]
 ): (
   itemId: number,
   itemAmount: number,
   at: Date | string | null
 ) => { amount: number; tierName: string | null } {
-  const pricesByItem = new Map<number, ItemPrice[]>();
-  for (const row of priceRows) {
-    const arr = pricesByItem.get(row.purchaseItemId) ?? [];
-    arr.push({ tierId: row.tierId, amount: row.amount });
-    pricesByItem.set(row.purchaseItemId, arr);
-  }
+  const pricesByItem = groupPriceRows(priceRows);
 
   // 同一時間點只解析一次時段
   const tierByTime = new Map<number, PriceTier | null>();

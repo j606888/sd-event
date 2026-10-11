@@ -88,6 +88,7 @@ eventPurchaseItemPrices {
   purchaseItemId  int FK -> eventPurchaseItems.id (cascade)
   tierId          int FK -> eventPriceTiers.id (cascade)
   amount          int
+  available       bool default true  // false = 此時段不販售（見 Phase 2.9）
   unique(purchaseItemId, tierId)
 }
 ```
@@ -221,6 +222,20 @@ Party 群組）若無此規則，使用者可**同時**勾「全餐雙日 $2800�
 - 驗證邏輯在 `lib/attendee-flag.ts`，公開報名、現場報名、報名表 hook 共用；活動未設 label 時不驗證，`flagged` 一律存 false。
 - 主辦在後台編輯報名可以直接改勾選狀態，不受 `minFlagged` 限制，方便現場更正。
 - 有勾的參加者在報名詳情、驗票掃描畫面顯示標籤，CSV 匯出多一欄。
+
+### Phase 2.9 — 時段限定票（`eventPurchaseItemPrices.available`）✅ 已完成
+
+例如「1+1 早鳥優惠票」只在早鳥段販售，一般／現場段不賣。
+
+- 不販售以**明確的列** `available = false` 表示（`amount` 存 0、無意義），而不是「沒有列」——
+  沒有列仍沿用 `item.amount` 照常販售，否則之後新增時段時，既有票券會全部變成不販售。
+- 票券編輯畫面每個時段多一個「販售」勾選；至少要有一段販售。`item.amount` 改取
+  「最後一個販售時段」的價格。
+- 公開 API 依目前時段為每張票帶 `saleStatus`（`on_sale` / `upcoming` / `ended`），
+  報名頁仍列出不販售的票但停用、標示「已截止」或「XX開賣」；最後一段不販售時不顯示「省多少」。
+- 公開報名、現場報名 route 以伺服器時間檢查（`resolveUnitPrices` 的 `unavailableError`），
+  截止前打開頁面、截止後才送出也會被擋。現場報名畫面直接不列出不販售的票。
+- 判斷邏輯在 `lib/pricing.ts`（`isItemSoldInTier` / `resolveItemSaleStatus`）。
 
 ### Phase 3 — 條件加購 / 折扣引擎（待實作）
 

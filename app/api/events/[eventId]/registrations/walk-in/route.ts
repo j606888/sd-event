@@ -218,12 +218,16 @@ export async function POST(request: Request, { params }: Params) {
           ),
     ]);
 
-    const { activeTier, unitPriceById } = resolveUnitPrices(
+    const { activeTier, unitPriceById, unavailableError } = resolveUnitPrices(
       selectedItems,
       tiers,
       priceRows,
       new Date()
     );
+    // 時段限定票（如早鳥限定）過了販售時段：不論 client 顯示什麼，一律以伺服器時間擋下
+    if (unavailableError) {
+      return NextResponse.json({ error: unavailableError }, { status: 400 });
+    }
 
     // 套票（如雙人票）要求參加者人數剛好等於票券人數
     const seatError = validateSeatCount(selectedItems, validAttendees.length);

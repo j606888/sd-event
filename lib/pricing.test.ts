@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   endOfDayFromDateInput,
   getItemUnitPrice,
+  isItemSoldInTier,
   resolveActiveTier,
+  resolveItemSaleStatus,
+  saleStatusLabel,
   type PriceTier,
 } from "./pricing";
 
@@ -123,5 +126,55 @@ describe("endOfDayFromDateInput", () => {
 
   it("無法解析的字串回 null", () => {
     expect(endOfDayFromDateInput("not-a-date")).toBeNull();
+  });
+});
+
+describe("時段限定票", () => {
+  const tiers = [tier(1, "早鳥", "2026-08-01"), tier(2, "一般", "2026-09-01"), tier(3, "現場", null)];
+  const earlyOnly = [
+    { tierId: 1, amount: 600 },
+    { tierId: 2, amount: 0, available: false },
+    { tierId: 3, amount: 0, available: false },
+  ];
+  const lateOnly = [
+    { tierId: 1, amount: 0, available: false },
+    { tierId: 2, amount: 900 },
+    { tierId: 3, amount: 1000 },
+  ];
+
+  it("沒有列的時段照常販售（舊資料、之後新增的時段）", () => {
+    expect(isItemSoldInTier([{ tierId: 1, amount: 400 }], 2)).toBe(true);
+    expect(isItemSoldInTier([], 1)).toBe(true);
+    expect(isItemSoldInTier(earlyOnly, null)).toBe(true);
+  });
+
+  it("不販售的列不提供價格，退回 fallback", () => {
+    expect(getItemUnitPrice(600, earlyOnly, 2)).toBe(600);
+    expect(getItemUnitPrice(600, earlyOnly, 1)).toBe(600);
+  });
+
+  it("早鳥限定：早鳥期間可買，之後已截止", () => {
+    expect(resolveItemSaleStatus(tiers, earlyOnly, tiers[0])).toEqual({ status: "on_sale" });
+    expect(resolveItemSaleStatus(tiers, earlyOnly, tiers[1])).toEqual({ status: "ended" });
+    expect(resolveItemSaleStatus(tiers, earlyOnly, tiers[2])).toEqual({ status: "ended" });
+  });
+
+  it("之後才開賣：標出第一個開賣時段", () => {
+    expect(resolveItemSaleStatus(tiers, lateOnly, tiers[0])).toEqual({
+      status: "upcoming",
+      opensTierName: "一般",
+    });
+    expect(resolveItemSaleStatus(tiers, lateOnly, tiers[1])).toEqual({ status: "on_sale" });
+  });
+
+  it("無時段時一律可購買", () => {
+    expect(resolveItemSaleStatus([], earlyOnly, null)).toEqual({ status: "on_sale" });
+  });
+
+  it("狀態文字", () => {
+    expect(saleStatusLabel({ saleStatus: "ended" })).toBe("已截止");
+    expect(saleStatusLabel({ saleStatus: "upcoming", opensTierName: "一般" })).toBe("一般開賣");
+    expect(saleStatusLabel({ saleStatus: "on_sale" })).toBeNull();
+    expect(saleStatusLabel({})).toBeNull();
   });
 });

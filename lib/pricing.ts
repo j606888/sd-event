@@ -17,6 +17,8 @@ export type PriceTier = {
 export type ItemPrice = {
   tierId: number;
   amount: number;
+  /** false = 此時段不販售；未帶視為 true */
+  available?: boolean;
 };
 
 function toTime(value: Date | string | null): number | null {
@@ -48,6 +50,8 @@ export function resolveActiveTier<T extends PriceTier>(
 /**
  * 解析某項目在指定時段的單價：
  *   - 找到該 tier 的列價就用它，否則退回項目本身的 fallback `itemAmount`。
+ *   - 該時段標為不販售（available = false）的列沒有價格意義，同樣退回 fallback；
+ *     是否可購買請另用 `isItemSoldInTier` 判斷。
  */
 export function getItemUnitPrice(
   itemAmount: number,
@@ -56,7 +60,62 @@ export function getItemUnitPrice(
 ): number {
   if (tierId == null) return itemAmount;
   const match = itemPrices.find((p) => p.tierId === tierId);
-  return match ? match.amount : itemAmount;
+  return match && match.available !== false ? match.amount : itemAmount;
+}
+
+/**
+ * 項目在指定時段是否販售。只有明確標為不販售（available = false）的列才算不賣；
+ * 沒有列的時段沿用 fallback 價照常販售（舊資料、或之後才新增的時段）。
+ */
+export function isItemSoldInTier(itemPrices: ItemPrice[], tierId: number | null): boolean {
+  if (tierId == null) return true;
+  return itemPrices.find((p) => p.tierId === tierId)?.available !== false;
+}
+
+/**
+ * 項目在目前時段的販售狀態（供報名頁顯示）：
+ *   - "on_sale"：可購買
+ *   - "upcoming"：之後的時段才開賣（`opensTierName` 為第一個開賣的時段）
+ *   - "ended"：只在之前的時段販售，已截止（如早鳥限定票）
+ */
+export type ItemSaleStatus =
+  | { status: "on_sale" }
+  | { status: "upcoming"; opensTierName: string }
+  | { status: "ended" };
+
+/** 前端用：公開 API 的項目目前是否可購買（未帶 saleStatus 視為可購買） */
+export function isItemOnSale(item: { saleStatus?: string | null }): boolean {
+  return item.saleStatus == null || item.saleStatus === "on_sale";
+}
+
+/** 前端用：不可購買項目的狀態文字；可購買回傳 null */
+export function saleStatusLabel(item: {
+  saleStatus?: string | null;
+  opensTierName?: string | null;
+}): string | null {
+  if (item.saleStatus === "ended") return "已截止";
+  if (item.saleStatus === "upcoming") {
+    return item.opensTierName ? `${item.opensTierName}開賣` : "尚未開賣";
+  }
+  return null;
+}
+
+export function resolveItemSaleStatus<T extends PriceTier>(
+  tiers: T[],
+  itemPrices: ItemPrice[],
+  activeTier: T | null
+): ItemSaleStatus {
+  if (activeTier == null || isItemSoldInTier(itemPrices, activeTier.id)) {
+    return { status: "on_sale" };
+  }
+  const sorted = [...tiers].sort((a, b) => a.sortOrder - b.sortOrder);
+  const activeIndex = sorted.findIndex((t) => t.id === activeTier.id);
+  const nextOpen = sorted
+    .slice(activeIndex + 1)
+    .find((t) => isItemSoldInTier(itemPrices, t.id));
+  return nextOpen
+    ? { status: "upcoming", opensTierName: nextOpen.name }
+    : { status: "ended" };
 }
 
 /**

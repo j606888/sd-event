@@ -7,6 +7,7 @@ import { SimpleIcon } from "@/components/ui/simple-icon";
 import { Markdown } from "@/components/ui/markdown";
 import { getEventDateLabel, getEventTimeRange, formatTierDeadline } from "@/lib/format-event-date";
 import { TicketPriceLine } from "../TicketPriceLine";
+import { isItemOnSale, saleStatusLabel } from "@/lib/pricing";
 import type { EventPurchaseItem, PublicEventData } from "@/types/event";
 import { Clock, MapPin, Disc3 } from "lucide-react";
 import { siInstagram, siLine, siFacebook } from "simple-icons";
@@ -155,7 +156,11 @@ export function EventDetailsStep({
                     <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-3">
                       {section.items.map((item) => (
                         <Fragment key={item.id}>
-                          <div className="min-w-0 pt-0.5 text-[15px] text-gray-900">
+                          <div
+                            className={`min-w-0 pt-0.5 text-[15px] ${
+                              isItemOnSale(item) ? "text-gray-900" : "text-gray-400"
+                            }`}
+                          >
                             {item.name}
                             {item.description && (
                               <div className="mt-0.5 whitespace-pre-line text-xs text-gray-500">
@@ -169,6 +174,7 @@ export function EventDetailsStep({
                             fullAmount={item.fullAmount}
                             fullTierName={event.fullPriceTierName}
                             seatCount={item.seatCount}
+                            unavailableLabel={saleStatusLabel(item)}
                           />
                         </Fragment>
                       ))}

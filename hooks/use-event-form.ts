@@ -26,6 +26,8 @@ export type ItemTierPriceDraft = {
   tierId?: number;
   tierDraftIndex?: number;
   amount: number;
+  /** false = 此時段不販售（如早鳥限定票）；未定義 = 販售 */
+  available?: boolean;
 };
 
 export type PurchaseItemDraft = {
@@ -374,7 +376,7 @@ export function useEventForm({
           seatCount?: number;
           description?: string | null;
           minFlagged?: number;
-          prices?: { tierId: number; amount: number }[];
+          prices?: { tierId: number; amount: number; available?: boolean }[];
         }) => ({
           id: i.id,
           name: i.name,
@@ -388,6 +390,7 @@ export function useEventForm({
           prices: (i.prices ?? []).map((p) => ({
             tierId: p.tierId,
             amount: p.amount,
+            available: p.available !== false,
           })),
         })
       );
@@ -1394,9 +1397,14 @@ export function useEventForm({
                   (p.tierDraftIndex != null
                     ? tierIdByDraftIndex.get(p.tierDraftIndex)
                     : undefined);
-                return tierId != null ? { tierId, amount: p.amount } : null;
+                return tierId != null
+                  ? { tierId, amount: p.amount, available: p.available !== false }
+                  : null;
               })
-              .filter((p): p is { tierId: number; amount: number } => p !== null);
+              .filter(
+                (p): p is { tierId: number; amount: number; available: boolean } =>
+                  p !== null
+              );
             const groupId =
               item.groupId ??
               (item.groupDraftIndex != null

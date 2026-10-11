@@ -128,9 +128,11 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
         const price = (item.prices ?? []).find((p) =>
           tier.id != null ? p.tierId === tier.id : p.tierDraftIndex === tierIndex
         );
-        return price
-          ? `${tier.name || `第 ${tierIndex + 1} 段`} $${price.amount.toLocaleString()}`
-          : null;
+        if (!price) return null;
+        const tierName = tier.name || `第 ${tierIndex + 1} 段`;
+        return price.available === false
+          ? `${tierName} 不販售`
+          : `${tierName} $${price.amount.toLocaleString()}`;
       })
       .filter((label): label is string => label !== null)
       .join(" → ");

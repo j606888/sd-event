@@ -7,7 +7,9 @@ import { computeItemsTotal, requiredAttendeeCount } from "@/lib/seat-count";
 import {
   endOfDayFromDateInput,
   getItemUnitPrice,
+  isItemSoldInTier,
   resolveActiveTier,
+  resolveItemSaleStatus,
 } from "@/lib/pricing";
 import type {
   ItemTierPriceDraft,
@@ -27,17 +29,13 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
 
   // ---- 時段模擬 ----
   // 與伺服器同一套規則算出「現在」生效的時段；管理者可點 pill 模擬其他時段
-  const autoActiveIndex = (() => {
-    if (priceTiers.length === 0) return -1;
-    const rows = priceTiers.map((t, i) => ({
-      id: i,
-      name: t.name,
-      endsAt: endOfDayFromDateInput(t.endsAt),
-      sortOrder: i,
-    }));
-    const active = resolveActiveTier(rows, new Date());
-    return active ? active.id : -1;
-  })();
+  const tierRows = priceTiers.map((t, i) => ({
+    id: i,
+    name: t.name,
+    endsAt: endOfDayFromDateInput(t.endsAt),
+    sortOrder: i,
+  }));
+  const autoActiveIndex = resolveActiveTier(tierRows, new Date())?.id ?? -1;
   const [pickedTierIndex, setPickedTierIndex] = useState<number | null>(null);
   const tierIndex = pickedTierIndex ?? autoActiveIndex;
   const activeTierName = tierIndex >= 0 ? priceTiers[tierIndex]?.name ?? null : null;
@@ -47,13 +45,16 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     p.tierDraftIndex ??
     priceTiers.findIndex((t) => t.id != null && t.id === p.tierId);
 
-  const priceAtTier = (itemIndex: number, tierIdx: number) => {
-    const item = purchaseItems[itemIndex];
-    const mapped = (item.prices ?? [])
-      .map((p) => ({ tierId: tierIndexOfPrice(p), amount: p.amount }))
+  const pricesOf = (itemIndex: number) =>
+    (purchaseItems[itemIndex].prices ?? [])
+      .map((p) => ({ tierId: tierIndexOfPrice(p), amount: p.amount, available: p.available }))
       .filter((p) => p.tierId >= 0);
-    return getItemUnitPrice(item.amount, mapped, tierIdx >= 0 ? tierIdx : null);
-  };
+  const priceAtTier = (itemIndex: number, tierIdx: number) =>
+    getItemUnitPrice(
+      purchaseItems[itemIndex].amount,
+      pricesOf(itemIndex),
+      tierIdx >= 0 ? tierIdx : null
+    );
   const priceOf = (itemIndex: number) => priceAtTier(itemIndex, tierIndex);
   // 原價＝最後一段（一般／現場）；預覽切到最後一段時省錢徽章自然消失
   const lastTierIndex = priceTiers.length - 1;
@@ -86,14 +87,23 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     return -1;
   };
 
-  const toPublicItem = (itemIndex: number): EventPurchaseItem => ({
-    id: itemIndex,
-    name: purchaseItems[itemIndex].name || "（未命名票券）",
-    amount: priceOf(itemIndex),
-    fullAmount: priceAtTier(itemIndex, lastTierIndex),
-    seatCount: purchaseItems[itemIndex].seatCount ?? 1,
-    description: purchaseItems[itemIndex].description ?? null,
-  });
+  const toPublicItem = (itemIndex: number): EventPurchaseItem => {
+    const prices = pricesOf(itemIndex);
+    const sale = resolveItemSaleStatus(tierRows, prices, tierRows[tierIndex] ?? null);
+    return {
+      id: itemIndex,
+      name: purchaseItems[itemIndex].name || "（未命名票券）",
+      amount: priceOf(itemIndex),
+      // 與公開 API 一致：最後一段不販售（早鳥限定）就不顯示省多少
+      fullAmount: isItemSoldInTier(prices, lastTierIndex >= 0 ? lastTierIndex : null)
+        ? priceAtTier(itemIndex, lastTierIndex)
+        : undefined,
+      seatCount: purchaseItems[itemIndex].seatCount ?? 1,
+      description: purchaseItems[itemIndex].description ?? null,
+      saleStatus: sale.status,
+      opensTierName: sale.status === "upcoming" ? sale.opensTierName : null,
+    };
+  };
 
   // 與公開報名頁一致：隱藏票券不出現
   const visibleIndexes = purchaseItems

@@ -1,0 +1,1 @@
+ALTER TABLE "event_purchase_item_prices" ADD COLUMN "available" boolean DEFAULT true NOT NULL;

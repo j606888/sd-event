@@ -13,10 +13,20 @@ import { MAX_MIN_FLAGGED, parseMinFlagged } from "@/lib/attendee-flag";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 /** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
-function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
+function parsePrices(
+  raw: unknown
+): { tierId: number; amount: number; available: boolean }[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((p) => ({ tierId: Number(p?.tierId), amount: Math.floor(Number(p?.amount)) }))
+    .map((p) => {
+      // available = false：此時段不販售（如早鳥限定票），價格無意義一律存 0
+      const available = p?.available !== false;
+      return {
+        tierId: Number(p?.tierId),
+        amount: available ? Math.floor(Number(p?.amount)) : 0,
+        available,
+      };
+    })
     .filter(
       (p) => Number.isInteger(p.tierId) && Number.isInteger(p.amount) && p.amount >= 0
     );
@@ -70,10 +80,13 @@ export async function GET(_request: Request, { params }: Params) {
           .from(eventPurchaseItemPrices)
           .where(inArray(eventPurchaseItemPrices.purchaseItemId, itemIds))
       : [];
-  const pricesByItem = new Map<number, { tierId: number; amount: number }[]>();
+  const pricesByItem = new Map<
+    number,
+    { tierId: number; amount: number; available: boolean }[]
+  >();
   for (const row of priceRows) {
     const arr = pricesByItem.get(row.purchaseItemId) ?? [];
-    arr.push({ tierId: row.tierId, amount: row.amount });
+    arr.push({ tierId: row.tierId, amount: row.amount, available: row.available });
     pricesByItem.set(row.purchaseItemId, arr);
   }
 
@@ -195,6 +208,7 @@ export async function POST(request: Request, { params }: Params) {
           purchaseItemId: created.id,
           tierId: p.tierId,
           amount: p.amount,
+          available: p.available,
         }))
       );
     }
