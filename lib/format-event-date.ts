@@ -42,7 +42,8 @@ function getTimePartsInTz(d: Date): { hour: number; minute: number } {
     timeZone: TZ,
     hour: "numeric",
     minute: "2-digit",
-    hour12: false,
+    // h23 而非 hour12:false：後者在部分引擎會把午夜輸出成 "24"
+    hourCycle: "h23",
   }).formatToParts(d);
   const get = (type: string) =>
     Number(parts.find((p) => p.type === type)?.value ?? 0);
@@ -76,54 +77,27 @@ export function getEventDateLabel(startAt: string, endAt: string): string {
 
 /**
  * 格式化時間部分 (第二列)，使用 Asia/Taipei 時區
- * 顯示格式: 4:00 PM ~ 9:30 PM
+ * 顯示格式: 16:00 ~ 21:30
  */
 export function getEventTimeRange(startAt: string, endAt: string): string {
   const start = new Date(startAt);
   const end = new Date(endAt);
   const fmt = (d: Date) => {
     const { hour, minute } = getTimePartsInTz(d);
-    const period = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-    return `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   };
   return `${fmt(start)} ~ ${fmt(end)}`;
 }
 
-export function formatEventDate(startAt: string, endAt: string): string {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  const fmt = (d: Date) => {
-    const p = getDatePartsInTz(d);
-    return `${p.month}月${p.day}日 (${WEEKDAY[p.weekday]})`;
-  };
-  const timeFmt = (d: Date) => {
-    const { hour, minute } = getTimePartsInTz(d);
-    const period = hour >= 12 ? "下午" : "上午";
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    return `${period} ${displayHour}:${String(minute).padStart(2, "0")}`;
-  };
-  // 跨日活動須帶出結束日期，避免摘要看起來只有一天
-  const s = getDatePartsInTz(start);
-  const e = getDatePartsInTz(end);
-  const isSameDay = s.year === e.year && s.month === e.month && s.day === e.day;
-  if (isSameDay) {
-    return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
-  }
-  return `${fmt(start)} ${timeFmt(start)} ~ ${fmt(end)} ${timeFmt(end)}`;
-}
-
 /**
  * Format a single ISO timestamp (e.g. createdAt) in Asia/Taipei timezone.
- * Output: 2024年01月03日 3:45 PM
+ * Output: 2024年01月03日 15:45
  */
 export function formatTimestamp(isoString: string): string {
   const date = new Date(isoString);
   const { year, month, day } = getDatePartsInTz(date);
   const { hour, minute } = getTimePartsInTz(date);
-  const period = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${year}年${String(month).padStart(2, "0")}月${String(day).padStart(2, "0")}日 ${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
+  return `${year}年${String(month).padStart(2, "0")}月${String(day).padStart(2, "0")}日 ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
 /** 票價時段截止日（M/D，Asia/Taipei），用於「早鳥價至 7/31 止」等提示 */
