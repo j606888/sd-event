@@ -4,6 +4,7 @@ import { events, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
 import { isEventType, type EventType } from "@/lib/event-templates";
+import { normalizeFlagLabel } from "@/lib/attendee-flag";
 import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -76,6 +77,7 @@ export async function PATCH(request: Request, { params }: Params) {
     bankInfoId: number | null;
     allowMultiplePurchase: boolean;
     autoCalcAmount: boolean;
+    attendeeFlagLabel: string | null;
     status: "draft" | "published";
   }> = {};
 
@@ -90,6 +92,10 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body.bankInfoId !== undefined) updates.bankInfoId = body.bankInfoId == null ? null : Number(body.bankInfoId);
   if (typeof body.allowMultiplePurchase === "boolean") updates.allowMultiplePurchase = body.allowMultiplePurchase;
   if (typeof body.autoCalcAmount === "boolean") updates.autoCalcAmount = body.autoCalcAmount;
+  if (body.attendeeFlagLabel !== undefined) {
+    updates.attendeeFlagLabel =
+      body.attendeeFlagLabel === null ? null : normalizeFlagLabel(String(body.attendeeFlagLabel));
+  }
   if (body.status === "draft" || body.status === "published") updates.status = body.status;
 
   if (Object.keys(updates).length === 0) {

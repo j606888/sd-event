@@ -14,6 +14,11 @@ import {
   requiredAttendeeCount,
   validateSeatCount,
 } from "@/lib/seat-count";
+import {
+  normalizeFlagLabel,
+  requiredFlaggedCount,
+  validateFlaggedCount,
+} from "@/lib/attendee-flag";
 
 export type EventApplicationFormState = {
   step: 1 | 2 | 3;
@@ -78,6 +83,15 @@ export function useEventApplicationForm(event: PublicEventData) {
   const requiredParticipants = requiredAttendeeCount(chosenItems);
   const bundleItem = chosenItems.find(isBundleItem) ?? null;
   const seatError = validateSeatCount(chosenItems, formData.participants.length);
+
+  // 參加者勾選項目（如參加伸展台比賽）；票券可要求至少勾幾位
+  const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
+  const requiredFlagged = flagLabel ? requiredFlaggedCount(chosenItems) : 0;
+  const flagError = validateFlaggedCount(
+    chosenItems,
+    formData.participants.filter((p) => p.flagged).length,
+    flagLabel
+  );
 
   // 套票人數變動時，自動補齊空白參加者欄位或移除多出的欄位（保留已填的前幾位）
   useEffect(() => {
@@ -147,6 +161,13 @@ export function useEventApplicationForm(event: PublicEventData) {
     },
     []
   );
+
+  const toggleParticipantFlag = useCallback((id: string, flagged: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      participants: prev.participants.map((p) => (p.id === id ? { ...p, flagged } : p)),
+    }));
+  }, []);
 
   const setFormField = useCallback(<K extends keyof FormData>(
     field: K,
@@ -247,6 +268,7 @@ export function useEventApplicationForm(event: PublicEventData) {
   const canProceedToStep3 =
     hasSelectedPlan &&
     seatError == null &&
+    flagError == null &&
     formData.contactName.trim() !== "" &&
     formData.contactPhone.trim() !== "" &&
     formData.contactEmail.trim() !== "" &&
@@ -285,7 +307,11 @@ export function useEventApplicationForm(event: PublicEventData) {
           couponsSupported && formData.appliedCoupon
             ? formData.appliedCoupon.code
             : null,
-        attendees: formData.participants.map((p) => ({ name: p.name, role: p.role })),
+        attendees: formData.participants.map((p) => ({
+          name: p.name,
+          role: p.role,
+          flagged: flagLabel != null && p.flagged === true,
+        })),
       });
 
       router.push(`/registration-success/${result.registration.registrationKey}`);
@@ -299,7 +325,7 @@ export function useEventApplicationForm(event: PublicEventData) {
       setSubmitError(message);
       setSubmitting(false);
     }
-  }, [event.id, event.allowMultiplePurchase, useGroups, formData, router, couponsSupported, finalAmount]);
+  }, [event.id, event.allowMultiplePurchase, useGroups, formData, router, couponsSupported, finalAmount, flagLabel]);
 
   return {
     step,
@@ -316,10 +342,14 @@ export function useEventApplicationForm(event: PublicEventData) {
     requiredParticipants,
     bundleItem,
     seatError,
+    flagLabel,
+    requiredFlagged,
+    flagError,
     handleCopy,
     addParticipant,
     removeParticipant,
     updateParticipant,
+    toggleParticipantFlag,
     canProceedToStep2,
     canProceedToStep3,
     submitRegistration,

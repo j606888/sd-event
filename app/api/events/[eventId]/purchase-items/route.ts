@@ -9,6 +9,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
+import { MAX_MIN_FLAGGED, parseMinFlagged } from "@/lib/attendee-flag";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 /** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
@@ -174,11 +175,18 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
   const description = parseDescription(body.description);
+  const minFlagged = body.minFlagged === undefined ? 0 : parseMinFlagged(body.minFlagged);
+  if (minFlagged == null) {
+    return NextResponse.json(
+      { error: `至少勾選人數需為 0–${MAX_MIN_FLAGGED} 的整數` },
+      { status: 400 }
+    );
+  }
 
   const item = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(eventPurchaseItems)
-      .values({ eventId, name, amount, sortOrder, hidden, groupId, seatCount, description })
+      .values({ eventId, name, amount, sortOrder, hidden, groupId, seatCount, description, minFlagged })
       .returning();
     if (!created) return null;
     if (prices.length > 0) {

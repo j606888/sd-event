@@ -155,10 +155,12 @@ export async function GET(_request: Request, { params }: Params) {
     registration: applyRegistrationVisibility(
       {
         ...registration,
+        attendeeFlagLabel: event.attendeeFlagLabel,
         attendees: attendees.map((a) => ({
           id: a.id,
           name: a.name,
           role: a.role,
+          flagged: a.flagged,
           checkedIn: a.checkedIn || false,
           checkedInAt: a.checkedInAt,
         })),
@@ -272,14 +274,16 @@ export async function PATCH(request: Request, { params }: Params) {
 
   // ----- 參加者編輯（新增 / 修改 / 刪除，保留既有入場狀態） -----
   let attendeeEdits:
-    | { id?: number; name: string; role: string }[]
+    | { id?: number; name: string; role: string; flagged?: boolean }[]
     | null = null;
   if (Array.isArray(body.attendees)) {
     const cleaned = body.attendees
-      .map((a: { id?: unknown; name?: unknown; role?: unknown }) => ({
+      .map((a: { id?: unknown; name?: unknown; role?: unknown; flagged?: unknown }) => ({
         id: Number.isInteger(a.id) ? (a.id as number) : undefined,
         name: typeof a.name === "string" ? a.name.trim() : "",
         role: typeof a.role === "string" ? a.role : "",
+        // 未帶 flagged 時保留原值（主辦編輯不受票券 minFlagged 限制，方便現場更正）
+        flagged: typeof a.flagged === "boolean" ? a.flagged : undefined,
       }))
       .filter(
         (a: { name: string; role: string }) =>
@@ -327,14 +331,19 @@ export async function PATCH(request: Request, { params }: Params) {
             // 更新既有參加者（保留 checkedIn / checkedInAt）
             await tx
               .update(eventAttendees)
-              .set({ name: a.name, role: a.role, updatedAt: new Date() })
+              .set({
+                name: a.name,
+                role: a.role,
+                ...(a.flagged !== undefined && { flagged: a.flagged }),
+                updatedAt: new Date(),
+              })
               .where(eq(eventAttendees.id, a.id));
             keptIds.add(a.id);
           } else {
             // 新增參加者
             await tx
               .insert(eventAttendees)
-              .values({ registrationId, name: a.name, role: a.role });
+              .values({ registrationId, name: a.name, role: a.role, flagged: a.flagged ?? false });
           }
         }
 

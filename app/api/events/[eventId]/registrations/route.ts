@@ -22,6 +22,7 @@ import { isTeamAdmin } from "@/lib/team-roles";
 import { applyRegistrationVisibility } from "@/lib/registration-visibility";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
+import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
 import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
 
@@ -387,11 +388,18 @@ export async function POST(request: Request, { params }: Params) {
               name: eventPurchaseItems.name,
               amount: eventPurchaseItems.amount,
               seatCount: eventPurchaseItems.seatCount,
+              minFlagged: eventPurchaseItems.minFlagged,
             })
             .from(eventPurchaseItems)
             .where(inArray(eventPurchaseItems.id, selectedIds))
         : Promise.resolve(
-            [] as { id: number; name: string; amount: number; seatCount: number }[]
+            [] as {
+              id: number;
+              name: string;
+              amount: number;
+              seatCount: number;
+              minFlagged: number;
+            }[]
           ),
       db
         .select()
@@ -417,6 +425,18 @@ export async function POST(request: Request, { params }: Params) {
     const seatError = validateSeatCount(selectedItems, validAttendees.length);
     if (seatError) {
       return NextResponse.json({ error: seatError }, { status: 400 });
+    }
+
+    // 參加者勾選項目（如參加伸展台比賽）：活動未設 label 時一律存 false
+    const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
+    const flaggedOf = (a: { flagged?: unknown }) => flagLabel != null && a.flagged === true;
+    const flagError = validateFlaggedCount(
+      selectedItems,
+      validAttendees.filter(flaggedOf).length,
+      flagLabel
+    );
+    if (flagError) {
+      return NextResponse.json({ error: flagError }, { status: 400 });
     }
 
     // autoCalc（或群組活動）時以伺服器解析價為準（一般票 單價 × 參加者數、套票 整組價），
@@ -545,6 +565,7 @@ export async function POST(request: Request, { params }: Params) {
         registrationId: reg.id,
         name: a.name.trim(),
         role: a.role,
+        flagged: flaggedOf(a),
       }));
       await tx.insert(eventAttendees).values(attendeeValues);
 

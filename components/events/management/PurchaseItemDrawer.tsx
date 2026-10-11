@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MAX_MIN_FLAGGED } from "@/lib/attendee-flag";
 import type {
   PurchaseItemDraft,
   PriceTierDraft,
@@ -17,6 +18,8 @@ type PurchaseItemDrawerProps = {
   currentItems: PurchaseItemDraft[];
   priceTiers: PriceTierDraft[];
   groups: PurchaseItemGroupDraft[];
+  /** 活動的參加者勾選項目名稱（如「參加伸展台比賽」）；空 = 未設定，不顯示「至少勾選幾位」 */
+  attendeeFlagLabel?: string;
   /** 新增模式的預設所屬區塊 key（`id-<id>` / `draft-<index>`；由區塊卡的「＋新增票券」帶入） */
   defaultGroupKey?: string;
   /** 有值＝編輯既有項目（帶入原值）；無值＝新增 */
@@ -32,6 +35,7 @@ export function PurchaseItemDrawer({
   currentItems,
   priceTiers,
   groups,
+  attendeeFlagLabel,
   defaultGroupKey,
   editingItem,
   onSuccess,
@@ -77,6 +81,13 @@ export function PurchaseItemDrawer({
   const [description, setDescription] = useState(
     editingItem?.item.description ?? ""
   );
+  // 至少幾位參加者要勾選活動的勾選項目（如 1+1 套票其中一人須參加伸展台比賽）；0 = 不要求
+  const [minFlagged, setMinFlagged] = useState(
+    String(editingItem?.item.minFlagged ?? 0)
+  );
+  const flagLabel = attendeeFlagLabel?.trim() ?? "";
+  // 活動未設勾選項目時隱藏此欄；但既有設定 > 0 仍顯示，讓主辦可以清掉
+  const showMinFlagged = flagLabel !== "" || (editingItem?.item.minFlagged ?? 0) > 0;
   // 已售出的票不可改人數（後端也會擋），避免既有報名的收費與統計對不起來
   const seatCountLocked = (editingItem?.item.soldCount ?? 0) > 0;
   const [error, setError] = useState<string | null>(null);
@@ -198,6 +209,11 @@ export function PurchaseItemDrawer({
       return;
     }
     const trimmedDescription = description.trim() || null;
+    const minFlaggedNum = minFlagged.trim() === "" ? 0 : Number(minFlagged);
+    if (!Number.isInteger(minFlaggedNum) || minFlaggedNum < 0 || minFlaggedNum > MAX_MIN_FLAGGED) {
+      setError(`至少勾選人數需為 0–${MAX_MIN_FLAGGED} 的整數`);
+      return;
+    }
     const prices = buildPrices();
     const group = resolveGroup();
 
@@ -214,6 +230,7 @@ export function PurchaseItemDrawer({
         groupId: group.groupId ?? null,
         groupDraftIndex: group.groupDraftIndex,
         seatCount: seatCountNum,
+        minFlagged: minFlaggedNum,
         description: trimmedDescription,
         prices,
       };
@@ -235,6 +252,7 @@ export function PurchaseItemDrawer({
                 amount: amountNum,
                 groupId: group.groupId ?? null,
                 seatCount: seatCountNum,
+                minFlagged: minFlaggedNum,
                 description: trimmedDescription,
                 prices: apiPrices,
               }),
@@ -275,6 +293,7 @@ export function PurchaseItemDrawer({
             sortOrder: currentItems.length,
             groupId: group.groupId ?? null,
             seatCount: seatCountNum,
+            minFlagged: minFlaggedNum,
             description: trimmedDescription,
             prices: apiPrices,
           }),
@@ -292,6 +311,7 @@ export function PurchaseItemDrawer({
           hidden: false,
           groupId: group.groupId ?? null,
           seatCount: seatCountNum,
+          minFlagged: minFlaggedNum,
           description: trimmedDescription,
           prices,
         });
@@ -314,6 +334,7 @@ export function PurchaseItemDrawer({
         groupId: group.groupId ?? null,
         groupDraftIndex: group.groupDraftIndex,
         seatCount: seatCountNum,
+        minFlagged: minFlaggedNum,
         description: trimmedDescription,
         prices,
       });
@@ -393,6 +414,27 @@ export function PurchaseItemDrawer({
         />
         <p className="text-xs text-gray-500">會顯示在報名表的票券名稱下方。</p>
       </div>
+      {showMinFlagged && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="item-min-flagged">
+            至少幾位參加者勾選「{flagLabel || "參加者勾選項目"}」
+          </Label>
+          <Input
+            id="item-min-flagged"
+            type="number"
+            min={0}
+            max={MAX_MIN_FLAGGED}
+            value={minFlagged}
+            onChange={(e) => setMinFlagged(e.target.value)}
+            className="w-24"
+          />
+          <p className="text-xs text-gray-500">
+            {flagLabel
+              ? "0＝不要求。例如 1+1 套票其中一人須參賽就填 1，報名時沒勾到就無法送出。"
+              : "活動目前沒有設定參加者勾選項目，此要求不會生效；可改為 0。"}
+          </p>
+        </div>
+      )}
       {useTiers ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">

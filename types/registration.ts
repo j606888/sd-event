@@ -136,10 +136,13 @@ export type RegistrationDetailData = {
   paymentNote: string | null;
   hidden?: boolean;
   createdAt: string;
+  /** 活動的參加者勾選項目名稱；null = 未使用 */
+  attendeeFlagLabel?: string | null;
   attendees: Array<{
     id: number;
     name: string;
     role: "Leader" | "Follower" | "Not sure" | string;
+    flagged?: boolean;
     checkedIn?: boolean;
     checkedInAt?: string | null;
   }>;
@@ -156,10 +159,13 @@ export type ScannedRegistration = {
   paymentStatus: string;
   purchaseItem: PurchaseItem | null;
   purchaseItems?: PurchaseItem[];
+  /** 活動的參加者勾選項目名稱；null = 未使用 */
+  attendeeFlagLabel?: string | null;
   attendees: Array<{
     id: number;
     name: string;
     role: string;
+    flagged?: boolean;
     checkedIn: boolean;
     checkedInAt: string | null;
   }>;

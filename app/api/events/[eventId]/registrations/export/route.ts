@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { normalizeFlagLabel } from "@/lib/attendee-flag";
 import { eq, asc, desc, or, like, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { matchesCheckInFilter, type CheckInFilter } from "@/lib/registration-list-filters";
 
@@ -177,6 +178,9 @@ export async function GET(request: Request, { params }: Params) {
     itemNamesByReg.set(row.registrationId, list);
   }
 
+  // 活動有設參加者勾選項目時，於「角色」後多一欄（如「參加伸展台比賽」）
+  const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
+
   const header = [
     "報名編號",
     "聯絡人",
@@ -184,6 +188,7 @@ export async function GET(request: Request, { params }: Params) {
     "Email",
     "參加者姓名",
     "角色",
+    ...(flagLabel ? [flagLabel] : []),
     "報名項目",
     "金額",
     "折扣碼",
@@ -237,6 +242,7 @@ export async function GET(request: Request, { params }: Params) {
           reg.contactEmail ?? "",
           a?.name ?? "",
           a ? ROLE_LABELS[a.role] ?? a.role : "",
+          ...(flagLabel ? [a?.flagged ? "是" : ""] : []),
           itemLabel,
           reg.totalAmount,
           reg.couponCode ?? "",

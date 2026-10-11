@@ -17,6 +17,7 @@ import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
+import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
 import { eq, and, inArray, asc } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -189,11 +190,18 @@ export async function POST(request: Request, { params }: Params) {
               name: eventPurchaseItems.name,
               amount: eventPurchaseItems.amount,
               seatCount: eventPurchaseItems.seatCount,
+              minFlagged: eventPurchaseItems.minFlagged,
             })
             .from(eventPurchaseItems)
             .where(inArray(eventPurchaseItems.id, selectedIds))
         : Promise.resolve(
-            [] as { id: number; name: string; amount: number; seatCount: number }[]
+            [] as {
+              id: number;
+              name: string;
+              amount: number;
+              seatCount: number;
+              minFlagged: number;
+            }[]
           ),
       db
         .select()
@@ -221,6 +229,18 @@ export async function POST(request: Request, { params }: Params) {
     const seatError = validateSeatCount(selectedItems, validAttendees.length);
     if (seatError) {
       return NextResponse.json({ error: seatError }, { status: 400 });
+    }
+
+    // 參加者勾選項目（如參加伸展台比賽）：活動未設 label 時一律存 false
+    const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
+    const flaggedOf = (a: { flagged?: unknown }) => flagLabel != null && a.flagged === true;
+    const flagError = validateFlaggedCount(
+      selectedItems,
+      validAttendees.filter(flaggedOf).length,
+      flagLabel
+    );
+    if (flagError) {
+      return NextResponse.json({ error: flagError }, { status: 400 });
     }
 
     const computedTotal = computeItemsTotal(
@@ -283,10 +303,11 @@ export async function POST(request: Request, { params }: Params) {
       }
 
       await tx.insert(eventAttendees).values(
-        validAttendees.map((a: { name: string; role: string }) => ({
+        validAttendees.map((a: { name: string; role: string; flagged?: unknown }) => ({
           registrationId: reg.id,
           name: a.name.trim(),
           role: a.role,
+          flagged: flaggedOf(a),
           checkedIn: autoCheckIn,
           checkedInAt: autoCheckIn ? now : null,
         }))

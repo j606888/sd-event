@@ -19,6 +19,7 @@ export type EventData = {
   bankInfoId: number | null;
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
+  attendeeFlagLabel: string | null;
   status: string;
   createdAt: string;
   updatedAt: string | null;

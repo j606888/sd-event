@@ -46,6 +46,8 @@ export type PurchaseItemDraft = {
   seatCount?: number;
   /** 票券說明（選填），顯示於報名表票券名稱下方 */
   description?: string | null;
+  /** 選了此票的報名至少要有幾位參加者勾選活動的勾選項目；未定義 = 0 */
+  minFlagged?: number;
 };
 
 /** 票種群組草稿 */
@@ -96,6 +98,7 @@ export type EventFormInitialData = {
   bankInfoId: number | null;
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
+  attendeeFlagLabel?: string | null;
 };
 
 type Location = { id: number; name: string };
@@ -145,6 +148,8 @@ export function useEventForm({
   const [allowMultiple, setAllowMultiple] = useState(false);
   // 金額預設自動加總；編輯模式由 init effect 以 initialData.autoCalcAmount 覆寫
   const [autoCalcAmount, setAutoCalcAmount] = useState(true);
+  /** 參加者勾選項目名稱（如「參加伸展台比賽」）；空字串 = 不使用 */
+  const [attendeeFlagLabel, setAttendeeFlagLabel] = useState("");
   const [locationId, setLocationId] = useState<string>("");
   const [organizerId, setOrganizerId] = useState<string>("");
   const [bankInfoId, setBankInfoId] = useState<string>("");
@@ -332,6 +337,7 @@ export function useEventForm({
     }
     setAllowMultiple(initialData.allowMultiplePurchase);
     setAutoCalcAmount(initialData.autoCalcAmount);
+    setAttendeeFlagLabel(initialData.attendeeFlagLabel ?? "");
     initializedEventIdRef.current = initialData.id;
   }, [mode, initialData]);
 
@@ -367,6 +373,7 @@ export function useEventForm({
           soldCount?: number;
           seatCount?: number;
           description?: string | null;
+          minFlagged?: number;
           prices?: { tierId: number; amount: number }[];
         }) => ({
           id: i.id,
@@ -376,6 +383,7 @@ export function useEventForm({
           groupId: i.groupId ?? null,
           seatCount: i.seatCount ?? 1,
           description: i.description ?? null,
+          minFlagged: i.minFlagged ?? 0,
           soldCount: i.soldCount ?? 0,
           prices: (i.prices ?? []).map((p) => ({
             tierId: p.tierId,
@@ -694,6 +702,25 @@ export function useEventForm({
       }
     } catch {
       setSaveError("更新購買規則失敗");
+    }
+  };
+
+  // 參加者勾選項目名稱：輸入時只改 state，blur 時（edit 模式）才持久化，避免每個字都打 API
+  const saveAttendeeFlagLabel = async () => {
+    if (mode !== "edit" || eventId == null) return;
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ attendeeFlagLabel: attendeeFlagLabel.trim() || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || "更新參加者勾選項目失敗");
+      }
+    } catch {
+      setSaveError("更新參加者勾選項目失敗");
     }
   };
 
@@ -1280,6 +1307,7 @@ export function useEventForm({
             bankInfoId: Number(bankInfoId),
             allowMultiplePurchase: allowMultiple,
             autoCalcAmount: autoCalcAmount,
+            attendeeFlagLabel: attendeeFlagLabel.trim() || null,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -1386,6 +1414,7 @@ export function useEventForm({
                 groupId,
                 seatCount: item.seatCount ?? 1,
                 description: item.description ?? null,
+                minFlagged: item.minFlagged ?? 0,
                 prices,
               }),
             });
@@ -1425,6 +1454,7 @@ export function useEventForm({
     type,
     allowMultiple,
     autoCalcAmount,
+    attendeeFlagLabel,
     locationId,
     organizerId,
     bankInfoId,
@@ -1463,6 +1493,8 @@ export function useEventForm({
     setBankInfoId: markBasicDirty(setBankInfoId),
     setAllowMultiple: markBasicDirty(setAllowMultiple),
     setAutoCalcAmount: withAutoSave(updateAutoCalcAmount),
+    setAttendeeFlagLabel,
+    saveAttendeeFlagLabel: withAutoSave(saveAttendeeFlagLabel),
     // Handlers
     handleStartAtChange: markBasicDirty(handleStartAtChange),
     handleFileSelect: markBasicDirty(handleFileSelect),

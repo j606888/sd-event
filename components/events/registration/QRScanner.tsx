@@ -89,10 +89,12 @@ export function QRScanner({
               }
             : null,
           purchaseItems: data.purchaseItems ?? undefined,
+          attendeeFlagLabel: data.event.attendeeFlagLabel ?? null,
           attendees: data.attendees.map((a: any) => ({
             id: a.id,
             name: a.name,
             role: a.role,
+            flagged: a.flagged === true,
             checkedIn: a.checkedIn || false,
             checkedInAt: a.checkedInAt,
           })),

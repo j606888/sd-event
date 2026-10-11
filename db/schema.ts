@@ -159,6 +159,11 @@ export const events = pgTable("events", {
   }),
   allowMultiplePurchase: boolean("allow_multiple_purchase").default(false),
   autoCalcAmount: boolean("auto_calc_amount").default(false),
+  /**
+   * 參加者勾選項目名稱（選填），如「參加伸展台比賽」。有值時報名表每位參加者多一個勾選框；
+   * 搭配 eventPurchaseItems.minFlagged 可要求某票券至少勾幾位。
+   */
+  attendeeFlagLabel: text("attendee_flag_label"),
   status: eventStatusEnum("status").notNull().default("published"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -203,6 +208,8 @@ export const eventPurchaseItems = pgTable("event_purchase_items", {
   seatCount: integer("seat_count").notNull().default(1),
   /** 票券說明（選填），顯示於報名表票券名稱下方，例如套票的參加條件 */
   description: text("description"),
+  /** 選了此票的報名至少要有幾位參加者勾選活動的 attendeeFlagLabel；0 = 不要求 */
+  minFlagged: integer("min_flagged").notNull().default(0),
   /** 為 true 時不顯示於公開報名表，仍保留於後台與既有報名紀錄 */
   hidden: boolean("hidden").default(false).notNull(),
   sortOrder: integer("sort_order").default(0),
@@ -381,6 +388,8 @@ export const eventAttendees = pgTable("event_attendees", {
     .references(() => eventRegistrations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   role: text("role").notNull(), // "Leader", "Follower", "Not sure"
+  /** 是否勾選活動的 attendeeFlagLabel（如參加伸展台比賽） */
+  flagged: boolean("flagged").default(false).notNull(),
   checkedIn: boolean("checked_in").default(false).notNull(),
   checkedInAt: timestamp("checked_in_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

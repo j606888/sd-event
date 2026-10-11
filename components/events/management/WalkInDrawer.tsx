@@ -17,10 +17,11 @@ import {
   seatCountOf,
   validateSeatCount,
 } from "@/lib/seat-count";
+import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
 
-type Participant = { id: string; name: string; role: string };
+type Participant = { id: string; name: string; role: string; flagged?: boolean };
 
 type WalkInDrawerProps = {
   open: boolean;
@@ -161,10 +162,13 @@ export function WalkInDrawer({
   };
 
   // ----- 參加者操作 -----
-  const updateParticipant = (id: string, field: keyof Participant, value: string) =>
+  const updateParticipant = (id: string, field: "name" | "role", value: string) =>
     setParticipants((prev) =>
       prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
     );
+  const toggleParticipantFlag = (id: string, flagged: boolean) =>
+    setParticipants((prev) => prev.map((p) => (p.id === id ? { ...p, flagged } : p)));
+  const flagLabel = normalizeFlagLabel(event?.attendeeFlagLabel);
   const addParticipant = () => setParticipants((prev) => [...prev, newParticipant()]);
   const removeParticipant = (id: string) =>
     setParticipants((prev) => (prev.length > 1 ? prev.filter((p) => p.id !== id) : prev));
@@ -179,7 +183,11 @@ export function WalkInDrawer({
       return;
     }
     const validParticipants = participants
-      .map((p) => ({ name: p.name.trim(), role: p.role }))
+      .map((p) => ({
+        name: p.name.trim(),
+        role: p.role,
+        flagged: flagLabel != null && p.flagged === true,
+      }))
       .filter((p) => p.name && ROLES.includes(p.role as (typeof ROLES)[number]));
     if (validParticipants.length === 0) {
       setError("請至少填寫一位參加者的姓名與角色");
@@ -188,6 +196,15 @@ export function WalkInDrawer({
     const seatError = validateSeatCount(selectedItems, validParticipants.length);
     if (seatError) {
       setError(seatError);
+      return;
+    }
+    const flagError = validateFlaggedCount(
+      selectedItems,
+      validParticipants.filter((p) => p.flagged).length,
+      flagLabel
+    );
+    if (flagError) {
+      setError(flagError);
       return;
     }
     const name = contactName.trim() || validParticipants[0].name;
@@ -389,6 +406,17 @@ export function WalkInDrawer({
                     </label>
                   ))}
                 </div>
+                {flagLabel && (
+                  <label className="flex cursor-pointer items-center gap-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={p.flagged === true}
+                      onChange={(e) => toggleParticipantFlag(p.id, e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 accent-brand"
+                    />
+                    {flagLabel}
+                  </label>
+                )}
               </div>
             ))}
             {requiredParticipants == null && (

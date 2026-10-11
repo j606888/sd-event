@@ -4,6 +4,8 @@ export type Participant = {
   id: string;
   name: string;
   role: "Leader" | "Follower" | "Not sure";
+  /** 是否勾選活動的參加者勾選項目（如參加伸展台比賽） */
+  flagged?: boolean;
 };
 
 export type FormData = {
