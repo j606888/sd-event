@@ -227,6 +227,7 @@ export async function GET(request: Request, { params }: Params) {
     const createdLabel = reg.createdAt
       ? new Date(reg.createdAt).toLocaleString("zh-TW", {
           timeZone: "Asia/Taipei",
+          hourCycle: "h23",
         })
       : "";
 
