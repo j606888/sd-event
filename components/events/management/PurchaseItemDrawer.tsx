@@ -70,6 +70,15 @@ export function PurchaseItemDrawer({
     if (it.groupDraftIndex != null) return `draft-${it.groupDraftIndex}`;
     return "";
   });
+  // 每張票人數：1 = 一般票；>1 = 套票（如雙人票，整組價、報名須剛好填這麼多位參加者）
+  const [seatCount, setSeatCount] = useState(
+    String(editingItem?.item.seatCount ?? 1)
+  );
+  const [description, setDescription] = useState(
+    editingItem?.item.description ?? ""
+  );
+  // 已售出的票不可改人數（後端也會擋），避免既有報名的收費與統計對不起來
+  const seatCountLocked = (editingItem?.item.soldCount ?? 0) > 0;
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -144,6 +153,9 @@ export function PurchaseItemDrawer({
     });
   };
 
+  const seatCountNum = Number(seatCount);
+  const isBundle = Number.isInteger(seatCountNum) && seatCountNum > 1;
+
   const hasEmptyTier = useTiers && firstUnpricedTier() != null;
   const hasAnyTierFilled =
     useTiers &&
@@ -181,6 +193,11 @@ export function PurchaseItemDrawer({
         return;
       }
     }
+    if (!Number.isInteger(seatCountNum) || seatCountNum < 1 || seatCountNum > 10) {
+      setError("每張票人數需為 1–10 的整數");
+      return;
+    }
+    const trimmedDescription = description.trim() || null;
     const prices = buildPrices();
     const group = resolveGroup();
 
@@ -196,6 +213,8 @@ export function PurchaseItemDrawer({
         soldCount: existing.soldCount,
         groupId: group.groupId ?? null,
         groupDraftIndex: group.groupDraftIndex,
+        seatCount: seatCountNum,
+        description: trimmedDescription,
         prices,
       };
       // 已儲存項目（edit-event 模式）：先打 PATCH 再回傳
@@ -215,6 +234,8 @@ export function PurchaseItemDrawer({
                 name: trimmedName,
                 amount: amountNum,
                 groupId: group.groupId ?? null,
+                seatCount: seatCountNum,
+                description: trimmedDescription,
                 prices: apiPrices,
               }),
             }
@@ -253,6 +274,8 @@ export function PurchaseItemDrawer({
             amount: amountNum,
             sortOrder: currentItems.length,
             groupId: group.groupId ?? null,
+            seatCount: seatCountNum,
+            description: trimmedDescription,
             prices: apiPrices,
           }),
         });
@@ -268,12 +291,16 @@ export function PurchaseItemDrawer({
           amount: amountNum,
           hidden: false,
           groupId: group.groupId ?? null,
+          seatCount: seatCountNum,
+          description: trimmedDescription,
           prices,
         });
         setName("");
         setAmount("");
         setTierAmounts({});
         setGroupKey("");
+        setSeatCount("1");
+        setDescription("");
         onCancel();
       } catch {
         setError("新增失敗");
@@ -286,12 +313,16 @@ export function PurchaseItemDrawer({
         hidden: false,
         groupId: group.groupId ?? null,
         groupDraftIndex: group.groupDraftIndex,
+        seatCount: seatCountNum,
+        description: trimmedDescription,
         prices,
       });
       setName("");
       setAmount("");
       setTierAmounts({});
       setGroupKey("");
+      setSeatCount("1");
+      setDescription("");
       onCancel();
     }
   };
@@ -326,10 +357,46 @@ export function PurchaseItemDrawer({
           </select>
         </div>
       )}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="item-seat-count">每張票人數</Label>
+        <Input
+          id="item-seat-count"
+          type="number"
+          min={1}
+          max={10}
+          value={seatCount}
+          disabled={seatCountLocked}
+          onChange={(e) => setSeatCount(e.target.value)}
+          className="w-24"
+        />
+        <p className="text-xs text-gray-500">
+          {seatCountLocked
+            ? "已有人報名這張票，無法修改人數。需要不同人數請隱藏後另開新票券。"
+            : isBundle
+              ? `套票：下方票價是 ${seatCountNum} 人的整組價，不會再乘人數；報名時必須剛好填 ${seatCountNum} 位參加者。`
+              : "一般票填 1（票價 × 參加者人數）。雙人票等套票填 2 以上，票價即為整組價。"}
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="item-description">票券說明（選填）</Label>
+        <textarea
+          id="item-description"
+          rows={2}
+          placeholder={
+            isBundle
+              ? "例如：限 2 人同行，其中 1 人須參加伸展台比賽"
+              : "例如：含 Workshop 全部 4 堂課"
+          }
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full min-w-0 resize-none rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-brand/30 md:text-sm"
+        />
+        <p className="text-xs text-gray-500">會顯示在報名表的票券名稱下方。</p>
+      </div>
       {useTiers ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <Label>票價 *</Label>
+            <Label>{isBundle ? `票價（${seatCountNum} 人整組價）*` : "票價 *"}</Label>
             {hasAnyTierFilled && hasEmptyTier && (
               <button
                 type="button"
@@ -370,7 +437,9 @@ export function PurchaseItemDrawer({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <Label htmlFor="item-amount">金額 *</Label>
+          <Label htmlFor="item-amount">
+            {isBundle ? `金額（${seatCountNum} 人整組價）*` : "金額 *"}
+          </Label>
           <Input
             id="item-amount"
             placeholder="輸入金額"

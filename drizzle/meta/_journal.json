@@ -92,6 +92,13 @@
       "when": 1789623425474,
       "tag": "0012_modern_skin",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791653930275,
+      "tag": "0013_known_sister_grimm",
+      "breakpoints": true
     }
   ]
 }

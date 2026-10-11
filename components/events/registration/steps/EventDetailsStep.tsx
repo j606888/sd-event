@@ -157,12 +157,18 @@ export function EventDetailsStep({
                         <Fragment key={item.id}>
                           <div className="min-w-0 pt-0.5 text-[15px] text-gray-900">
                             {item.name}
+                            {item.description && (
+                              <div className="mt-0.5 whitespace-pre-line text-xs text-gray-500">
+                                {item.description}
+                              </div>
+                            )}
                           </div>
                           <TicketPriceLine
                             variant="intro"
                             amount={item.amount}
                             fullAmount={item.fullAmount}
                             fullTierName={event.fullPriceTierName}
+                            seatCount={item.seatCount}
                           />
                         </Fragment>
                       ))}

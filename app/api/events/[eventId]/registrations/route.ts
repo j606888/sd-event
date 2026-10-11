@@ -21,6 +21,7 @@ import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
 import { applyRegistrationVisibility } from "@/lib/registration-visibility";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
+import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
 import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
 
@@ -385,10 +386,13 @@ export async function POST(request: Request, { params }: Params) {
               id: eventPurchaseItems.id,
               name: eventPurchaseItems.name,
               amount: eventPurchaseItems.amount,
+              seatCount: eventPurchaseItems.seatCount,
             })
             .from(eventPurchaseItems)
             .where(inArray(eventPurchaseItems.id, selectedIds))
-        : Promise.resolve([] as { id: number; name: string; amount: number }[]),
+        : Promise.resolve(
+            [] as { id: number; name: string; amount: number; seatCount: number }[]
+          ),
       db
         .select()
         .from(eventPriceTiers)
@@ -409,12 +413,21 @@ export async function POST(request: Request, { params }: Params) {
       new Date()
     );
 
-    // autoCalc（或群組活動）時以伺服器解析價為準（Σ單價 × 參加者數），避免顯示價/收費價不一致或被竄改
-    const computedTotal =
-      selectedIds.reduce(
-        (sum: number, id: number) => sum + (unitPriceById.get(id) ?? 0),
-        0
-      ) * validAttendees.length;
+    // 套票（如雙人票）要求參加者人數剛好等於票券人數
+    const seatError = validateSeatCount(selectedItems, validAttendees.length);
+    if (seatError) {
+      return NextResponse.json({ error: seatError }, { status: 400 });
+    }
+
+    // autoCalc（或群組活動）時以伺服器解析價為準（一般票 單價 × 參加者數、套票 整組價），
+    // 避免顯示價/收費價不一致或被竄改
+    const computedTotal = computeItemsTotal(
+      selectedItems.map((item) => ({
+        unitPrice: unitPriceById.get(item.id) ?? 0,
+        seatCount: item.seatCount,
+      })),
+      validAttendees.length
+    );
 
     // 折扣碼：僅權威模式生效，伺服器重新驗證並計算折抵（client 僅預覽）
     let coupon: typeof eventCoupons.$inferSelect | null = null;

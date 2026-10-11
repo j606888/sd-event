@@ -16,6 +16,7 @@ import { getSession } from "@/lib/auth";
 import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
+import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
 import { eq, and, inArray, asc } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -30,7 +31,7 @@ function generateRegistrationKey(): string {
  * - 需登入且為該活動團隊成員。
  * - 只強制姓名 + 至少一位參加者；電話/信箱選填。
  * - 付款方式固定為現金、付款狀態直接為 confirmed、來源標記 walk_in。
- * - 金額預設帶入當下時段價（Σ單價 × 人數），可由主辦覆寫。
+ * - 金額預設帶入當下時段價（一般票 單價 × 人數、套票 整組價），可由主辦覆寫。
  * - autoCheckIn（預設 true）時，建立的參加者一併標記為已入場。
  */
 export async function POST(request: Request, { params }: Params) {
@@ -183,10 +184,17 @@ export async function POST(request: Request, { params }: Params) {
     const [selectedItems, tiers, priceRows] = await Promise.all([
       selectedIds.length > 0
         ? db
-            .select({ id: eventPurchaseItems.id, amount: eventPurchaseItems.amount })
+            .select({
+              id: eventPurchaseItems.id,
+              name: eventPurchaseItems.name,
+              amount: eventPurchaseItems.amount,
+              seatCount: eventPurchaseItems.seatCount,
+            })
             .from(eventPurchaseItems)
             .where(inArray(eventPurchaseItems.id, selectedIds))
-        : Promise.resolve([] as { id: number; amount: number }[]),
+        : Promise.resolve(
+            [] as { id: number; name: string; amount: number; seatCount: number }[]
+          ),
       db
         .select()
         .from(eventPriceTiers)
@@ -209,11 +217,19 @@ export async function POST(request: Request, { params }: Params) {
       new Date()
     );
 
-    const computedTotal =
-      selectedIds.reduce(
-        (sum: number, id: number) => sum + (unitPriceById.get(id) ?? 0),
-        0
-      ) * validAttendees.length;
+    // 套票（如雙人票）要求參加者人數剛好等於票券人數
+    const seatError = validateSeatCount(selectedItems, validAttendees.length);
+    if (seatError) {
+      return NextResponse.json({ error: seatError }, { status: 400 });
+    }
+
+    const computedTotal = computeItemsTotal(
+      selectedItems.map((item) => ({
+        unitPrice: unitPriceById.get(item.id) ?? 0,
+        seatCount: item.seatCount,
+      })),
+      validAttendees.length
+    );
 
     // 管理員可覆寫金額：body.totalAmount 為正整數時以其為準，否則用系統算出的值。
     // 驗票人員一律使用依時段價算出的金額，忽略 body.totalAmount。

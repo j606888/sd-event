@@ -21,6 +21,21 @@ function parsePrices(raw: unknown): { tierId: number; amount: number }[] {
     );
 }
 
+
+/** 套票人數上限；超過這個數字的「套票」應該拆成一般票處理 */
+const MAX_SEAT_COUNT = 10;
+
+/** 解析 seatCount：1..MAX_SEAT_COUNT 的整數，否則 null（無效） */
+function parseSeatCount(raw: unknown): number | null {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= MAX_SEAT_COUNT ? n : null;
+}
+
+/** 解析票券說明：trim 後空字串存成 null */
+function parseDescription(raw: unknown): string | null {
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
+
 type Params = { params: Promise<{ eventId: string }> };
 
 
@@ -151,11 +166,19 @@ export async function POST(request: Request, { params }: Params) {
       ? Number(body.groupId)
       : null;
   const prices = parsePrices(body.prices);
+  const seatCount = body.seatCount === undefined ? 1 : parseSeatCount(body.seatCount);
+  if (seatCount == null) {
+    return NextResponse.json(
+      { error: `每張票人數需為 1–${MAX_SEAT_COUNT} 的整數` },
+      { status: 400 }
+    );
+  }
+  const description = parseDescription(body.description);
 
   const item = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(eventPurchaseItems)
-      .values({ eventId, name, amount, sortOrder, hidden, groupId })
+      .values({ eventId, name, amount, sortOrder, hidden, groupId, seatCount, description })
       .returning();
     if (!created) return null;
     if (prices.length > 0) {

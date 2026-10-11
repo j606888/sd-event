@@ -138,6 +138,11 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
     const itemBody = (
       <>
         {item.name}
+        {(item.seatCount ?? 1) > 1 && (
+          <span className="ml-2 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand">
+            {item.seatCount} 人套票
+          </span>
+        )}
         {item.hidden ? (
           <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
         ) : null}

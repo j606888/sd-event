@@ -80,6 +80,7 @@ export function PaymentStep({
                       {selectedPlans.map((plan, i) => (
                         <span key={plan.id}>
                           {plan.name} ${plan.amount}
+                          {(plan.seatCount ?? 1) > 1 && ` / ${plan.seatCount} 人`}
                           {i < selectedPlans.length - 1 && " + "}
                         </span>
                       ))}
@@ -92,6 +93,7 @@ export function PaymentStep({
                     <span className="text-gray-500">選擇方案</span>
                     <span className="text-gray-900">
                       {selectedPlan.name} ${selectedPlan.amount}
+                      {(selectedPlan.seatCount ?? 1) > 1 && ` / ${selectedPlan.seatCount} 人`}
                     </span>
                   </div>
                 )

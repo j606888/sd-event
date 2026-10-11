@@ -12,6 +12,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { eq, inArray, and, asc, count, sql } from "drizzle-orm";
+import { priceUnitsFor } from "@/lib/seat-count";
 import {
   createHistoricalPriceResolver,
   distributeAmount,
@@ -163,6 +164,7 @@ export async function GET(_request: Request, { params }: Params) {
         id: eventPurchaseItems.id,
         name: eventPurchaseItems.name,
         amount: eventPurchaseItems.amount,
+        seatCount: eventPurchaseItems.seatCount,
       })
       .from(eventPurchaseItems)
       .where(eq(eventPurchaseItems.eventId, eventId)),
@@ -234,8 +236,10 @@ export async function GET(_request: Request, { params }: Params) {
       const unitAmount =
         item.unitAmount ??
         resolveHistoricalPrice(meta.id, meta.amount, reg.createdAt).amount;
+      // units 為人數（顯示「N 人」）；套票的收費份數為 1 組，不乘人數
       const units = attendeeCount * item.quantity;
-      return [{ meta, units, listSubtotal: units * unitAmount }];
+      const priceUnits = priceUnitsFor(meta, attendeeCount) * item.quantity;
+      return [{ meta, units, listSubtotal: priceUnits * unitAmount }];
     });
 
     // 各筆的實際成交價（加回折扣碼折抵，與本區塊標題一致）

@@ -36,6 +36,9 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
         onAddParticipant={form.addParticipant}
         onRemoveParticipant={form.removeParticipant}
         onUpdateParticipant={form.updateParticipant}
+        requiredParticipants={form.requiredParticipants}
+        bundleItem={form.bundleItem}
+        seatError={form.seatError}
         canProceed={form.canProceedToStep3}
         onBack={() => form.setStep(1)}
         onNext={form.proceedToPayment}
