@@ -10,14 +10,14 @@ import type { RegistrationDetailData } from "@/types/registration";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
 
-type AttendeeRow = { key: string; id?: number; name: string; role: string };
+type AttendeeRow = { key: string; id?: number; name: string; role: string; flagged: boolean };
 
 export type RegistrationEditPatch = {
   contactName: string;
   contactPhone: string;
   contactEmail: string;
   totalAmount: number;
-  attendees: { id?: number; name: string; role: string }[];
+  attendees: { id?: number; name: string; role: string; flagged: boolean }[];
 };
 
 type RegistrationEditDrawerProps = {
@@ -58,6 +58,7 @@ export function RegistrationEditDrawer({
           role: ROLES.includes(a.role as (typeof ROLES)[number])
             ? a.role
             : "Not sure",
+          flagged: a.flagged === true,
         }))
       );
       setError(null);
@@ -66,6 +67,8 @@ export function RegistrationEditDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, registration.id]);
 
+  const flagLabel = registration.attendeeFlagLabel?.trim() || null;
+
   const updateAttendee = (key: string, field: "name" | "role", value: string) =>
     setAttendees((prev) =>
       prev.map((a) => (a.key === key ? { ...a, [field]: value } : a))
@@ -73,7 +76,7 @@ export function RegistrationEditDrawer({
   const addAttendee = () =>
     setAttendees((prev) => [
       ...prev,
-      { key: `a-${seqRef.current++}`, name: "", role: "Leader" },
+      { key: `a-${seqRef.current++}`, name: "", role: "Leader", flagged: false },
     ]);
   const removeAttendee = (key: string) =>
     setAttendees((prev) => (prev.length > 1 ? prev.filter((a) => a.key !== key) : prev));
@@ -93,7 +96,7 @@ export function RegistrationEditDrawer({
     }
 
     const validAttendees = attendees
-      .map((a) => ({ id: a.id, name: a.name.trim(), role: a.role }))
+      .map((a) => ({ id: a.id, name: a.name.trim(), role: a.role, flagged: a.flagged }))
       .filter((a) => a.name && ROLES.includes(a.role as (typeof ROLES)[number]));
     if (validAttendees.length === 0) {
       setError("請至少填寫一位參加者的姓名與角色");
@@ -196,6 +199,21 @@ export function RegistrationEditDrawer({
                   </label>
                 ))}
               </div>
+              {flagLabel && (
+                <label className="flex cursor-pointer items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={a.flagged}
+                    onChange={(e) =>
+                      setAttendees((prev) =>
+                        prev.map((x) => (x.key === a.key ? { ...x, flagged: e.target.checked } : x))
+                      )
+                    }
+                    className="h-4 w-4 rounded border-gray-300 accent-brand"
+                  />
+                  {flagLabel}
+                </label>
+              )}
             </div>
           ))}
           <Button

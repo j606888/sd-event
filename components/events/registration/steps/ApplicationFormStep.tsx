@@ -28,6 +28,11 @@ type ApplicationFormStepProps = {
   bundleItem: EventPurchaseItem | null;
   /** 參加者人數不符套票時的錯誤訊息 */
   seatError: string | null;
+  /** 參加者勾選項目名稱（如「參加伸展台比賽」）；null = 不顯示勾選框 */
+  flagLabel: string | null;
+  /** 勾選人數不足所選票券要求時的提示 */
+  flagError: string | null;
+  onToggleParticipantFlag: (id: string, flagged: boolean) => void;
   canProceed: boolean;
   onBack: () => void;
   onNext: () => void;
@@ -50,6 +55,9 @@ export function ApplicationFormStep({
   requiredParticipants,
   bundleItem,
   seatError,
+  flagLabel,
+  flagError,
+  onToggleParticipantFlag,
   canProceed,
   onBack,
   onNext,
@@ -212,6 +220,19 @@ export function ApplicationFormStep({
                       })}
                     </div>
                   </div>
+                  {flagLabel && (
+                    <label className="flex cursor-pointer items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        checked={participant.flagged === true}
+                        onChange={(e) =>
+                          onToggleParticipantFlag(participant.id, e.target.checked)
+                        }
+                        className="size-4 rounded border-gray-300 accent-brand"
+                      />
+                      <span className="text-sm text-gray-700">{flagLabel}</span>
+                    </label>
+                  )}
                 </div>
               ))}
             </div>
@@ -226,6 +247,9 @@ export function ApplicationFormStep({
               </Button>
             )}
             {seatError && <p className="text-sm text-red-500">{seatError}</p>}
+            {!seatError && flagError && (
+              <p className="text-sm text-amber-600">{flagError}</p>
+            )}
           </div>
 
           <div className="space-y-3">

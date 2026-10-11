@@ -25,6 +25,7 @@ export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawe
     purchaseItems,
     priceTiers,
     groups,
+    attendeeFlagLabel,
     noticeItems,
     handleLocationSuccess,
     handleOrganizerSuccess,
@@ -75,6 +76,7 @@ export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawe
           currentItems={purchaseItems}
           priceTiers={priceTiers}
           groups={groups}
+          attendeeFlagLabel={attendeeFlagLabel}
           defaultGroupKey={adderDefaultGroupKey}
           editingItem={
             editingItemIndex != null

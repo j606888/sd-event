@@ -31,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmActionDrawer } from "./ConfirmActionDrawer";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { RoleBadge } from "./RoleBadge";
+import { FlagBadge } from "./FlagBadge";
 import { formatClockTime, formatTimestamp } from "@/lib/format-event-date";
 import { useReadOnly } from "@/hooks/use-session";
 import type { RegistrationDetailData } from "@/types/registration";
@@ -466,6 +467,9 @@ export function RegistrationDetail({
                     {attendee.name}
                   </span>
                   <RoleBadge role={attendee.role} />
+                  {registration.attendeeFlagLabel && attendee.flagged && (
+                    <FlagBadge label={registration.attendeeFlagLabel} />
+                  )}
                   <span className="flex-1" />
                   {attendee.checkedIn ? (
                     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">

@@ -39,6 +39,8 @@ export type EventPurchaseItem = {
   seatCount?: number;
   /** 票券說明（選填），顯示於票券名稱下方 */
   description?: string | null;
+  /** 選了此票的報名至少要有幾位參加者勾選活動的 attendeeFlagLabel；未帶 = 0 */
+  minFlagged?: number;
 };
 
 export type EventPurchaseItemGroup = {
@@ -69,6 +71,8 @@ export type PublicEventData = {
   status: string;
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
+  /** 參加者勾選項目名稱（如「參加伸展台比賽」）；null = 不顯示勾選框 */
+  attendeeFlagLabel?: string | null;
   /** 當下生效的票價時段（無時段時為 null），purchaseItems[].amount 已依此解析 */
   /** 目前生效的票價時段；endsAt 為 null 表示不過期（一般／現場價） */
   activeTier: { name: string; endsAt: string | null } | null;

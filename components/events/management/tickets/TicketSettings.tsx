@@ -8,6 +8,7 @@ import { TicketGroupsCard } from "./TicketGroupsCard";
 import { PriceTiersCard } from "./PriceTiersCard";
 import { ExclusionRulesCard } from "./ExclusionRulesCard";
 import { CouponsCard } from "./CouponsCard";
+import { AttendeeFlagCard } from "./AttendeeFlagCard";
 import { RegistrationPreview } from "./RegistrationPreview";
 import type { UseEventFormReturn } from "@/hooks/use-event-form";
 import { useReadOnly } from "@/hooks/use-session";
@@ -93,6 +94,7 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
           <PriceTiersCard form={form} />
           <TicketGroupsCard form={form} />
           <CouponsCard form={form} />
+          <AttendeeFlagCard form={form} />
 
           {/* 進階：互斥規則＋金額計算（使用區塊時金額一律自動計算） */}
           <div className="py-5">

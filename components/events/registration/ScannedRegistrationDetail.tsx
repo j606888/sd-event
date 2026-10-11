@@ -5,6 +5,7 @@ import { ChevronLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { RoleBadge } from "./RoleBadge";
+import { FlagBadge } from "./FlagBadge";
 import type { ScannedRegistration } from "@/types/registration";
 
 type ScannedRegistrationDetailProps = {
@@ -139,6 +140,9 @@ export function ScannedRegistrationDetail({
               <div className="flex items-center gap-2">
                 <span className="text-gray-900 font-medium">• {attendee.name}</span>
                 <RoleBadge role={attendee.role} />
+                {registration.attendeeFlagLabel && attendee.flagged && (
+                  <FlagBadge label={registration.attendeeFlagLabel} />
+                )}
               </div>
               {attendee.checkedIn ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">

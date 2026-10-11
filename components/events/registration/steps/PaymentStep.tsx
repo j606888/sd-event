@@ -110,7 +110,8 @@ export function PaymentStep({
                 <span className="text-gray-900">
                   {formData.participants.map((p, i) => (
                     <span key={p.id}>
-                      {p.name} ({p.role})
+                      {p.name} ({p.role}
+                      {event.attendeeFlagLabel && p.flagged && `・${event.attendeeFlagLabel}`})
                       {i < formData.participants.length - 1 && "、"}
                     </span>
                   ))}

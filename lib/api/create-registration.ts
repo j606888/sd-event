@@ -8,7 +8,7 @@ export type CreateRegistrationBody = {
   totalAmount: number;
   /** 折扣碼（伺服器會重新驗證與計算折扣）；null = 未使用 */
   couponCode: string | null;
-  attendees: Array<{ name: string; role: string }>;
+  attendees: Array<{ name: string; role: string; flagged?: boolean }>;
 };
 
 export type CreateRegistrationResult = {

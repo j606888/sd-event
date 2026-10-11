@@ -5,6 +5,7 @@ import { events, eventRegistrations, teamMembers, eventLocations, users } from "
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
 import { isEventType } from "@/lib/event-templates";
+import { normalizeFlagLabel } from "@/lib/attendee-flag";
 import { eq, inArray, desc, count, and } from "drizzle-orm";
 
 function generatePublicKey(): string {
@@ -141,6 +142,8 @@ export async function POST(request: Request) {
   const bankInfoId = body.bankInfoId != null ? Number(body.bankInfoId) : null;
   const allowMultiplePurchase = Boolean(body.allowMultiplePurchase);
   const autoCalcAmount = Boolean(body.autoCalcAmount);
+  const attendeeFlagLabel =
+    typeof body.attendeeFlagLabel === "string" ? normalizeFlagLabel(body.attendeeFlagLabel) : null;
   const publicKey = generatePublicKey();
 
   const [event] = await db
@@ -160,6 +163,7 @@ export async function POST(request: Request) {
       bankInfoId: Number.isInteger(bankInfoId) ? bankInfoId : null,
       allowMultiplePurchase,
       autoCalcAmount,
+      attendeeFlagLabel,
       // 建立後先進草稿，主辦方按「發布」才對外開放
       status: "draft",
     })

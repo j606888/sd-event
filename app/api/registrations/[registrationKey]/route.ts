@@ -173,6 +173,7 @@ export async function GET(_request: Request, { params }: Params) {
         location,
         organizer,
         bankInfo,
+        attendeeFlagLabel: event.attendeeFlagLabel,
       },
       purchaseItem, // For backward compatibility
       purchaseItems, // Array of purchase items (for multiple selection)
@@ -180,6 +181,7 @@ export async function GET(_request: Request, { params }: Params) {
         id: a.id,
         name: a.name,
         role: a.role,
+        flagged: a.flagged,
         checkedIn: a.checkedIn || false,
         checkedInAt: a.checkedInAt,
       })),

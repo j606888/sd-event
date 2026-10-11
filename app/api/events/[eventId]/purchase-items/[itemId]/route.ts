@@ -9,6 +9,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
+import { MAX_MIN_FLAGGED, parseMinFlagged } from "@/lib/attendee-flag";
 import { and, eq, sql } from "drizzle-orm";
 
 /** 計算某購買項目目前綁定的「未隱藏」報名數（新模式 + 舊單選模式合計） */
@@ -97,6 +98,7 @@ export async function PATCH(request: Request, { params }: Params) {
     groupId?: number | null;
     seatCount?: number;
     description?: string | null;
+    minFlagged?: number;
     updatedAt: Date;
   } = { updatedAt: new Date() };
 
@@ -123,6 +125,16 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   if ("description" in body) updates.description = parseDescription(body.description);
+  if (body.minFlagged !== undefined) {
+    const minFlagged = parseMinFlagged(body.minFlagged);
+    if (minFlagged == null) {
+      return NextResponse.json(
+        { error: `至少勾選人數需為 0–${MAX_MIN_FLAGGED} 的整數` },
+        { status: 400 }
+      );
+    }
+    updates.minFlagged = minFlagged;
+  }
   if (body.seatCount !== undefined) {
     const seatCount = parseSeatCount(body.seatCount);
     if (seatCount == null) {

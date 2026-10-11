@@ -8,7 +8,7 @@ export type CreateWalkInBody = {
   contactEmail?: string;
   /** 主辦覆寫金額；留空則由伺服器以當下時段價計算 */
   totalAmount?: number;
-  attendees: Array<{ name: string; role: string }>;
+  attendees: Array<{ name: string; role: string; flagged?: boolean }>;
   /** 預設 true：建立後立即標記參加者已入場 */
   autoCheckIn?: boolean;
 };
