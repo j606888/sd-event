@@ -130,7 +130,7 @@ describe("resolveUnitPrices", () => {
 
   it("以生效時段解析每個項目的單價", () => {
     const { activeTier, unitPriceById } = resolveUnitPrices(
-      [{ id: 100, amount: 999 }],
+      [{ id: 100, name: "Party", amount: 999 }],
       tiers,
       priceRows,
       new Date("2026-07-15T10:00+08:00")
@@ -141,7 +141,7 @@ describe("resolveUnitPrices", () => {
 
   it("項目在生效時段沒有列價時退回 amount", () => {
     const { activeTier, unitPriceById } = resolveUnitPrices(
-      [{ id: 200, amount: 2200 }],
+      [{ id: 200, name: "Full Pass", amount: 2200 }],
       tiers,
       priceRows,
       new Date("2026-09-02T10:00+08:00")
@@ -153,13 +153,44 @@ describe("resolveUnitPrices", () => {
 
   it("活動沒有時段時一律用 amount", () => {
     const { activeTier, unitPriceById } = resolveUnitPrices(
-      [{ id: 100, amount: 999 }],
+      [{ id: 100, name: "Party", amount: 999 }],
       [],
       [],
       new Date()
     );
     expect(activeTier).toBeNull();
     expect(unitPriceById.get(100)).toBe(999);
+  });
+
+  describe("時段限定票（available = false）", () => {
+    const earlyOnlyRows = [
+      { purchaseItemId: 300, tierId: 1, amount: 600 },
+      { purchaseItemId: 300, tierId: 2, amount: 0, available: false },
+    ];
+
+    it("在販售時段可購買並用該段價格", () => {
+      const { unitPriceById, unavailableError } = resolveUnitPrices(
+        [{ id: 300, name: "1+1 早鳥", amount: 600 }],
+        tiers,
+        earlyOnlyRows,
+        new Date("2026-07-15T10:00+08:00")
+      );
+      expect(unavailableError).toBeNull();
+      expect(unitPriceById.get(300)).toBe(600);
+    });
+
+    it("過了販售時段就擋下", () => {
+      const { unavailableError } = resolveUnitPrices(
+        [
+          { id: 100, name: "Party", amount: 500 },
+          { id: 300, name: "1+1 早鳥", amount: 600 },
+        ],
+        tiers,
+        [...priceRows, ...earlyOnlyRows],
+        new Date("2026-09-02T10:00+08:00")
+      );
+      expect(unavailableError).toContain("1+1 早鳥");
+    });
   });
 });
 

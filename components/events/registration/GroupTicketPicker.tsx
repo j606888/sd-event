@@ -4,6 +4,7 @@ import { Users } from "lucide-react";
 import { TicketPriceLine } from "./TicketPriceLine";
 import type { EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
 import { seatCountOf } from "@/lib/seat-count";
+import { isItemOnSale, saleStatusLabel } from "@/lib/pricing";
 
 /** 票券名稱下方的資訊：套票人數提示、票券說明、目前時段 */
 function TicketItemInfo({
@@ -28,7 +29,7 @@ function TicketItemInfo({
           {item.description}
         </div>
       )}
-      {activeTierName && (
+      {activeTierName && isItemOnSale(item) && (
         <div className="mt-0.5 text-xs text-gray-400">{activeTierName}</div>
       )}
     </div>
@@ -124,22 +125,25 @@ export function GroupTicketPicker({
               <div className="space-y-2">
                 {group.items.map((item) => {
                   const isSelected = selected.includes(item.id);
+                  // 時段限定票（如早鳥限定）不在目前時段販售：保留顯示但不可選
+                  const offSale = !isItemOnSale(item);
+                  const disabled = locked || offSale;
                   return (
                     <label
                       key={item.id}
                       className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        locked
+                        disabled
                           ? "cursor-not-allowed border-gray-200"
                           : "cursor-pointer hover:bg-gray-50"
                       } ${
                         isSelected ? "bg-gray-50 border-brand" : "border-gray-200"
-                      }`}
+                      } ${offSale && !locked ? "opacity-60" : ""}`}
                     >
                       <input
                         type={isSingle ? "radio" : "checkbox"}
                         name={`group-${group.id}`}
                         checked={isSelected}
-                        disabled={locked}
+                        disabled={disabled}
                         onChange={() => {
                           if (isSingle) {
                             setGroupSelection([item.id]);
@@ -164,6 +168,7 @@ export function GroupTicketPicker({
                           fullAmount={item.fullAmount}
                           fullTierName={fullTierName}
                           seatCount={item.seatCount}
+                          unavailableLabel={saleStatusLabel(item)}
                         />
                       </div>
                     </label>
@@ -206,18 +211,20 @@ export function GroupTicketPicker({
           const isSelected = allowMultiplePurchase
             ? selectedPlanIds.includes(item.id)
             : selectedPlanId === item.id;
+          const offSale = !isItemOnSale(item);
 
           return (
             <label
               key={item.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
-                isSelected ? "bg-gray-50 border-brand" : "border-gray-200"
-              }`}
+              className={`flex items-center gap-3 p-3 rounded-lg border ${
+                offSale ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-50"
+              } ${isSelected ? "bg-gray-50 border-brand" : "border-gray-200"}`}
             >
               <input
                 type={allowMultiplePurchase ? "checkbox" : "radio"}
                 name={allowMultiplePurchase ? `plan-${item.id}` : "plan"}
                 checked={isSelected}
+                disabled={offSale}
                 onChange={() => {
                   if (allowMultiplePurchase) {
                     const newIds = isSelected
@@ -238,6 +245,7 @@ export function GroupTicketPicker({
                   fullAmount={item.fullAmount}
                   fullTierName={fullTierName}
                   seatCount={item.seatCount}
+                  unavailableLabel={saleStatusLabel(item)}
                 />
               </div>
             </label>

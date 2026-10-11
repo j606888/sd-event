@@ -62,7 +62,16 @@ export function PurchaseItemDrawer({
     const init: Record<string, string> = {};
     for (const p of editingItem?.item.prices ?? []) {
       const k = tierKeyForPrice(p);
-      if (k) init[k] = String(p.amount);
+      if (k && p.available !== false) init[k] = String(p.amount);
+    }
+    return init;
+  });
+  // 不販售的時段（key 同上）：如「1+1 早鳥優惠票」只在早鳥段開賣，之後報名頁顯示已截止
+  const [offSaleTiers, setOffSaleTiers] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const p of editingItem?.item.prices ?? []) {
+      const k = tierKeyForPrice(p);
+      if (k && p.available === false) init[k] = true;
     }
     return init;
   });
@@ -116,9 +125,18 @@ export function PurchaseItemDrawer({
    * 所以直接把最後一段的價格寫回 amount —— 使用者不必把同一個數字打兩次。
    */
   const useTiers = priceTiers.length > 0;
-  const lastTierKey = useTiers
-    ? tierKey(priceTiers[priceTiers.length - 1], priceTiers.length - 1)
-    : null;
+  const isOnSale = (key: string) => offSaleTiers[key] !== true;
+  // 基準價取「最後一個有販售的時段」：早鳥限定票的基準價就是早鳥價
+  const onSaleTierKeys = priceTiers
+    .map((tier, index) => tierKey(tier, index))
+    .filter(isOnSale);
+  const baseTierKey = onSaleTierKeys.at(-1) ?? null;
+  const baseTierName = (() => {
+    const index = priceTiers.findIndex((tier, i) => tierKey(tier, i) === baseTierKey);
+    return index >= 0 ? priceTiers[index].name || `第 ${index + 1} 段` : null;
+  })();
+  const lastTierOnSale =
+    useTiers && isOnSale(tierKey(priceTiers[priceTiers.length - 1], priceTiers.length - 1));
 
   const parseTierAmount = (raw: string | undefined): number | null => {
     if (raw == null || raw.trim() === "") return null;
@@ -126,10 +144,11 @@ export function PurchaseItemDrawer({
     return Number.isInteger(n) && n >= 0 ? n : null;
   };
 
-  /** 每段都要有價；回傳第一個沒填好的時段名稱 */
+  /** 有販售的每段都要有價；回傳第一個沒填好的時段名稱 */
   const firstUnpricedTier = (): string | null => {
     for (const [index, tier] of priceTiers.entries()) {
-      if (parseTierAmount(tierAmounts[tierKey(tier, index)]) == null) {
+      const key = tierKey(tier, index);
+      if (isOnSale(key) && parseTierAmount(tierAmounts[key]) == null) {
         return tier.name || `第 ${index + 1} 段`;
       }
     }
@@ -140,25 +159,30 @@ export function PurchaseItemDrawer({
   const buildPrices = (): ItemTierPriceDraft[] => {
     const prices: ItemTierPriceDraft[] = [];
     priceTiers.forEach((tier, index) => {
-      const n = parseTierAmount(tierAmounts[tierKey(tier, index)]);
+      const key = tierKey(tier, index);
+      const ref = tier.id != null ? { tierId: tier.id } : { tierDraftIndex: index };
+      if (!isOnSale(key)) {
+        prices.push({ ...ref, amount: 0, available: false });
+        return;
+      }
+      const n = parseTierAmount(tierAmounts[key]);
       if (n == null) return;
-      if (tier.id != null) prices.push({ tierId: tier.id, amount: n });
-      else prices.push({ tierDraftIndex: index, amount: n });
+      prices.push({ ...ref, amount: n });
     });
     return prices;
   };
 
   /** 把第一個填好的價格帶進其餘空欄位，省得同樣的數字打好幾次 */
   const fillEmptyTiersFromFirst = () => {
-    const firstFilled = priceTiers
-      .map((tier, index) => tierAmounts[tierKey(tier, index)])
+    const firstFilled = onSaleTierKeys
+      .map((key) => tierAmounts[key])
       .find((raw) => parseTierAmount(raw) != null);
     if (firstFilled == null) return;
     setTierAmounts((prev) => {
       const next = { ...prev };
       priceTiers.forEach((tier, index) => {
         const key = tierKey(tier, index);
-        if (parseTierAmount(next[key]) == null) next[key] = firstFilled;
+        if (isOnSale(key) && parseTierAmount(next[key]) == null) next[key] = firstFilled;
       });
       return next;
     });
@@ -169,10 +193,7 @@ export function PurchaseItemDrawer({
 
   const hasEmptyTier = useTiers && firstUnpricedTier() != null;
   const hasAnyTierFilled =
-    useTiers &&
-    priceTiers.some((tier, index) =>
-      parseTierAmount(tierAmounts[tierKey(tier, index)]) != null
-    );
+    useTiers && onSaleTierKeys.some((key) => parseTierAmount(tierAmounts[key]) != null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,16 +208,20 @@ export function PurchaseItemDrawer({
       return;
     }
 
-    // 有時段：每段都要有價，amount 取最後一段（fallback 段）的價格
+    // 有時段：有販售的每段都要有價，amount 取最後一個販售時段的價格
     // 沒有時段：維持單一金額欄位
     let amountNum: number;
     if (useTiers) {
+      if (baseTierKey == null) {
+        setError("至少要有一個時段販售這張票");
+        return;
+      }
       const unpriced = firstUnpricedTier();
       if (unpriced) {
         setError(`請填寫「${unpriced}」的價格`);
         return;
       }
-      amountNum = parseTierAmount(tierAmounts[lastTierKey!])!;
+      amountNum = parseTierAmount(tierAmounts[baseTierKey])!;
     } else {
       amountNum = Math.floor(Number(amount));
       if (!Number.isInteger(amountNum) || amountNum < 0) {
@@ -240,7 +265,7 @@ export function PurchaseItemDrawer({
         try {
           const apiPrices = prices
             .filter((p) => p.tierId != null)
-            .map((p) => ({ tierId: p.tierId, amount: p.amount }));
+            .map((p) => ({ tierId: p.tierId, amount: p.amount, available: p.available }));
           const res = await fetch(
             `/api/events/${eventId}/purchase-items/${existing.id}`,
             {
@@ -282,7 +307,7 @@ export function PurchaseItemDrawer({
         // edit 模式 tier 已有 id，prices 內為 { tierId, amount }
         const apiPrices = prices
           .filter((p) => p.tierId != null)
-          .map((p) => ({ tierId: p.tierId, amount: p.amount }));
+          .map((p) => ({ tierId: p.tierId, amount: p.amount, available: p.available }));
         const res = await fetch(`/api/events/${eventId}/purchase-items`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -318,6 +343,7 @@ export function PurchaseItemDrawer({
         setName("");
         setAmount("");
         setTierAmounts({});
+        setOffSaleTiers({});
         setGroupKey("");
         setSeatCount("1");
         setDescription("");
@@ -341,6 +367,7 @@ export function PurchaseItemDrawer({
       setName("");
       setAmount("");
       setTierAmounts({});
+      setOffSaleTiers({});
       setGroupKey("");
       setSeatCount("1");
       setDescription("");
@@ -450,31 +477,54 @@ export function PurchaseItemDrawer({
             )}
           </div>
           <p className="-mt-1 text-xs text-gray-500">
-            這場活動有 {priceTiers.length} 個票價時段，每段都要有價格。
+            這場活動有 {priceTiers.length} 個票價時段。只在部分時段賣的票（如早鳥限定），
+            把其他時段的「販售」取消勾選，報名頁會顯示「已截止」。
           </p>
           {priceTiers.map((tier, index) => {
             const key = tierKey(tier, index);
+            const tierLabel = tier.name || `第 ${index + 1} 段`;
+            const onSale = isOnSale(key);
             return (
               <div key={key} className="flex items-center gap-2">
-                <span className="w-28 shrink-0 truncate text-sm text-gray-600">
+                <span
+                  className={`w-28 shrink-0 truncate text-sm ${
+                    onSale ? "text-gray-600" : "text-gray-400"
+                  }`}
+                >
                   {tier.name || "（未命名）"}
                 </span>
                 <Input
                   type="number"
                   min={0}
-                  placeholder="價格"
-                  value={tierAmounts[key] ?? ""}
+                  placeholder={onSale ? "價格" : "不販售"}
+                  value={onSale ? tierAmounts[key] ?? "" : ""}
+                  disabled={!onSale}
                   onChange={(e) =>
                     setTierAmounts((prev) => ({ ...prev, [key]: e.target.value }))
                   }
-                  aria-label={`${tier.name || `第 ${index + 1} 段`}的價格`}
+                  aria-label={`${tierLabel}的價格`}
                 />
+                <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={onSale}
+                    onChange={(e) =>
+                      setOffSaleTiers((prev) => ({ ...prev, [key]: !e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300 accent-brand"
+                    aria-label={`${tierLabel}販售這張票`}
+                  />
+                  販售
+                </label>
               </div>
             );
           })}
           <p className="text-xs text-gray-500">
-            「{priceTiers[priceTiers.length - 1]?.name || "最後一段"}
-            」是最後一段，會作為這張票的基準價。
+            {baseTierName == null
+              ? "至少要有一個時段販售這張票。"
+              : lastTierOnSale
+                ? `「${baseTierName}」是最後一段，會作為這張票的基準價。`
+                : `「${baseTierName}」是最後一個販售時段，會作為這張票的基準價；之後的時段報名頁會顯示「已截止」，也不會顯示「省多少」。`}
           </p>
         </div>
       ) : (

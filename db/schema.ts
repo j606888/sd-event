@@ -245,6 +245,11 @@ export const eventPurchaseItemPrices = pgTable("event_purchase_item_prices", {
     .notNull()
     .references(() => eventPriceTiers.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(),
+  /**
+   * false = 此項目在這個時段不販售（如「1+1 早鳥優惠票」只在早鳥段開賣，之後顯示已截止）。
+   * 此時 amount 無意義（存 0）。沒有列的時段仍沿用項目 fallback amount（舊行為）。
+   */
+  available: boolean("available").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [

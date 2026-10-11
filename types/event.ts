@@ -41,6 +41,13 @@ export type EventPurchaseItem = {
   description?: string | null;
   /** 選了此票的報名至少要有幾位參加者勾選活動的 attendeeFlagLabel；未帶 = 0 */
   minFlagged?: number;
+  /**
+   * 目前時段的販售狀態；未帶 = 可購買。
+   * "ended"＝只在之前時段販售（如早鳥限定，已截止）；"upcoming"＝之後的時段才開賣。
+   */
+  saleStatus?: "on_sale" | "upcoming" | "ended";
+  /** saleStatus = "upcoming" 時，第一個開賣的時段名稱 */
+  opensTierName?: string | null;
 };
 
 export type EventPurchaseItemGroup = {

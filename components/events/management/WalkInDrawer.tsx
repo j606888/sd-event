@@ -18,6 +18,7 @@ import {
   validateSeatCount,
 } from "@/lib/seat-count";
 import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
+import { isItemOnSale } from "@/lib/pricing";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
 
@@ -266,7 +267,8 @@ export function WalkInDrawer({
                         </span>
                       )}
                     </p>
-                    {group.items.map((item) => {
+                    {/* 時段限定票（如早鳥限定已截止）現場不販售，伺服器也會擋 */}
+                    {group.items.filter(isItemOnSale).map((item) => {
                       const isSelected = selected.includes(item.id);
                       return (
                         <label
@@ -320,7 +322,7 @@ export function WalkInDrawer({
                 );
               })
             ) : (
-              event.purchaseItems.map((item) => {
+              event.purchaseItems.filter(isItemOnSale).map((item) => {
                 const isSelected = allowMultiple
                   ? selectedPlanIds.includes(item.id)
                   : selectedPlanId === item.id;

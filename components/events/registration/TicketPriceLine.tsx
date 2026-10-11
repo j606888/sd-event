@@ -11,6 +11,8 @@ type TicketPriceLineProps = {
   variant: "intro" | "picker";
   /** 套票人數（>1 時在價格後標示「/ N 人」，表示整組價） */
   seatCount?: number;
+  /** 目前時段不販售（如早鳥限定已截止）時的狀態文字；有值時價格變灰並以此取代省錢資訊 */
+  unavailableLabel?: string | null;
 };
 
 /** 現在報名比原價省下的金額；沒有可省的（無時段／已是最後一段／不漲價）回傳 null */
@@ -34,16 +36,17 @@ export function TicketPriceLine({
   fullTierName,
   variant,
   seatCount,
+  unavailableLabel,
 }: TicketPriceLineProps) {
-  const savings = getTicketSavings(amount, fullAmount);
+  const savings = unavailableLabel ? null : getTicketSavings(amount, fullAmount);
   const originalLabel = `${fullTierName ? `${fullTierName}價` : "原價"} $${fullAmount}`;
 
   return (
     <div className="flex shrink-0 flex-col items-end gap-px">
       <span
-        className={`font-display font-semibold leading-tight text-ink tabular-nums ${
+        className={`font-display font-semibold leading-tight tabular-nums ${
           variant === "intro" ? "text-[19px]" : "text-[18px]"
-        }`}
+        } ${unavailableLabel ? "text-gray-400 line-through" : "text-ink"}`}
       >
         ${amount}
         {seatCount != null && seatCount > 1 && (
@@ -52,6 +55,11 @@ export function TicketPriceLine({
           </span>
         )}
       </span>
+      {unavailableLabel && (
+        <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500">
+          {unavailableLabel}
+        </span>
+      )}
       {savings != null && (
         <span className="text-xs text-gray-400 tabular-nums">
           <span className="line-through" title={originalLabel}>
