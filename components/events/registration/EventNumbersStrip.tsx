@@ -14,9 +14,10 @@ type EventNumbersStripProps = {
 
 const money = (n: number) => `NT$ ${n.toLocaleString()}`;
 
-const CELL = "flex flex-col gap-1.5 rounded-2xl border px-4 py-3.5 text-left";
+// 手機上數字列要矮，搜尋框才會留在第一屏；金額兩格手機不顯示（統計分頁一點就到）
+const CELL = "flex flex-col gap-1 rounded-2xl border px-3.5 py-2.5 text-left sm:gap-1.5 sm:px-4 sm:py-3.5";
 const LABEL = "text-xs";
-const NUMBER = "font-display text-[28px] font-bold leading-none tabular-nums";
+const NUMBER = "font-display text-2xl font-bold leading-none tabular-nums sm:text-[28px]";
 
 /**
  * 報名者頁最上方的一排數字：不用切到統計分頁就知道來了多少人、還有幾筆款要對。
@@ -92,7 +93,7 @@ export function EventNumbersStrip({
             onClick={onShowAwaitingConfirmation}
             className={cn(
               CELL,
-              "cursor-pointer border-hairline bg-white transition-colors hover:border-butter"
+              "hidden cursor-pointer border-hairline bg-white transition-colors hover:border-butter sm:flex"
             )}
           >
             <span className={cn(LABEL, "text-muted-ink")}>待確認收款</span>
@@ -105,7 +106,7 @@ export function EventNumbersStrip({
             </span>
           </button>
 
-          <div className={cn(CELL, "border-hairline bg-white")}>
+          <div className={cn(CELL, "hidden border-hairline bg-white sm:flex")}>
             <span className={cn(LABEL, "text-muted-ink")}>已入帳</span>
             <span className={cn(NUMBER, "text-brand-strong")}>{money(payments.collected)}</span>
             <span className={cn(LABEL, "text-muted-ink")}>

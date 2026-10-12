@@ -514,7 +514,7 @@ export function RegistrationDetail({
                   <span className="truncate text-sm font-medium text-ink">
                     {attendee.name}
                   </span>
-                  <RoleBadge role={attendee.role} />
+                  <RoleBadge role={attendee.role} compact={isPanel} />
                   {registration.attendeeFlagLabel && attendee.flagged && (
                     <FlagBadge label={registration.attendeeFlagLabel} />
                   )}

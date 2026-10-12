@@ -281,7 +281,7 @@ export function RegistrationsList({
 
       {/* 快速篩選 + 次要工具 */}
       <div className="flex items-center gap-2">
-        <div className="-mx-4 flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto [scrollbar-width:none] sm:flex-wrap">
           {QUICK_FILTERS.map((q) => {
             const active = q.payment === paymentFilter && q.checkIn === checkInFilter;
             return (
@@ -449,7 +449,8 @@ export function RegistrationsList({
           </Button>
         </div>
       ) : (
-        <div className="space-y-1.5">
+        // @container：桌機開著右側明細時名單會變窄，列的排版要跟著名單寬度而不是視窗寬度
+        <div className="@container space-y-1.5">
           {registrations.map((reg) => (
             <RegistrationRow
               key={reg.id}

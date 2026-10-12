@@ -46,7 +46,7 @@ type RegistrationRowProps = {
 };
 
 const ACTION_BASE =
-  "flex h-12 w-[104px] shrink-0 cursor-pointer items-center justify-center rounded-xl text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:h-11 sm:w-[112px]";
+  "flex h-12 w-[104px] shrink-0 cursor-pointer items-center justify-center rounded-xl text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 @2xl:h-11 @2xl:w-[112px]";
 
 export function RegistrationRow({
   registration: reg,
@@ -77,9 +77,9 @@ export function RegistrationRow({
         type="button"
         onClick={onSelect}
         aria-label={`查看 ${reg.contactName} 的報名明細`}
-        className="flex min-h-[52px] min-w-0 flex-1 cursor-pointer flex-col items-start justify-center gap-1 py-1 text-left sm:flex-row sm:items-center sm:gap-4"
+        className="flex min-h-[52px] min-w-0 flex-1 cursor-pointer flex-col items-start justify-center gap-1 py-1 text-left @2xl:flex-row @2xl:items-center @2xl:gap-4"
       >
-        <span className="flex min-w-0 flex-col gap-1 sm:flex-1">
+        <span className="flex min-w-0 flex-col gap-1 @2xl:flex-1">
           <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className="truncate text-base font-bold text-ink">{reg.contactName}</span>
             {sameAsContact && <RoleBadge role={reg.attendees[0].role} compact />}
@@ -107,7 +107,7 @@ export function RegistrationRow({
           )}
         </span>
 
-        <span className="flex min-w-0 flex-col gap-0.5 text-[13px] text-muted-ink sm:w-[200px] sm:shrink-0">
+        <span className="flex min-w-0 flex-col gap-0.5 text-[13px] text-muted-ink @2xl:w-[200px] @2xl:shrink-0">
           {reg.contactPhone && (
             <span className="font-display text-sm font-semibold tracking-wide text-ink tabular-nums">
               {reg.contactPhone}
@@ -124,7 +124,7 @@ export function RegistrationRow({
           </span>
         </span>
 
-        <span className="flex flex-col gap-0.5 sm:w-[104px] sm:shrink-0">
+        <span className="flex flex-col gap-0.5 @2xl:w-[104px] @2xl:shrink-0">
           <PaymentStatusBadge status={reg.paymentStatus} />
           {partiallyEntered && <span className="text-xs text-muted-ink">{partiallyEntered}</span>}
         </span>
@@ -177,7 +177,7 @@ export function RegistrationRow({
           )}
         </span>
       )}
-      {action.kind === "none" && <span className="w-[104px] shrink-0 sm:w-[112px]" />}
+      {action.kind === "none" && <span className="w-[104px] shrink-0 @2xl:w-[112px]" />}
     </div>
   );
 }
