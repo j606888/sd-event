@@ -132,7 +132,7 @@ export function RegistrationsList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="搜尋名稱、電話、Email"
+            placeholder="搜尋姓名、參與者、電話、Email"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"

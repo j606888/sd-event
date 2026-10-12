@@ -10,9 +10,10 @@ import {
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
-import { eq, asc, desc, or, like, and, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, asc, desc, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { matchesCheckInFilter, type CheckInFilter } from "@/lib/registration-list-filters";
 import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/registration-item-filter";
+import { registrationMatchesSearch } from "@/lib/registration-search";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -84,13 +85,7 @@ export async function GET(request: Request, { params }: Params) {
   const whereConditions = [eq(eventRegistrations.eventId, eventId)];
 
   if (search) {
-    whereConditions.push(
-      or(
-        like(eventRegistrations.contactName, `%${search}%`),
-        like(eventRegistrations.contactEmail, `%${search}%`),
-        like(eventRegistrations.contactPhone, `%${search}%`)
-      )!
-    );
+    whereConditions.push(registrationMatchesSearch(search));
   }
 
   if (paymentStatus !== "all") {
