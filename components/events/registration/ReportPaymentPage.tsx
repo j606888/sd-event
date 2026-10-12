@@ -197,7 +197,7 @@ export function ReportPaymentPage({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+    <div className="min-h-screen bg-paper p-4 sm:py-10">
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
       {/* Header */}
       <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
@@ -303,7 +303,7 @@ export function ReportPaymentPage({
             rows={4}
             value={paymentNote}
             onChange={(e) => setPaymentNote(e.target.value)}
-            className="w-full min-w-0 rounded-md border-0 bg-[#F3F5F7] px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 md:text-sm resize-none"
+            className="w-full min-w-0 rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 md:text-sm resize-none"
           />
         </div>
 

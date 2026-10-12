@@ -3,15 +3,13 @@
 import { Check } from "lucide-react";
 
 export function ConfirmedPaymentHeader() {
-  const brandBlue = "#3e7cb1";
-
   return (
     <div className="p-4 text-center">
       <div
-        className="px-6 py-8 rounded-2xl border border-blue-200 shadow-sm"
+        className="px-6 py-8 rounded-2xl border border-brand/40 shadow-sm"
         style={{
           background:
-            "linear-gradient(180deg, #F0F7FA 0%, #FFFFFF 100%)", // 極淺的藍色到純白漸層
+            "linear-gradient(180deg, var(--brand-soft) 0%, #FFFFFF 100%)", // 極淺的霧藍到純白漸層
         }}
       >
         {/* 圖示區域：核心品牌藍 */}
@@ -20,11 +18,8 @@ export function ConfirmedPaymentHeader() {
             {/* 外圈光暈 */}
             <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
               {/* 核心圓圈 */}
-              <div 
-                className="w-14 h-14 rounded-full shadow-lg shadow-blue-100 flex items-center justify-center"
-                style={{ backgroundColor: brandBlue }}
-              >
-                <Check className="w-8 h-8 text-white stroke-3" />
+              <div className="w-14 h-14 rounded-full bg-brand flex items-center justify-center">
+                <Check className="w-8 h-8 text-ink stroke-3" />
               </div>
             </div>
           </div>
@@ -44,13 +39,10 @@ export function ConfirmedPaymentHeader() {
           </p>
         </div>
 
-        {/* 狀態 Tag：使用品牌藍實心色塊 */}
-        <div 
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full shadow-md shadow-blue-50"
-          style={{ backgroundColor: brandBlue }}
-        >
-          <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-          <span className="text-sm font-bold text-white">報名成功</span>
+        {/* 狀態 Tag：使用品牌藍實心色塊（霧藍底配深色字） */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand">
+          <Check className="w-3.5 h-3.5 text-ink" strokeWidth={3} />
+          <span className="text-sm font-bold text-ink">報名成功</span>
         </div>
       </div>
     </div>

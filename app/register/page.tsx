@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Logo } from "@/components/brand/Logo";
 
 const registerSchema = z.object({
   name: z.string().min(2, "名稱至少要 2 個字"),
@@ -49,9 +50,9 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center">
     <main className="w-full flex-1 max-w-md p-4 flex flex-col items-center justify-between">
-      <h1 className="text-[28px] font-extrabold text-brand-strong mb-8 self-start" style={{ fontFamily: 'var(--font-nunito)' }}>
-        SD Event.
-      </h1>
+      <h1 className="mb-8 self-start">
+          <Logo />
+        </h1>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col items-center justify-center w-full gap-6">
         <h4 className="text-[20px] font-semibold text-gray-900text-center">建立新帳號</h4>
         <div className="flex flex-col gap-3 w-full">

@@ -53,7 +53,7 @@ export function EventDetailsStep({
       : [{ key: "all", title: null, items: event.purchaseItems }];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+    <div className="min-h-screen bg-paper p-4 sm:py-10">
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
         {isRenderableImageSrc(event.coverUrl) ? (
           <div className="relative w-full">

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth";
+import { Logo } from "@/components/brand/Logo";
 
 export default async function Home() {
   const session = await getSession();
@@ -13,8 +14,8 @@ export default async function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center">
       <main className="w-full flex-1 max-w-md p-4 flex flex-col items-center justify-between">
-        <h1 className="text-[28px] font-extrabold text-brand-strong mb-8 self-start" style={{ fontFamily: 'var(--font-nunito)' }}>
-          SD Event.
+        <h1 className="mb-8 self-start">
+          <Logo />
         </h1>
         <div>
           <div className="w-full mb-8 mx-auto text-center flex justify-center items-center">

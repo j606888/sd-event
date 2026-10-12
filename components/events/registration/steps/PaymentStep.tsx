@@ -47,7 +47,7 @@ export function PaymentStep({
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+    <div className="min-h-screen bg-paper p-4 sm:py-10">
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
 
         <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3">

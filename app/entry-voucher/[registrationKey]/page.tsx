@@ -12,9 +12,9 @@ import type { EntryVoucherPageData } from "@/types/registration";
 
 function getRoleBadge(role: string) {
   const styles: Record<string, string> = {
-    Leader: "bg-green-100 text-green-700",
-    Follower: "bg-gray-100 text-gray-700",
-    "Not sure": "bg-blue-100 text-blue-700",
+    Leader: "bg-leader text-white",
+    Follower: "bg-follower-soft text-follower",
+    "Not sure": "bg-field text-muted-ink",
   };
   return styles[role] || styles["Not sure"];
 }
@@ -147,15 +147,15 @@ export default function EntryVoucherPage() {
 
   if (loading && registrationKey) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
-        <p className="text-white/80">載入中…</p>
+      <div className="min-h-screen bg-paper p-6 flex items-center justify-center">
+        <p className="text-muted-ink">載入中…</p>
       </div>
     );
   }
 
   if (!registrationKey || error || !data || !qrCodeUrl) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-paper p-6 flex items-center justify-center">
         <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl text-center space-y-2">
           <p className="text-red-500">
             {(!registrationKey ? "無效的報名編號" : error) ?? "找不到報名資料"}
@@ -167,7 +167,7 @@ export default function EntryVoucherPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
+    <div className="min-h-screen bg-paper p-4 sm:py-10">
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
       {/* Header */}
       <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
