@@ -25,7 +25,8 @@ import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
 import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
 import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/registration-item-filter";
-import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
+import { registrationMatchesSearch } from "@/lib/registration-search";
+import { eq, desc, count, or, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -95,13 +96,7 @@ export async function GET(request: Request, { params }: Params) {
 
   // 如果有搜尋條件，加入搜尋
   if (search) {
-    whereConditions.push(
-      or(
-        like(eventRegistrations.contactName, `%${search}%`),
-        like(eventRegistrations.contactEmail, `%${search}%`),
-        like(eventRegistrations.contactPhone, `%${search}%`)
-      )!
-    );
+    whereConditions.push(registrationMatchesSearch(search));
   }
 
   // Payment status filter
