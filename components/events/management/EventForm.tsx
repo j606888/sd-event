@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { BasicInfoFields } from "./BasicInfoFields";
-import { OrganizerPaymentFields } from "./OrganizerPaymentFields";
+import { BasicInfoLayout } from "./BasicInfoLayout";
 import { EventFormDrawers } from "./EventFormDrawers";
 import { TicketSettings } from "./tickets/TicketSettings";
 import { useEventForm } from "@/hooks/use-event-form";
@@ -87,7 +86,7 @@ export function EventForm({
         {/* 分段切換：基本資訊 / 票券設定 */}
         {/* 只有票券設定需要吃滿寬（左右兩欄），其餘控制項維持窄欄，與編輯頁一致 */}
         <div
-          className="grid max-w-2xl grid-cols-2 gap-1 rounded-full bg-gray-100 p-1"
+          className="grid max-w-2xl grid-cols-2 gap-1 rounded-full bg-field p-1"
           role="tablist"
         >
           {SECTIONS.map((s) => (
@@ -109,13 +108,8 @@ export function EventForm({
         </div>
 
         {/* 基本資訊（含主辦與收款） */}
-        <div
-          className={`max-w-2xl flex-col gap-4 ${
-            activeSection === "basic" ? "flex" : "hidden"
-          }`}
-        >
-          <BasicInfoFields mode={mode} form={form} />
-          <OrganizerPaymentFields form={form} />
+        <div className={`max-w-6xl ${activeSection === "basic" ? "" : "hidden"}`}>
+          <BasicInfoLayout mode={mode} form={form} />
         </div>
 
         {/* 票券設定 */}

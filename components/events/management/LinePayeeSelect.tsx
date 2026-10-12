@@ -40,7 +40,13 @@ export function LinePayeeSelect({
       onAddClick();
       return;
     }
-    onValueChange(val === NONE_VALUE ? "" : val);
+    // Radix Select 的隱藏 native select 在載入時（瀏覽器回填表單）會以空字串觸發 onChange。
+    // 真正的「不開放」是 NONE_VALUE，空字串一律忽略 —— 否則一進頁面就被標成有未儲存的變更，
+    // 已選的付款好友也可能被清掉。
+    if (!val) return;
+    const next = val === NONE_VALUE ? "" : val;
+    if (next === (value || "")) return;
+    onValueChange(next);
   };
 
   return (
