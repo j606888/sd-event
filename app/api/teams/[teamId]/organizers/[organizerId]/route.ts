@@ -43,7 +43,6 @@ export async function PATCH(request: Request, { params }: Params) {
   const updates: Partial<{
     name: string;
     photoUrl: string | null;
-    lineId: string | null;
     instagram: string | null;
     facebook: string | null;
   }> = {};
@@ -53,9 +52,6 @@ export async function PATCH(request: Request, { params }: Params) {
   }
   if (body.photoUrl !== undefined) {
     updates.photoUrl = body.photoUrl === null || body.photoUrl === "" ? null : String(body.photoUrl);
-  }
-  if (body.lineId !== undefined) {
-    updates.lineId = body.lineId === null || body.lineId === "" ? null : String(body.lineId);
   }
   if (body.instagram !== undefined) {
     updates.instagram = body.instagram === null || body.instagram === "" ? null : String(body.instagram);

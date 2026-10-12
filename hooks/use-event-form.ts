@@ -19,7 +19,8 @@ export type DrawerType =
   | "purchaseItem"
   | "notice"
   | "organizer"
-  | "bank";
+  | "bank"
+  | "linePayee";
 
 /** 項目於某時段的價格；create 模式 tier 尚無 id，用 tierDraftIndex 暫referer */
 export type ItemTierPriceDraft = {
@@ -98,6 +99,7 @@ export type EventFormInitialData = {
   locationId: number | null;
   organizerId: number | null;
   bankInfoId: number | null;
+  linePayeeId?: number | null;
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
   attendeeFlagLabel?: string | null;
@@ -108,16 +110,18 @@ type Organizer = {
   id: number;
   name: string;
   photoUrl: string | null;
-  lineId: string | null;
   instagram: string | null;
   facebook: string | null;
 };
 type BankInfo = {
   id: number;
+  label: string | null;
   bankName: string;
   bankCode: string;
   account: string | null;
 };
+
+type LinePayee = { id: number; label: string; lineId: string };
 
 function toDateTimeLocal(iso: string): string {
   return taipeiDateTimeLocal(iso);
@@ -155,9 +159,11 @@ export function useEventForm({
   const [locationId, setLocationId] = useState<string>("");
   const [organizerId, setOrganizerId] = useState<string>("");
   const [bankInfoId, setBankInfoId] = useState<string>("");
+  const [linePayeeId, setLinePayeeId] = useState<string>("");
   const [locations, setLocations] = useState<Location[]>([]);
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [bankInfos, setBankInfos] = useState<BankInfo[]>([]);
+  const [linePayees, setLinePayees] = useState<LinePayee[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startAt, setStartAt] = useState("");
@@ -301,11 +307,22 @@ export function useEventForm({
     }
   }, [teamId]);
 
+  const fetchLinePayees = useCallback(async () => {
+    const res = await fetch(`/api/teams/${teamId}/line-payees`, {
+      credentials: "include",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setLinePayees(data.linePayees ?? []);
+    }
+  }, [teamId]);
+
   useEffect(() => {
     fetchLocations();
     fetchOrganizers();
     fetchBankInfos();
-  }, [fetchLocations, fetchOrganizers, fetchBankInfos]);
+    fetchLinePayees();
+  }, [fetchLocations, fetchOrganizers, fetchBankInfos, fetchLinePayees]);
 
   useEffect(() => {
     if (mode !== "edit" || !initialData) {
@@ -337,6 +354,7 @@ export function useEventForm({
     } else {
       setBankInfoId("");
     }
+    setLinePayeeId(initialData.linePayeeId != null ? String(initialData.linePayeeId) : "");
     setAllowMultiple(initialData.allowMultiplePurchase);
     setAutoCalcAmount(initialData.autoCalcAmount);
     setAttendeeFlagLabel(initialData.attendeeFlagLabel ?? "");
@@ -549,6 +567,12 @@ export function useEventForm({
   const handleBankInfoSuccess = async (bankInfoId: number) => {
     await fetchBankInfos();
     setBankInfoId(String(bankInfoId));
+    setDrawer(null);
+  };
+
+  const handleLinePayeeSuccess = async (linePayeeId: number) => {
+    await fetchLinePayees();
+    setLinePayeeId(String(linePayeeId));
     setDrawer(null);
   };
 
@@ -1280,6 +1304,7 @@ export function useEventForm({
             locationId: Number(locationId),
             organizerId: Number(organizerId),
             bankInfoId: Number(bankInfoId),
+            linePayeeId: linePayeeId ? Number(linePayeeId) : null,
             allowMultiplePurchase: allowMultiple,
             autoCalcAmount: autoCalcAmount,
           }),
@@ -1308,6 +1333,7 @@ export function useEventForm({
             locationId: Number(locationId),
             organizerId: Number(organizerId),
             bankInfoId: Number(bankInfoId),
+            linePayeeId: linePayeeId ? Number(linePayeeId) : null,
             allowMultiplePurchase: allowMultiple,
             autoCalcAmount: autoCalcAmount,
             attendeeFlagLabel: attendeeFlagLabel.trim() || null,
@@ -1466,9 +1492,11 @@ export function useEventForm({
     locationId,
     organizerId,
     bankInfoId,
+    linePayeeId,
     locations,
     organizers,
     bankInfos,
+    linePayees,
     title,
     description,
     startAt,
@@ -1499,6 +1527,7 @@ export function useEventForm({
     setLocationId: markBasicDirty(setLocationId),
     setOrganizerId: markBasicDirty(setOrganizerId),
     setBankInfoId: markBasicDirty(setBankInfoId),
+    setLinePayeeId: markBasicDirty(setLinePayeeId),
     setAllowMultiple: markBasicDirty(setAllowMultiple),
     setAutoCalcAmount: withAutoSave(updateAutoCalcAmount),
     setAttendeeFlagLabel,
@@ -1512,6 +1541,7 @@ export function useEventForm({
     handleLocationSuccess,
     handleOrganizerSuccess,
     handleBankInfoSuccess,
+    handleLinePayeeSuccess,
     handlePurchaseItemSuccess,
     handlePurchaseItemUpdated,
     openPurchaseItemAdder,

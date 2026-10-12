@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Plus } from "lucide-react";
-import { siInstagram, siLine, siFacebook } from "simple-icons";
+import { siInstagram, siFacebook } from "simple-icons";
 import { Label } from "@/components/ui/label";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { isRenderableImageSrc } from "@/lib/utils";
@@ -18,7 +18,6 @@ type Organizer = {
   id: number;
   name: string;
   photoUrl: string | null;
-  lineId: string | null;
   instagram: string | null;
   facebook: string | null;
 };
@@ -66,9 +65,8 @@ export function OrganizerSelect({
             const socials = (
               <span className="flex items-center gap-2 text-gray-400">
                 {org.instagram && <SimpleIcon icon={siInstagram} size={14} />}
-                {org.lineId && <SimpleIcon icon={siLine} size={14} />}
                 {org.facebook && <SimpleIcon icon={siFacebook} size={14} />}
-                {!org.instagram && !org.lineId && !org.facebook && (
+                {!org.instagram && !org.facebook && (
                   <span className="text-gray-400">尚未填寫社群</span>
                 )}
               </span>

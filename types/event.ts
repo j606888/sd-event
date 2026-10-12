@@ -14,7 +14,6 @@ export type EventOrganizer = {
   id: number;
   name: string;
   photoUrl: string | null;
-  lineId: string | null;
   instagram: string | null;
   facebook: string | null;
 };
@@ -24,6 +23,12 @@ export type EventBankInfo = {
   bankName: string;
   bankCode: string;
   account: string | null;
+};
+
+/** 參加者用 LINE Pay / LINE 轉帳時要加的好友；lineId 可能是 ID 或加好友連結（見 lib/line.ts） */
+export type EventLinePayee = {
+  id: number;
+  lineId: string;
 };
 
 export type EventPurchaseItem = {
@@ -88,6 +93,7 @@ export type PublicEventData = {
   location: EventLocation | null;
   organizer: EventOrganizer | null;
   bankInfo: EventBankInfo | null;
+  linePayee: EventLinePayee | null;
   purchaseItems: EventPurchaseItem[];
   /** 票種群組（含其下項目）；空陣列 = 此活動未使用群組，走舊模型 */
   groups: EventPurchaseItemGroup[];

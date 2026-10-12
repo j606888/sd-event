@@ -3,18 +3,13 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ReportPaymentPage } from "@/components/events/registration/ReportPaymentPage";
+import type { EventLinePayee } from "@/types/event";
 
 type BankInfo = {
   id: number;
   bankName: string;
   bankCode: string;
   account: string | null;
-};
-
-type Organizer = {
-  id: number;
-  name: string;
-  lineId: string | null;
 };
 
 export default function ReportPaymentPageRoute() {
@@ -24,13 +19,13 @@ export default function ReportPaymentPageRoute() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<{
     bankInfo: BankInfo | null;
-    organizer: Organizer | null;
+    linePayee: EventLinePayee | null;
   } | null>(null);
 
   useEffect(() => {
     if (!registrationKey) return;
 
-    // Fetch registration data to get bank info and organizer
+    // Fetch registration data to get bank info and LINE payee
     fetch(`/api/registrations/${encodeURIComponent(registrationKey)}`)
       .then((res) => {
         if (res.status === 404) {
@@ -44,7 +39,7 @@ export default function ReportPaymentPageRoute() {
         if (responseData?.event) {
           setData({
             bankInfo: responseData.event.bankInfo,
-            organizer: responseData.event.organizer,
+            linePayee: responseData.event.linePayee ?? null,
           });
         } else {
           setError("找不到報名資料");
@@ -79,7 +74,7 @@ export default function ReportPaymentPageRoute() {
     <ReportPaymentPage
       registrationKey={registrationKey}
       bankInfo={data.bankInfo}
-      organizer={data.organizer}
+      linePayee={data.linePayee}
     />
   );
 }

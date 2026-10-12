@@ -41,11 +41,15 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const body = await request.json().catch(() => ({}));
   const updates: Partial<{
+    label: string | null;
     bankName: string;
     bankCode: string;
     account: string | null;
   }> = {};
 
+  if (body.label !== undefined) {
+    updates.label = typeof body.label === "string" && body.label.trim() ? body.label.trim() : null;
+  }
   if (typeof body.bankName === "string" && body.bankName.trim()) {
     updates.bankName = body.bankName.trim();
   }

@@ -10,7 +10,7 @@ import { TicketPriceLine } from "../TicketPriceLine";
 import { isItemOnSale, saleStatusLabel } from "@/lib/pricing";
 import type { EventPurchaseItem, PublicEventData } from "@/types/event";
 import { Clock, MapPin, Disc3 } from "lucide-react";
-import { siInstagram, siLine, siFacebook } from "simple-icons";
+import { siInstagram, siFacebook } from "simple-icons";
 import { isRenderableImageSrc } from "@/lib/utils";
 
 type EventDetailsStepProps = {
@@ -210,16 +210,6 @@ export function EventDetailsStep({
                         className="text-gray-500 hover:text-gray-700"
                       >
                         <SimpleIcon icon={siInstagram} size={20} />
-                      </a>
-                    )}
-                    {event.organizer.lineId && (
-                      <a
-                        href={`https://line.me/ti/p/${event.organizer.lineId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <SimpleIcon icon={siLine} size={20} />
                       </a>
                     )}
                     {event.organizer.facebook && (

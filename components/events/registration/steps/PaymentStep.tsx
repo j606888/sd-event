@@ -6,6 +6,7 @@ import { formatEventDateShort } from "@/lib/format-event-date";
 import type { PublicEventData } from "@/types/event";
 import type { EventPurchaseItem } from "@/types/event";
 import type { FormData } from "../event-application-types";
+import { LinePayeeCard } from "../LinePayeeCard";
 
 const PAYMENT_METHODS = ["Line Pay", "Bank Transfer", "Other"] as const;
 
@@ -40,6 +41,11 @@ export function PaymentStep({
   onBack,
   onSubmit,
 }: PaymentStepProps) {
+  // 活動沒指定 LINE 付款好友時不提供 Line Pay，避免參加者選了卻不知道要轉給誰
+  const paymentMethods = PAYMENT_METHODS.filter(
+    (method) => method !== "Line Pay" || event.linePayee
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-4 sm:py-10">
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
@@ -148,7 +154,7 @@ export function PaymentStep({
             <h2 className="font-semibold text-gray-900">付款方式</h2>
             <p className="text-sm text-gray-600">請於確認報名後立即付款</p>
             <div className="space-y-2">
-              {PAYMENT_METHODS.map((method) => (
+              {paymentMethods.map((method) => (
                 <label
                   key={method}
                   className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50"
@@ -209,18 +215,8 @@ export function PaymentStep({
             </div>
           )}
 
-          {event.organizer?.lineId && (
-            <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-semibold text-gray-900">Line 好友</h3>
-              <a
-                href={`https://line.me/ti/p/${event.organizer.lineId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-brand border border-brand hover:bg-brand/10"
-              >
-                開啟 Line 好友
-              </a>
-            </div>
+          {formData.paymentMethod === "Line Pay" && event.linePayee && (
+            <LinePayeeCard linePayee={event.linePayee} className="p-4 bg-gray-50 rounded-lg" />
           )}
 
           {submitError && (

@@ -75,6 +75,7 @@ export async function PATCH(request: Request, { params }: Params) {
     locationId: number | null;
     organizerId: number | null;
     bankInfoId: number | null;
+    linePayeeId: number | null;
     allowMultiplePurchase: boolean;
     autoCalcAmount: boolean;
     attendeeFlagLabel: string | null;
@@ -90,6 +91,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body.locationId !== undefined) updates.locationId = body.locationId == null ? null : Number(body.locationId);
   if (body.organizerId !== undefined) updates.organizerId = body.organizerId == null ? null : Number(body.organizerId);
   if (body.bankInfoId !== undefined) updates.bankInfoId = body.bankInfoId == null ? null : Number(body.bankInfoId);
+  if (body.linePayeeId !== undefined) updates.linePayeeId = body.linePayeeId == null ? null : Number(body.linePayeeId);
   if (typeof body.allowMultiplePurchase === "boolean") updates.allowMultiplePurchase = body.allowMultiplePurchase;
   if (typeof body.autoCalcAmount === "boolean") updates.autoCalcAmount = body.autoCalcAmount;
   if (body.attendeeFlagLabel !== undefined) {

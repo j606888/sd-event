@@ -110,7 +110,6 @@ export const organizers = pgTable("organizers", {
     .references(() => teams.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   photoUrl: text("photo_url"),
-  lineId: text("line_id"),
   instagram: text("instagram"),
   facebook: text("facebook"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -123,9 +122,26 @@ export const bankInfos = pgTable("bank_infos", {
   teamId: integer("team_id")
     .notNull()
     .references(() => teams.id, { onDelete: "cascade" }),
+  /** 名稱／備註（僅主辦端看得到），用來區分多組帳戶，如「小明的帳戶」 */
+  label: text("label"),
   bankName: text("bank_name").notNull(),
   bankCode: text("bank_code").notNull(),
   account: text("account"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ============ LINE Payees (LINE 付款好友，依團隊) ============
+/** 參加者用 LINE Pay / LINE 轉帳時要加的好友；每個活動可各自指定 */
+export const linePayees = pgTable("line_payees", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  /** 名稱／備註（僅主辦端看得到），如「小明（收 LINE Pay）」 */
+  label: text("label").notNull(),
+  /** LINE ID（如 xiaoming、@abc123）或加好友連結（https://line.me/ti/p/...） */
+  lineId: text("line_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -155,6 +171,9 @@ export const events = pgTable("events", {
     onDelete: "set null",
   }),
   bankInfoId: integer("bank_info_id").references(() => bankInfos.id, {
+    onDelete: "set null",
+  }),
+  linePayeeId: integer("line_payee_id").references(() => linePayees.id, {
     onDelete: "set null",
   }),
   allowMultiplePurchase: boolean("allow_multiple_purchase").default(false),

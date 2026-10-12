@@ -12,6 +12,7 @@ import {
 
 type BankInfo = {
   id: number;
+  label: string | null;
   bankName: string;
   bankCode: string;
   account: string | null;
@@ -59,9 +60,14 @@ export function BankInfoSelect({
             <SelectItem
               key={bank.id}
               value={String(bank.id)}
-              description={bank.account ? `帳號 ${bank.account}` : "尚未填寫帳號"}
+              description={[
+                bank.label ? `${bank.bankName} ${bank.bankCode}` : null,
+                bank.account ? `帳號 ${bank.account}` : "尚未填寫帳號",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             >
-              {bank.bankName} {bank.bankCode}
+              {bank.label || `${bank.bankName} ${bank.bankCode}`}
             </SelectItem>
           ))}
           <SelectItem

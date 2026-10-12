@@ -54,7 +54,6 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const photoUrl = typeof body.photoUrl === "string" ? body.photoUrl : null;
-  const lineId = typeof body.lineId === "string" ? body.lineId : null;
   const instagram = typeof body.instagram === "string" ? body.instagram : null;
   const facebook = typeof body.facebook === "string" ? body.facebook : null;
 
@@ -64,7 +63,6 @@ export async function POST(request: Request, { params }: Params) {
       teamId,
       name,
       photoUrl,
-      lineId,
       instagram,
       facebook,
     })

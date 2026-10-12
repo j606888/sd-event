@@ -16,6 +16,7 @@ export function BankInfoDrawer({
   onSuccess,
   onCancel,
 }: BankInfoDrawerProps) {
+  const [label, setLabel] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankCode, setBankCode] = useState("");
   const [account, setAccount] = useState("");
@@ -38,6 +39,7 @@ export function BankInfoDrawer({
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          label: label.trim() || undefined,
           bankName: trimmedBankName,
           bankCode: trimmedBankCode,
           account: account.trim() || undefined,
@@ -52,6 +54,7 @@ export function BankInfoDrawer({
       if (data.bankInfo?.id) {
         onSuccess(data.bankInfo.id);
       }
+      setLabel("");
       setBankName("");
       setBankCode("");
       setAccount("");
@@ -65,6 +68,16 @@ export function BankInfoDrawer({
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       {error && <p className="text-sm text-red-500">{error}</p>}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="bank-label">名稱／備註</Label>
+        <Input
+          id="bank-label"
+          placeholder="例如：小明的帳戶、工作室公帳"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+        <p className="text-xs text-gray-500">只有主辦方看得到，用來區分多組帳戶</p>
+      </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="bank-name">銀行名稱 *</Label>
         <Input

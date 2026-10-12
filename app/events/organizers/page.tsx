@@ -17,7 +17,6 @@ type Organizer = {
   teamId: number;
   name: string;
   photoUrl: string | null;
-  lineId: string | null;
   instagram: string | null;
   facebook: string | null;
   createdAt: string;
@@ -35,7 +34,6 @@ export default function EventOrganizersPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formPhotoUrl, setFormPhotoUrl] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
-  const [formLineId, setFormLineId] = useState("");
   const [formInstagram, setFormInstagram] = useState("");
   const [formFacebook, setFormFacebook] = useState("");
 
@@ -66,7 +64,6 @@ export default function EventOrganizersPage() {
     setSubmitError(null);
     setFormPhotoUrl(null);
     setFormName("");
-    setFormLineId("");
     setFormInstagram("");
     setFormFacebook("");
     setDrawerOpen(true);
@@ -77,7 +74,6 @@ export default function EventOrganizersPage() {
     setSubmitError(null);
     setFormPhotoUrl(organizer.photoUrl);
     setFormName(organizer.name);
-    setFormLineId(organizer.lineId || "");
     setFormInstagram(organizer.instagram || "");
     setFormFacebook(organizer.facebook || "");
     setDrawerOpen(true);
@@ -107,7 +103,6 @@ export default function EventOrganizersPage() {
         body: JSON.stringify({
           name,
           photoUrl: formPhotoUrl || undefined,
-          lineId: formLineId.trim() || undefined,
           instagram: formInstagram.trim() || undefined,
           facebook: formFacebook.trim() || undefined,
         }),
@@ -187,9 +182,9 @@ export default function EventOrganizersPage() {
               )}
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{org.name}</p>
-                {(org.lineId || org.instagram || org.facebook) && (
+                {(org.instagram || org.facebook) && (
                   <p className="text-sm text-gray-500">
-                    {[org.lineId, org.instagram, org.facebook].filter(Boolean).join(" · ")}
+                    {[org.instagram, org.facebook].filter(Boolean).join(" · ")}
                   </p>
                 )}
               </div>
@@ -263,15 +258,6 @@ export default function EventOrganizersPage() {
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               placeholder="輸入名稱"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="org-line">Line ID</Label>
-            <Input
-              id="org-line"
-              value={formLineId}
-              onChange={(e) => setFormLineId(e.target.value)}
-              placeholder="輸入 Line ID"
             />
           </div>
           <div className="flex flex-col gap-2">

@@ -140,6 +140,7 @@ export async function POST(request: Request) {
   const locationId = body.locationId != null ? Number(body.locationId) : null;
   const organizerId = body.organizerId != null ? Number(body.organizerId) : null;
   const bankInfoId = body.bankInfoId != null ? Number(body.bankInfoId) : null;
+  const linePayeeId = body.linePayeeId != null ? Number(body.linePayeeId) : null;
   const allowMultiplePurchase = Boolean(body.allowMultiplePurchase);
   const autoCalcAmount = Boolean(body.autoCalcAmount);
   const attendeeFlagLabel =
@@ -161,6 +162,7 @@ export async function POST(request: Request) {
       locationId: Number.isInteger(locationId) ? locationId : null,
       organizerId: Number.isInteger(organizerId) ? organizerId : null,
       bankInfoId: Number.isInteger(bankInfoId) ? bankInfoId : null,
+      linePayeeId: Number.isInteger(linePayeeId) ? linePayeeId : null,
       allowMultiplePurchase,
       autoCalcAmount,
       attendeeFlagLabel,

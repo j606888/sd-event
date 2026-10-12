@@ -7,6 +7,8 @@ import { ChevronLeft, Copy, Check, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useUploadThing } from "@/lib/uploadthing";
+import type { EventLinePayee } from "@/types/event";
+import { LinePayeeCard } from "./LinePayeeCard";
 
 type BankInfo = {
   id: number;
@@ -15,22 +17,16 @@ type BankInfo = {
   account: string | null;
 };
 
-type Organizer = {
-  id: number;
-  name: string;
-  lineId: string | null;
-};
-
 type ReportPaymentPageProps = {
   registrationKey: string;
   bankInfo: BankInfo | null;
-  organizer: Organizer | null;
+  linePayee: EventLinePayee | null;
 };
 
 export function ReportPaymentPage({
   registrationKey,
   bankInfo,
-  organizer,
+  linePayee,
 }: ReportPaymentPageProps) {
   const router = useRouter();
   const { startUpload, isUploading } = useUploadThing("paymentScreenshot", {
@@ -259,19 +255,7 @@ export function ReportPaymentPage({
         )}
 
         {/* LINE Friend Information */}
-        {organizer?.lineId && (
-          <div className="space-y-3">
-            <h2 className="font-semibold text-gray-900">Line 好友</h2>
-            <a
-              href={`https://line.me/ti/p/${organizer.lineId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium text-brand border border-brand hover:bg-brand/10"
-            >
-              開啟 Line 好友
-            </a>
-          </div>
-        )}
+        {linePayee && <LinePayeeCard linePayee={linePayee} />}
 
         {/* Transfer Screenshot Upload */}
         <div className="space-y-3">
