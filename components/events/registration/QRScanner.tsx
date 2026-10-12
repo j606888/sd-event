@@ -316,7 +316,7 @@ export function QRScanner({
           {onWalkIn && (
             <Button
               onClick={onWalkIn}
-              className="w-full gap-1.5 bg-brand text-white hover:bg-brand-hover"
+              className="w-full gap-1.5 bg-brand text-ink hover:bg-brand-hover"
             >
               <UserPlus className="w-4 h-4" />
               現場報名

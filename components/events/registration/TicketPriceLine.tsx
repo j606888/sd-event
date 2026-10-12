@@ -66,7 +66,7 @@ export function TicketPriceLine({
             ${fullAmount}
           </span>
           <span aria-hidden> · </span>
-          <span className="font-semibold text-follower">省 ${savings}</span>
+          <span className="font-semibold text-butter-ink">省 ${savings}</span>
         </span>
       )}
     </div>

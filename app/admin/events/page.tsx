@@ -33,7 +33,7 @@ function AdminEventsList() {
           {userId && (
             <>
               {" · "}
-              <Link href="/admin/events" className="text-brand underline">
+              <Link href="/admin/events" className="text-brand-strong underline">
                 顯示全部
               </Link>
             </>
@@ -66,7 +66,7 @@ function AdminEventsList() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/events/${e.id}`}
-                      className="font-semibold text-gray-900 hover:text-brand"
+                      className="font-semibold text-gray-900 hover:text-brand-strong"
                     >
                       {e.title}
                     </Link>

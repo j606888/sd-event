@@ -133,7 +133,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
               size="sm"
               disabled={!pickA || !pickB}
               onClick={confirmAdd}
-              className="bg-brand text-white hover:bg-brand-hover"
+              className="bg-brand text-ink hover:bg-brand-hover"
             >
               加入
             </Button>

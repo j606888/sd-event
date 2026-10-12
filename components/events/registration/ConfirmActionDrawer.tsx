@@ -82,7 +82,7 @@ export function ConfirmActionDrawer({
             className={
               destructive
                 ? "flex-1 bg-red-600 text-white hover:bg-red-700"
-                : "flex-1 bg-brand text-white hover:bg-brand-hover"
+                : "flex-1 bg-brand text-ink hover:bg-brand-hover"
             }
             disabled={submitting}
             onClick={handleConfirm}

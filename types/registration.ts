@@ -111,8 +111,20 @@ export type Registration = {
   source?: RegistrationSource | string;
   attendeeCount: number;
   checkedInCount?: number;
+  /** 名單列直接顯示姓名／角色，並用來不進明細就入場 */
+  attendees: RegistrationListAttendee[];
+  /** 報名項目摘要（例：「Full Pass × 2、Party」），不含金額 */
+  itemSummary: string;
   hidden?: boolean;
   createdAt: string;
+};
+
+export type RegistrationListAttendee = {
+  id: number;
+  name: string;
+  role: string;
+  checkedIn: boolean;
+  checkedInAt: string | null;
 };
 
 /** Full registration data in detail view */

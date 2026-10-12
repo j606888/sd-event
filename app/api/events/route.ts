@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { customAlphabet } from "nanoid";
 import { db } from "@/db";
-import { events, eventRegistrations, teamMembers, eventLocations, users } from "@/db/schema";
+import { events, eventRegistrations, eventAttendees, teamMembers, eventLocations, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
+import { getTeamRole, requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
+import { isTeamAdmin } from "@/lib/team-roles";
 import { isEventType } from "@/lib/event-templates";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
-import { eq, inArray, desc, count, and } from "drizzle-orm";
+import { eq, inArray, desc, count, and, sql } from "drizzle-orm";
 
 function generatePublicKey(): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -75,6 +76,7 @@ export async function GET(request: Request) {
             .select({
               eventId: eventRegistrations.eventId,
               count: count(),
+              awaitingConfirmation: sql<number>`cast(count(case when ${eventRegistrations.paymentStatus} = 'reported' then 1 end) as int)`,
             })
             .from(eventRegistrations)
             .where(
@@ -88,6 +90,36 @@ export async function GET(request: Request) {
     const countMap = new Map(
       registrationCounts.map((r) => [r.eventId, Number(r.count)])
     );
+    const awaitingMap = new Map(
+      registrationCounts.map((r) => [r.eventId, Number(r.awaitingConfirmation)])
+    );
+
+    // 列表上直接看得到每場來了多少人、入場幾人（只算未隱藏的報名）
+    const attendeeTotals =
+      eventIds.length > 0
+        ? await db
+            .select({
+              eventId: eventRegistrations.eventId,
+              total: count(),
+              checkedIn: sql<number>`cast(count(case when ${eventAttendees.checkedIn} then 1 end) as int)`,
+            })
+            .from(eventAttendees)
+            .innerJoin(
+              eventRegistrations,
+              eq(eventRegistrations.id, eventAttendees.registrationId)
+            )
+            .where(
+              and(
+                inArray(eventRegistrations.eventId, eventIds),
+                eq(eventRegistrations.hidden, false)
+              )
+            )
+            .groupBy(eventRegistrations.eventId)
+        : [];
+    const attendeeMap = new Map(attendeeTotals.map((r) => [r.eventId, r]));
+
+    // 待確認收款筆數屬於款項資訊，驗票人員不回
+    const canSeeMoney = isTeamAdmin(await getTeamRole(teamId, session.userId));
 
     // Fetch locations for events
     const locationIds = list
@@ -105,6 +137,9 @@ export async function GET(request: Request) {
     const eventsWithCount = list.map((e) => ({
       ...e,
       registrationCount: countMap.get(e.id) ?? 0,
+      attendeeCount: Number(attendeeMap.get(e.id)?.total ?? 0),
+      checkedInCount: Number(attendeeMap.get(e.id)?.checkedIn ?? 0),
+      ...(canSeeMoney && { awaitingConfirmationCount: awaitingMap.get(e.id) ?? 0 }),
       location: e.locationId ? locationMap.get(e.locationId) || null : null,
     }));
     return NextResponse.json({ events: eventsWithCount });

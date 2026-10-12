@@ -470,7 +470,7 @@ export function PurchaseItemDrawer({
               <button
                 type="button"
                 onClick={fillEmptyTiersFromFirst}
-                className="rounded text-xs font-medium text-brand underline-offset-2 hover:underline"
+                className="rounded text-xs font-medium text-brand-strong underline-offset-2 hover:underline"
               >
                 其餘時段帶入同價
               </button>
@@ -548,7 +548,7 @@ export function PurchaseItemDrawer({
         </Button>
         <Button
           type="submit"
-          className="bg-primary text-white hover:bg-brand-hover"
+          className="bg-primary text-ink hover:bg-brand-hover"
           disabled={submitting}
         >
           {isEditing

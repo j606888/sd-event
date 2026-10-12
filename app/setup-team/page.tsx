@@ -6,6 +6,7 @@ import { loginPath } from "@/lib/safe-next-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/brand/Logo";
 
 export default function SetupTeamPage() {
   const router = useRouter();
@@ -102,11 +103,8 @@ export default function SetupTeamPage() {
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <main className="w-full max-w-md flex-1 flex flex-col justify-center p-6">
-        <h1
-          className="text-[28px] font-extrabold text-brand mb-2 self-start"
-          style={{ fontFamily: "var(--font-nunito)" }}
-        >
-          SD Event.
+        <h1 className="mb-2 self-start">
+          <Logo />
         </h1>
         <p className="text-gray-600 mb-8">請先建立一個團隊，才能開始使用活動功能。</p>
 
@@ -129,7 +127,7 @@ export default function SetupTeamPage() {
           )}
           <Button
             type="submit"
-            className="w-full bg-brand hover:bg-[#4285A] text-white"
+            className="w-full bg-brand hover:bg-brand-hover text-ink"
             disabled={submitting}
           >
             {submitting ? "建立中…" : "建立團隊"}

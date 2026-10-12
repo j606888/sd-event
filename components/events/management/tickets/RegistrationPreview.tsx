@@ -151,7 +151,7 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     <div className="flex flex-col gap-3 rounded-xl border border-hairline bg-white p-4 shadow-sm">
       <div>
         <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-          <Eye className="size-4 text-brand" />
+          <Eye className="size-4 text-brand-strong" />
           報名頁即時預覽
         </p>
         <p className="mt-0.5 text-xs text-gray-500">
@@ -169,7 +169,7 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
               onClick={() => setPickedTierIndex(i === tierIndex ? null : i)}
               className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
                 i === tierIndex
-                  ? "border-brand bg-brand/10 text-brand"
+                  ? "border-brand bg-brand/10 text-brand-strong"
                   : "border-gray-200 text-gray-500 hover:border-gray-300"
               }`}
             >

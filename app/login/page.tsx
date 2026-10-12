@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { safeNextPath } from "@/lib/safe-next-path";
+import { Logo } from "@/components/brand/Logo";
 
 const loginSchema = z.object({
   email: z.string().email("請輸入有效的信箱"),
@@ -56,9 +57,9 @@ const LoginForm = () => {
   return (
     <div className="min-h-screen flex flex-col items-center">
     <main className="w-full flex-1 max-w-md p-4 flex flex-col items-center justify-between">
-      <h1 className="text-[28px] font-extrabold text-brand mb-8 self-start" style={{ fontFamily: 'var(--font-nunito)' }}>
-        SD Event.
-      </h1>
+      <h1 className="mb-8 self-start">
+          <Logo />
+        </h1>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col items-center justify-center w-full gap-6">
         <h4 className="text-[20px] font-semibold text-gray-900text-center">登入帳號</h4>
         {expired && (
@@ -87,7 +88,7 @@ const LoginForm = () => {
           </Button>
           <p className="text-gray-600 text-sm">
             還沒有帳號?{" "}
-            <Link href="/register" className="text-brand font-medium underline">
+            <Link href="/register" className="text-brand-strong font-medium underline">
               註冊帳號
             </Link>
           </p>

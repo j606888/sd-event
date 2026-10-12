@@ -10,7 +10,8 @@ import {
   eventRegistrationPurchaseItems,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { isTeamAdmin } from "@/lib/team-roles";
 import { eq, inArray, and, asc, count, sql } from "drizzle-orm";
 import { priceUnitsFor } from "@/lib/seat-count";
 import {
@@ -45,8 +46,11 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "找不到活動" }, { status: 404 });
   }
 
-  const forbidden = await requireTeamAdmin(event.teamId, session.userId);
+  const forbidden = await requireTeamMember(event.teamId, session.userId);
   if (forbidden) return forbidden;
+
+  // 驗票人員只拿得到人數與入場數（門口的數字列要用），金額與項目收入一律不回
+  const canSeeMoney = isTeamAdmin(await getTeamRole(event.teamId, session.userId));
 
   // Get non-hidden registrations — only id and purchaseItemId needed now.
   const regs = await db
@@ -67,10 +71,14 @@ export async function GET(_request: Request, { params }: Params) {
   const registrationIds = regs.map((r) => r.id);
 
   if (registrationIds.length === 0) {
-    return NextResponse.json({
+    const empty = {
       roleCounts: { Leader: 0, Follower: 0, "Not sure": 0 },
       totalAttendees: 0,
       checkedInCount: 0,
+    };
+    if (!canSeeMoney) return NextResponse.json(empty);
+    return NextResponse.json({
+      ...empty,
       paymentAmountTotals: {
         confirmed: 0,
         reported: 0,
@@ -104,6 +112,10 @@ export async function GET(_request: Request, { params }: Params) {
     if (row.role in roleCounts) {
       roleCounts[row.role] = Number(row.total);
     }
+  }
+
+  if (!canSeeMoney) {
+    return NextResponse.json({ roleCounts, totalAttendees, checkedInCount });
   }
 
   // Query 2: Payment amount totals + registration counts via GROUP BY.

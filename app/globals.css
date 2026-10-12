@@ -10,34 +10,41 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* --- Brand identity: the Leader / Follower duality ---------------------
-     Partner dance is two roles in balance. Blue is the brand AND the Leader;
-     coral is its Follower counterpoint. These appear in role contexts only. */
-  --ink: #16213e;          /* deep midnight-indigo — headings & display type */
-  --brand: #3e7cb1;        /* dance blue — primary action & Leader role       */
-  --brand-hover: #356c9b;
-  --leader: #3e7cb1;
-  --follower: #e0765c;     /* terracotta-coral — Follower role                */
-  --follower-hover: #d2664c;
-  --paper: #f4f6f8;        /* cool paper page background                       */
-  --muted-ink: #5b6472;    /* secondary text                                  */
+  /* --- Brand identity: mist blue on slate ink ------------------------------
+     Mist blue is too light to carry white text or to read as text on white,
+     so fills pair with --ink and text/icons on light surfaces use
+     --brand-strong. Butter is reserved for money that needs attention. */
+  --ink: #1e2f3d;          /* deep slate — text, headings, logo               */
+  --brand: #7db9c7;        /* mist blue — solid fills, selection, underline   */
+  --brand-hover: #6aabba;
+  --brand-soft: #e6f2f4;   /* selected rows, checked-in chips                 */
+  --brand-strong: #245a6b; /* brand-coloured text & icons on light surfaces   */
+  --butter: #ebcb7a;       /* confirm-payment action                          */
+  --butter-hover: #e2bd5f;
+  --butter-soft: #fbf1d3;
+  --butter-ink: #7a5a00;   /* "awaiting confirmation" text                    */
+  --leader: #33475b;       /* Leader role — solid slate                       */
+  --follower: #8a3f45;     /* Follower role — dusty rose text                 */
+  --follower-hover: #763439;
+  --follower-soft: #f6e6e6;
+  --paper: #f4f7f9;        /* page background                                 */
+  --muted-ink: #55636f;    /* secondary text                                  */
 
   /* --- Dashboard surface system (organizer app only) ----------------------
-     The dashboard sits on a near-white surface; structure comes from
-     hairline dividers and whitespace instead of nested bordered cards. */
-  --surface: #fcfcfd;      /* dashboard content background                    */
-  --hairline: #e8eaef;     /* thin dividers between sections & list rows      */
-  --field: #f3f5f7;        /* form field fill (inputs, selects, textareas)    */
+     White surfaces on the paper ground; structure comes from hairlines. */
+  --surface: #ffffff;      /* dashboard content background                    */
+  --hairline: #e3e9ed;     /* thin dividers between sections & list rows      */
+  --field: #ecf0f3;        /* form field fill (inputs, selects, textareas)    */
 
   --primary: var(--brand);
   --radius: 0.625rem;
   --background: var(--paper);
-  --foreground: #1e2740;
+  --foreground: #1e2f3d;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: var(--ink);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -70,9 +77,16 @@
   --color-ink: var(--ink);
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
+  --color-butter: var(--butter);
+  --color-butter-hover: var(--butter-hover);
+  --color-butter-soft: var(--butter-soft);
+  --color-butter-ink: var(--butter-ink);
   --color-leader: var(--leader);
   --color-follower: var(--follower);
   --color-follower-hover: var(--follower-hover);
+  --color-follower-soft: var(--follower-soft);
   --color-paper: var(--paper);
   --color-muted-ink: var(--muted-ink);
   --color-surface: var(--surface);
@@ -80,7 +94,7 @@
   --color-field: var(--field);
   --font-nunito: var(--font-nunito);
   --font-inter: var(--font-inter);
-  --font-display: var(--font-space-grotesk);
+  --font-display: var(--font-display-latin);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -124,9 +138,9 @@ body {
 }
 
 /* Display face — wordmark, page titles, large numerals (prices, stats).
-   Space Grotesk for Latin/numerals, Noto Sans TC for CJK headings. */
+   Plus Jakarta Sans for Latin/numerals, Noto Sans TC for CJK headings. */
 .font-display {
-  font-family: var(--font-space-grotesk), var(--font-noto-tc), sans-serif;
+  font-family: var(--font-display-latin), var(--font-noto-tc), sans-serif;
   letter-spacing: -0.01em;
 }
 

@@ -19,7 +19,7 @@ function TicketItemInfo({
     <div className="min-w-0">
       <div className="font-medium text-gray-900">{item.name}</div>
       {seats > 1 && (
-        <div className="mt-1 inline-flex items-center gap-1 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand">
+        <div className="mt-1 inline-flex items-center gap-1 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand-strong">
           <Users className="size-3" />
           {seats} 人套票 · 需填 {seats} 位參加者
         </div>
@@ -155,7 +155,7 @@ export function GroupTicketPicker({
                             );
                           }
                         }}
-                        className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
+                        className="w-4 h-4 text-brand-strong border-gray-300 focus:ring-brand"
                       />
                       <div className="flex flex-1 items-start justify-between gap-3">
                         <TicketItemInfo
@@ -188,7 +188,7 @@ export function GroupTicketPicker({
                       name={`group-${group.id}`}
                       checked={selected.length === 0}
                       onChange={() => setGroupSelection([])}
-                      className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
+                      className="w-4 h-4 text-brand-strong border-gray-300 focus:ring-brand"
                     />
                     <div className="flex-1">
                       <div className="font-medium text-gray-900">不需要</div>
@@ -235,7 +235,7 @@ export function GroupTicketPicker({
                     onSelectedPlanChange(item.id, []);
                   }
                 }}
-                className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
+                className="w-4 h-4 text-brand-strong border-gray-300 focus:ring-brand"
               />
               <div className="flex flex-1 items-start justify-between gap-3">
                 <TicketItemInfo item={item} activeTierName={activeTierName} />

@@ -192,7 +192,7 @@ export default function EventLinePayeesPage() {
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
               取消
             </Button>
-            <Button type="submit" className="bg-primary text-white hover:bg-brand-hover">
+            <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
               {editingId ? "更新" : "新增"}
             </Button>
           </div>

@@ -9,27 +9,32 @@ import { EventStats } from "@/components/events/management/EventStats";
 import { WalkInDrawer } from "@/components/events/management/WalkInDrawer";
 import { RegistrationEditDrawer } from "@/components/events/management/RegistrationEditDrawer";
 import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
+import { EventNumbersStrip } from "@/components/events/registration/EventNumbersStrip";
 import { RegistrationDetail, RegistrationDetailSkeleton } from "@/components/events/registration/RegistrationDetail";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Check, Link2, UserPlus, Download } from "lucide-react";
+import { ArrowLeft, Check, Link2, UserPlus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEvent } from "@/hooks/use-event-detail";
 import { useReadOnly } from "@/hooks/use-session";
 import { useTeamRole } from "@/hooks/use-team-role";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { getEventDateLabel } from "@/lib/format-event-date";
+import { cn } from "@/lib/utils";
 import { EVENT_TABS, FORM_TAB_IDS, STAFF_TAB_IDS, useTabParam } from "@/hooks/use-tab-param";
 import {
   useRegistrations,
   useRegistrationDetail,
   useUpdateRegistration,
   useCheckIn,
+  useUndoCheckIn,
   useResendConfirmationEmail,
 } from "@/hooks/use-registrations";
 import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter, PurchaseItemFilter } from "@/lib/registration-list-filters";
 
 function EventDetailSkeleton() {
   return (
-    <div className="flex w-full max-w-6xl flex-1 flex-col">
+    <div className="flex w-full max-w-7xl flex-1 flex-col">
       <div className="px-4 pt-4 pb-3 md:px-8 md:pt-5">
         <Skeleton className="mb-2 h-3.5 w-16" />
         <div className="flex items-center justify-between gap-3">
@@ -38,7 +43,7 @@ function EventDetailSkeleton() {
         </div>
       </div>
       <div className="flex border-b border-hairline px-4 md:px-8">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-10 w-16 mx-2 my-1.5 rounded" />
         ))}
       </div>
@@ -65,8 +70,6 @@ function EventDetailPageInner() {
   const { isAdmin, isLoading: roleLoading } = useTeamRole();
   const allowedTabs = isAdmin ? ALL_TAB_IDS : STAFF_TAB_IDS;
 
-  // 分頁狀態同步至網址 ?tab=，可深連結、重新整理不跳走
-  const [activeTab, setTab] = useTabParam(allowedTabs);
   const [shareCopied, setShareCopied] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -103,6 +106,15 @@ function EventDetailPageInner() {
   const eventQuery = useEvent(eventId);
   const event = eventQuery.data;
 
+  // 分頁狀態同步至網址 ?tab=，可深連結、重新整理不跳走。
+  // 開賣後進來是為了找人，所以預設落在報名者；還在草稿的活動才先帶到基本資訊。
+  const [activeTab, setTab] = useTabParam(
+    allowedTabs,
+    isAdmin && event?.status === "draft" ? "basic" : "registrations"
+  );
+  // lg 以上明細開在名單右側；以下整頁切換
+  const isWide = useMediaQuery("(min-width: 1024px)");
+
   const registrationsParams = {
     search: debouncedSearch,
     page,
@@ -121,7 +133,8 @@ function EventDetailPageInner() {
   const selectedRegistration = registrationDetailQuery.data ?? null;
 
   const updateRegistration = useUpdateRegistration(eventId);
-  const checkInMutation = useCheckIn(eventId, selectedRegistrationId);
+  const checkInMutation = useCheckIn(eventId);
+  const undoCheckInMutation = useUndoCheckIn(eventId);
   const resendConfirmation = useResendConfirmationEmail(eventId);
 
   // 跨頁前後筆導覽：新的一頁載入後，把選取落在該頁的頭或尾
@@ -223,7 +236,7 @@ function EventDetailPageInner() {
             ? eventQuery.error.message
             : "找不到活動"}
         </p>
-        <Link href="/events" className="mt-2 inline-block text-brand underline">
+        <Link href="/events" className="mt-2 inline-block text-brand-strong underline">
           返回活動列表
         </Link>
       </div>
@@ -233,55 +246,86 @@ function EventDetailPageInner() {
   const isFormTab = isAdmin && (FORM_TAB_IDS as readonly string[]).includes(activeTab);
 
   return (
-    <div className="flex w-full max-w-6xl flex-1 flex-col">
+    <div className="flex w-full max-w-7xl flex-1 flex-col">
       <div className="px-4 pt-4 pb-3 md:px-8 md:pt-5">
         {/* 麵包屑返回：桌機慣例放在標題上方左側 */}
         <Link
           href="/events"
-          className="group mb-1.5 inline-flex items-center gap-1 text-xs font-medium text-gray-400 transition-colors hover:text-ink"
+          className="group mb-1.5 inline-flex items-center gap-1 text-xs font-medium text-muted-ink transition-colors hover:text-ink"
         >
           <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
           所有活動
         </Link>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="min-w-0 flex-1 truncate font-display text-xl font-bold text-ink md:text-2xl">
-            {event.title}
-          </h1>
-          {event.status === "draft" && isAdmin && (
-            <>
-              <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-amber-700">
-                <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
-                草稿
-              </span>
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+          <div className="min-w-0 flex-1 basis-64">
+            <div className="flex items-center gap-2.5">
+              <h1 className="min-w-0 truncate font-display text-xl font-bold text-ink md:text-[28px] md:leading-tight">
+                {event.title}
+              </h1>
+              {event.status === "draft" ? (
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-butter-soft px-2.5 py-0.5 text-xs font-bold text-butter-ink">
+                  <span className="size-1.5 rounded-full bg-butter" aria-hidden />
+                  草稿
+                </span>
+              ) : new Date(event.endAt) < new Date() ? (
+                <span className="inline-flex shrink-0 items-center rounded-full bg-field px-2.5 py-0.5 text-xs font-bold text-muted-ink">
+                  已結束
+                </span>
+              ) : (
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand-strong">
+                  <span className="size-1.5 rounded-full bg-brand" aria-hidden />
+                  售票中
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-sm text-muted-ink">
+              {getEventDateLabel(event.startAt, event.endAt)}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.publicKey}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  setShareCopied(true);
+                  setTimeout(() => setShareCopied(false), 2000);
+                });
+              }}
+              className={cn(
+                "inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border px-3.5 text-sm font-medium transition-colors",
+                shareCopied
+                  ? "border-brand bg-brand-soft text-brand-strong"
+                  : "border-gray-300 bg-white text-ink hover:border-ink"
+              )}
+            >
+              {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
+              {shareCopied ? "已複製連結" : "分享表單"}
+            </button>
+            {event.status === "draft" && isAdmin ? (
               <button
                 type="button"
                 onClick={handlePublish}
                 disabled={publishing || readOnly}
                 title={readOnly ? "模擬檢視為唯讀模式" : undefined}
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-follower px-4 text-sm font-medium text-white shadow-sm shadow-follower/25 transition-colors cursor-pointer hover:bg-follower-hover disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-butter px-4 text-sm font-bold text-ink transition-colors hover:bg-butter-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {publishing ? "發布中…" : "發布"}
               </button>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              const url = `${typeof window !== "undefined" ? window.location.origin : ""}/e/${event.publicKey}`;
-              navigator.clipboard.writeText(url).then(() => {
-                setShareCopied(true);
-                setTimeout(() => setShareCopied(false), 2000);
-              });
-            }}
-            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-white shadow-sm transition-colors cursor-pointer ${
-              shareCopied
-                ? "bg-emerald-500 shadow-emerald-500/25"
-                : "bg-brand shadow-brand/25 hover:bg-brand-hover"
-            }`}
-          >
-            {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
-            {shareCopied ? "已複製連結" : "分享表單"}
-          </button>
+            ) : (
+              /* 手機的現場報名在底部導覽列，這顆只給 sm 以上 */
+              <button
+                type="button"
+                onClick={() => setWalkInOpen(true)}
+                disabled={readOnly}
+                title={readOnly ? "模擬檢視為唯讀模式" : undefined}
+                className="hidden h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-bold text-ink transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex"
+              >
+                <UserPlus className="size-4" />
+                現場報名
+              </button>
+            )}
+          </div>
         </div>
       </div>
       {publishError && (
@@ -291,8 +335,8 @@ function EventDetailPageInner() {
         </p>
       )}
       {event.status === "draft" && (
-        <p className="flex items-center gap-1.5 px-4 pb-2 text-xs text-amber-700 md:px-8">
-          <span className="size-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden />
+        <p className="flex items-center gap-1.5 px-4 pb-2 text-xs text-butter-ink md:px-8">
+          <span className="size-1.5 shrink-0 rounded-full bg-butter" aria-hidden />
           活動尚未發布：報名連結僅團隊成員能預覽，按「發布」後才對外開放報名。
         </p>
       )}
@@ -306,6 +350,7 @@ function EventDetailPageInner() {
             setTab(tab);
             setSelectedRegistrationId(null);
           }}
+          onWalkIn={readOnly ? undefined : () => setWalkInOpen(true)}
         />
       </div>
 
@@ -327,96 +372,33 @@ function EventDetailPageInner() {
         </div>
         )}
         {activeTab === "registrations" && (
-          <>
-            {selectedRegistrationId && registrationDetailQuery.isLoading ? (
-              <RegistrationDetailSkeleton onBack={() => setSelectedRegistrationId(null)} />
-            ) : selectedRegistration ? (
-              <RegistrationDetail
-                registration={selectedRegistration}
-                canManage={isAdmin}
-                currentIndex={selectedGlobalIndex}
-                totalCount={matchedTotal}
-                onBack={() => {
-                  setSelectedRegistrationId(null);
-                }}
-                onPrevious={() => {
-                  if (selectedIndexInPage > 0) {
-                    setSelectedRegistrationId(registrations[selectedIndexInPage - 1].id);
-                  } else if (page > 1) {
-                    // 走到本頁第一筆：往前翻一頁並選該頁最後一筆
-                    setPendingEdgeSelect("last");
-                    setPage((p) => p - 1);
-                  }
-                }}
-                onNext={() => {
-                  if (
-                    selectedIndexInPage >= 0 &&
-                    selectedIndexInPage < registrations.length - 1
-                  ) {
-                    setSelectedRegistrationId(registrations[selectedIndexInPage + 1].id);
-                  } else if (selectedGlobalIndex < matchedTotal - 1) {
-                    // 走到本頁最後一筆：往後翻一頁並選該頁第一筆
-                    setPendingEdgeSelect("first");
-                    setPage((p) => p + 1);
-                  }
-                }}
-                onStatusUpdate={async (status) => {
-                  if (selectedRegistrationId) {
-                    await updateRegistration.mutateAsync({
-                      registrationId: selectedRegistrationId,
-                      patch: { paymentStatus: status },
-                    });
-                  }
-                }}
-                onHiddenToggle={async (hidden) => {
-                  if (selectedRegistrationId) {
-                    await updateRegistration.mutateAsync({
-                      registrationId: selectedRegistrationId,
-                      patch: { hidden },
-                    });
-                  }
-                }}
-                onCheckIn={async (attendeeId) => {
-                  await checkInMutation.mutateAsync(attendeeId);
-                }}
-                onEdit={() => setEditOpen(true)}
-                onResendEmail={async () => {
-                  if (selectedRegistrationId) {
-                    await resendConfirmation.mutateAsync(selectedRegistrationId);
-                  }
-                }}
+          <div className="space-y-4">
+            {/* 明細開著時手機只看明細；桌機名單與數字列一直都在 */}
+            <div className={cn(selectedRegistrationId !== null && "hidden lg:block")}>
+              <EventNumbersStrip
+                eventId={eventId}
+                onShowAll={() => handleStatsDrillDown({})}
+                onShowNotEntered={() => handleStatsDrillDown({ checkIn: "not_all" })}
+                onShowAwaitingConfirmation={() => handleStatsDrillDown({ payment: "reported" })}
               />
-            ) : (
-              <div className="space-y-3">
-                <div className="flex justify-end gap-2">
-                  {isAdmin && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={handleExportCsv}
-                      disabled={registrations.length === 0}
-                      className="gap-1.5"
-                    >
-                      <Download className="size-4" />
-                      匯出 CSV
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setWalkInOpen(true)}
-                    disabled={readOnly}
-                    title={readOnly ? "模擬檢視為唯讀模式" : undefined}
-                    className="gap-1.5 bg-brand text-white hover:bg-brand-hover"
-                  >
-                    <UserPlus className="size-4" />
-                    現場報名
-                  </Button>
-                </div>
+            </div>
+            <div
+              className={cn(
+                "grid items-start gap-5",
+                selectedRegistrationId !== null && "lg:grid-cols-[minmax(0,1fr)_380px]"
+              )}
+            >
+              <div
+                className={cn(
+                  "min-w-0 space-y-3",
+                  selectedRegistrationId !== null && "hidden lg:block"
+                )}
+              >
                 <RegistrationsList
+                  eventId={eventId}
                   registrations={registrations}
-                  canSeeMoney={isAdmin}
+                  canManage={isAdmin}
+                  selectedId={selectedRegistrationId}
                   onSelect={(id) => setSelectedRegistrationId(id)}
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
@@ -431,69 +413,123 @@ function EventDetailPageInner() {
                   purchaseItemFilter={purchaseItemFilter}
                   onPurchaseItemFilterChange={setPurchaseItemFilter}
                   purchaseItemOptions={registrationsData?.purchaseItemOptions ?? []}
-                  totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
+                  matchedTotal={matchedTotal}
                   isLoading={registrationsQuery.isLoading}
+                  onWalkIn={() => setWalkInOpen(true)}
+                  onExportCsv={isAdmin ? handleExportCsv : undefined}
                 />
+                {registrationsData?.pagination &&
+                  registrationsData.pagination.total > registrationsData.pagination.pageSize && (
+                    <div className="flex items-center justify-between px-1 py-2 text-sm text-gray-600">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => p - 1)}
+                      >
+                        上一頁
+                      </Button>
+                      <span>
+                        第 {page} /{" "}
+                        {Math.ceil(
+                          registrationsData.pagination.total /
+                            registrationsData.pagination.pageSize
+                        )}{" "}
+                        頁
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={
+                          page >=
+                          Math.ceil(
+                            registrationsData.pagination.total /
+                              registrationsData.pagination.pageSize
+                          )
+                        }
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        下一頁
+                      </Button>
+                    </div>
+                  )}
               </div>
-            )}
-            {!selectedRegistration &&
-              registrationsData?.pagination &&
-              registrationsData.pagination.total > registrationsData.pagination.pageSize && (
-                <div className="flex items-center justify-between px-1 py-2 text-sm text-gray-600">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    上一頁
-                  </Button>
-                  <span>
-                    第 {page} /{" "}
-                    {Math.ceil(
-                      registrationsData.pagination.total /
-                        registrationsData.pagination.pageSize
-                    )}{" "}
-                    頁
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={
-                      page >=
-                      Math.ceil(
-                        registrationsData.pagination.total /
-                          registrationsData.pagination.pageSize
-                      )
-                    }
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    下一頁
-                  </Button>
+
+              {selectedRegistrationId !== null && (
+                <div className="min-w-0 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:rounded-2xl lg:border lg:border-hairline lg:bg-white lg:p-5">
+                  {registrationDetailQuery.isLoading || !selectedRegistration ? (
+                    <RegistrationDetailSkeleton onBack={() => setSelectedRegistrationId(null)} />
+                  ) : (
+                    <RegistrationDetail
+                      layout={isWide ? "panel" : "page"}
+                      registration={selectedRegistration}
+                      canManage={isAdmin}
+                      currentIndex={selectedGlobalIndex}
+                      totalCount={matchedTotal}
+                      onBack={() => {
+                        setSelectedRegistrationId(null);
+                      }}
+                      onPrevious={() => {
+                        if (selectedIndexInPage > 0) {
+                          setSelectedRegistrationId(registrations[selectedIndexInPage - 1].id);
+                        } else if (page > 1) {
+                          // 走到本頁第一筆：往前翻一頁並選該頁最後一筆
+                          setPendingEdgeSelect("last");
+                          setPage((p) => p - 1);
+                        }
+                      }}
+                      onNext={() => {
+                        if (
+                          selectedIndexInPage >= 0 &&
+                          selectedIndexInPage < registrations.length - 1
+                        ) {
+                          setSelectedRegistrationId(registrations[selectedIndexInPage + 1].id);
+                        } else if (selectedGlobalIndex < matchedTotal - 1) {
+                          // 走到本頁最後一筆：往後翻一頁並選該頁第一筆
+                          setPendingEdgeSelect("first");
+                          setPage((p) => p + 1);
+                        }
+                      }}
+                      onStatusUpdate={async (status) => {
+                        if (selectedRegistrationId) {
+                          await updateRegistration.mutateAsync({
+                            registrationId: selectedRegistrationId,
+                            patch: { paymentStatus: status },
+                          });
+                        }
+                      }}
+                      onHiddenToggle={async (hidden) => {
+                        if (selectedRegistrationId) {
+                          await updateRegistration.mutateAsync({
+                            registrationId: selectedRegistrationId,
+                            patch: { hidden },
+                          });
+                        }
+                      }}
+                      onCheckIn={async (attendeeId) => {
+                        await checkInMutation.mutateAsync(attendeeId);
+                      }}
+                      onEdit={() => setEditOpen(true)}
+                      onResendEmail={async () => {
+                        if (selectedRegistrationId) {
+                          await resendConfirmation.mutateAsync(selectedRegistrationId);
+                        }
+                      }}
+                      onUndoCheckIn={async (attendeeId) => {
+                        await undoCheckInMutation.mutateAsync(attendeeId);
+                      }}
+                    />
+                  )}
                 </div>
               )}
-          </>
+            </div>
+          </div>
         )}
         {activeTab === "stats" && eventId && isAdmin && (
           <EventStats
             eventId={eventId}
             onFilterRegistrations={handleStatsDrillDown}
           />
-        )}
-        {activeTab === "verify" && (
-          <div className="max-w-md space-y-4">
-            <p className="text-sm text-gray-600">
-              掃描參加者的 QR code 來確認入場
-            </p>
-            <Button
-              onClick={() => {
-                window.location.href = `/events/${eventId}/scan`;
-              }}
-              className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
-            >
-              開啟掃描器
-            </Button>
-          </div>
         )}
       </div>
 

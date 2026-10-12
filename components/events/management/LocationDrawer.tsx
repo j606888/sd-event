@@ -109,7 +109,7 @@ export function LocationDrawer({
         </Button>
         <Button
           type="submit"
-          className="bg-primary text-white hover:bg-brand-hover"
+          className="bg-primary text-ink hover:bg-brand-hover"
           disabled={submitting}
         >
           {submitting ? "新增中…" : "新增"}

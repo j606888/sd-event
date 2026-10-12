@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Nunito, Inter, Noto_Sans_TC, Space_Grotesk } from "next/font/google";
+import { Nunito, Inter, Noto_Sans_TC, Plus_Jakarta_Sans } from "next/font/google";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
@@ -23,8 +23,8 @@ const notoSansTC = Noto_Sans_TC({
   weight: ["400", "500", "700", "900"],
 });
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const displayLatin = Plus_Jakarta_Sans({
+  variable: "--font-display-latin",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
 });
@@ -42,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="zh-TW">
       <body
-        className={`${nunito.variable} ${inter.variable} ${notoSansTC.variable} ${spaceGrotesk.variable} antialiased`}
+        className={`${nunito.variable} ${inter.variable} ${notoSansTC.variable} ${displayLatin.variable} antialiased`}
       >
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <QueryProvider>{children}</QueryProvider>

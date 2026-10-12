@@ -99,6 +99,46 @@ export async function POST(_request: Request, { params }: Params) {
 }
 
 /**
+ * 取消入場（需為該團隊成員）
+ * 門口按錯人時的復原；權限與入場相同，驗票人員也能用。
+ */
+export async function DELETE(_request: Request, { params }: Params) {
+  const authError = await requireAuth();
+  if (authError) return authError;
+
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+
+  const attendeeId = Number((await params).attendeeId);
+  if (!Number.isInteger(attendeeId)) {
+    return NextResponse.json({ error: "無效的 attendeeId" }, { status: 400 });
+  }
+
+  const [row] = await db
+    .select({ teamId: events.teamId })
+    .from(eventAttendees)
+    .innerJoin(eventRegistrations, eq(eventRegistrations.id, eventAttendees.registrationId))
+    .innerJoin(events, eq(events.id, eventRegistrations.eventId))
+    .where(eq(eventAttendees.id, attendeeId))
+    .limit(1);
+
+  if (!row) {
+    return NextResponse.json({ error: "找不到參加者記錄" }, { status: 404 });
+  }
+
+  const forbidden = await requireTeamMember(row.teamId, session.userId);
+  if (forbidden) return forbidden;
+
+  const [updated] = await db
+    .update(eventAttendees)
+    .set({ checkedIn: false, checkedInAt: null, updatedAt: new Date() })
+    .where(eq(eventAttendees.id, attendeeId))
+    .returning();
+
+  return NextResponse.json({ attendee: updated, message: "已取消入場" });
+}
+
+/**
  * 取得參加者入場狀態（需為該團隊成員）
  */
 export async function GET(_request: Request, { params }: Params) {

@@ -51,15 +51,15 @@ export default function ReportPaymentPageRoute() {
 
   if (loading && registrationKey) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
-        <p className="text-white/80">載入中…</p>
+      <div className="min-h-screen bg-paper p-6 flex items-center justify-center">
+        <p className="text-muted-ink">載入中…</p>
       </div>
     );
   }
 
   if (!registrationKey || error || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-ink to-[#2c5d7c] p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-paper p-6 flex items-center justify-center">
         <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl text-center space-y-2">
           <p className="text-red-500">
             {(!registrationKey ? "無效的報名編號" : error) ?? "找不到報名資料"}

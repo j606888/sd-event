@@ -34,6 +34,7 @@ import { RoleBadge } from "./RoleBadge";
 import { FlagBadge } from "./FlagBadge";
 import { formatClockTime, formatTimestamp } from "@/lib/format-event-date";
 import { useReadOnly } from "@/hooks/use-session";
+import { cn } from "@/lib/utils";
 import type { RegistrationDetailData } from "@/types/registration";
 
 type RegistrationDetailProps = {
@@ -53,8 +54,15 @@ type RegistrationDetailProps = {
   onStatusUpdate: (status: "confirmed" | "rejected") => Promise<void>;
   onHiddenToggle?: (hidden: boolean) => Promise<void>;
   onCheckIn: (attendeeId: number) => Promise<void>;
+  /** 取消入場（按錯人時用）；不給就不顯示 */
+  onUndoCheckIn?: (attendeeId: number) => Promise<void>;
   onEdit?: () => void;
   onResendEmail?: () => Promise<void>;
+  /**
+   * page：整頁明細，含返回與上一筆／下一筆（手機、平板）。
+   * panel：桌機名單右側的窄欄，名單還在旁邊所以只留關閉鈕，內容改單欄。
+   */
+  layout?: "page" | "panel";
 };
 
 export function RegistrationDetailSkeleton({ onBack }: { onBack: () => void }) {
@@ -125,7 +133,7 @@ function ContactRow({
       <Icon className="size-4 shrink-0 text-gray-400" />
       <a
         href={href}
-        className="min-w-0 flex-1 truncate text-sm font-medium text-brand hover:text-brand-hover hover:underline"
+        className="min-w-0 flex-1 truncate text-sm font-medium text-brand-strong hover:text-ink hover:underline"
       >
         {value}
       </a>
@@ -158,9 +166,12 @@ export function RegistrationDetail({
   onStatusUpdate,
   onHiddenToggle,
   onCheckIn,
+  onUndoCheckIn,
   onEdit,
   onResendEmail,
+  layout = "page",
 }: RegistrationDetailProps) {
+  const isPanel = layout === "panel";
   const readOnly = useReadOnly();
   const [updating, setUpdating] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -169,6 +180,7 @@ export function RegistrationDetail({
   const [checkingInId, setCheckingInId] = useState<number | null>(null);
   const [checkingInAll, setCheckingInAll] = useState(false);
   const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [undoingId, setUndoingId] = useState<number | null>(null);
   /** 未確認收款時，入場要先跳確認；記住是哪一位（null = 全部） */
   const [pendingCheckIn, setPendingCheckIn] = useState<
     { attendeeId: number | null } | null
@@ -204,6 +216,19 @@ export function RegistrationDetail({
     } finally {
       setCheckingInId(null);
       setCheckingInAll(false);
+    }
+  };
+
+  const runUndoCheckIn = async (attendeeId: number) => {
+    if (!onUndoCheckIn) return;
+    setCheckInError(null);
+    setUndoingId(attendeeId);
+    try {
+      await onUndoCheckIn(attendeeId);
+    } catch (e) {
+      setCheckInError(e instanceof Error ? e.message : "取消入場失敗，請重試");
+    } finally {
+      setUndoingId(null);
     }
   };
 
@@ -243,7 +268,19 @@ export function RegistrationDetail({
 
   return (
     <div className="w-full space-y-6">
-      {/* 前後筆導覽 */}
+      {isPanel ? (
+        <div className="-mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="關閉明細"
+            className="flex size-9 cursor-pointer items-center justify-center rounded-lg bg-field text-muted-ink transition-colors hover:text-ink"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      ) : (
+      /* 前後筆導覽 */
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
@@ -274,9 +311,15 @@ export function RegistrationDetail({
           </button>
         </div>
       </div>
+      )}
 
       {/* 標題 + 主要動作 */}
-      <div className="flex flex-col gap-4 border-b border-hairline pb-5 sm:flex-row sm:items-start sm:justify-between">
+      <div
+        className={cn(
+          "flex flex-col gap-4 border-b border-hairline pb-5",
+          !isPanel && "sm:flex-row sm:items-start sm:justify-between"
+        )}
+      >
         <div className="min-w-0">
           <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
             <h2 className="font-display text-xl font-bold text-ink">
@@ -314,7 +357,7 @@ export function RegistrationDetail({
                     void handleConfirmPayment();
                   }
                 }}
-                className="h-[38px] gap-2 bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-hover"
+                className="h-[38px] gap-2 bg-butter px-4 text-sm font-semibold text-ink hover:bg-butter-hover"
               >
                 <CheckCircle2 className="size-4" />
                 {updating ? "處理中…" : "確認收款"}
@@ -404,7 +447,12 @@ export function RegistrationDetail({
       {resendError && <p className="text-sm text-red-500">{resendError}</p>}
 
       {/* 雙欄：左邊是要操作的，右邊是要核對的 */}
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1.55fr)_minmax(280px,1fr)]">
+      <div
+        className={cn(
+          "grid gap-8",
+          !isPanel && "md:grid-cols-[minmax(0,1.55fr)_minmax(280px,1fr)]"
+        )}
+      >
         <div className="space-y-7">
           {/* 聯絡人 */}
           <section className="space-y-3">
@@ -466,21 +514,33 @@ export function RegistrationDetail({
                   <span className="truncate text-sm font-medium text-ink">
                     {attendee.name}
                   </span>
-                  <RoleBadge role={attendee.role} />
+                  <RoleBadge role={attendee.role} compact={isPanel} />
                   {registration.attendeeFlagLabel && attendee.flagged && (
                     <FlagBadge label={registration.attendeeFlagLabel} />
                   )}
                   <span className="flex-1" />
                   {attendee.checkedIn ? (
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-                      <CheckCircle2 className="size-3" />
-                      已入場
-                      {attendee.checkedInAt && (
-                        <span className="font-display tabular-nums">
-                          {formatClockTime(attendee.checkedInAt)}
-                        </span>
+                    <>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-strong">
+                        <Check className="size-3" strokeWidth={3} />
+                        已入場
+                        {attendee.checkedInAt && (
+                          <span className="font-display tabular-nums">
+                            {formatClockTime(attendee.checkedInAt)}
+                          </span>
+                        )}
+                      </span>
+                      {!readOnly && onUndoCheckIn && (
+                        <button
+                          type="button"
+                          disabled={undoingId === attendee.id}
+                          onClick={() => void runUndoCheckIn(attendee.id)}
+                          className="h-9 shrink-0 cursor-pointer rounded-md px-2 text-xs text-muted-ink underline underline-offset-2 transition-colors hover:text-ink disabled:opacity-50"
+                        >
+                          {undoingId === attendee.id ? "處理中…" : "取消入場"}
+                        </button>
                       )}
-                    </span>
+                    </>
                   ) : readOnly ? (
                     <span className="shrink-0 pr-1.5 text-xs text-gray-400">未入場</span>
                   ) : (
@@ -488,7 +548,7 @@ export function RegistrationDetail({
                       type="button"
                       disabled={checkingInId === attendee.id || checkingInAll}
                       onClick={() => requestCheckIn(attendee.id)}
-                      className="h-11 shrink-0 gap-1.5 bg-ink px-5 text-sm font-semibold text-white hover:bg-ink/90"
+                      className="h-11 shrink-0 gap-1.5 bg-brand px-5 text-sm font-bold text-ink hover:bg-brand-hover"
                     >
                       <Check className="size-4" />
                       {checkingInId === attendee.id ? "處理中…" : "入場"}
@@ -546,7 +606,7 @@ export function RegistrationDetail({
                       </span>
                     )}
                   </span>
-                  <span className="font-display tabular-nums text-brand">
+                  <span className="font-display tabular-nums text-brand-strong">
                     −{registration.discountAmount!.toLocaleString()}
                   </span>
                 </div>
@@ -603,7 +663,7 @@ export function RegistrationDetail({
                   href={registration.paymentScreenshotUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-strong hover:text-ink"
                 >
                   <ExternalLink className="size-3.5" />
                   原圖

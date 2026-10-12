@@ -27,6 +27,10 @@ type EventItem = {
   location: EventLocation | null;
   createdAt: string;
   registrationCount?: number;
+  attendeeCount?: number;
+  checkedInCount?: number;
+  /** 管理員才有 */
+  awaitingConfirmationCount?: number;
 };
 
 export default function EventsPage() {
@@ -80,7 +84,7 @@ export default function EventsPage() {
         <p className="text-red-500">{error ?? teamError}</p>
         <Link
           href="/login?next=%2Fevents"
-          className="mt-2 inline-block text-brand underline"
+          className="mt-2 inline-block text-brand-strong underline"
         >
           前往登入
         </Link>
@@ -97,7 +101,7 @@ export default function EventsPage() {
   }
 
   const GROUP_ORDER: { status: EventStatus; title: string }[] = [
-    { status: "active", title: "進行中" },
+    { status: "active", title: "售票中" },
     { status: "draft", title: "草稿" },
     { status: "ended", title: "已結束" },
   ];
@@ -132,7 +136,7 @@ export default function EventsPage() {
         ) : (
           <Link
             href="/events/new"
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:opacity-90 shadow-sm"
+            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-bold text-ink transition-colors hover:bg-brand-hover"
             aria-label="建立新活動"
           >
             <Plus className="size-4" />
@@ -149,16 +153,18 @@ export default function EventsPage() {
         <div className="space-y-10">
           {groups.map((group) => (
             <section key={group.status}>
-              <h2 className="mb-1 flex items-baseline gap-2 border-b border-hairline pb-2 text-xs font-bold tracking-[0.15em] text-gray-400">
+              <h2 className="flex items-baseline gap-2 text-xs font-bold tracking-[0.15em] text-muted-ink">
                 {group.title}
-                <span className="font-display text-gray-300">{group.items.length}</span>
+                <span className="font-display text-gray-400">{group.items.length}</span>
               </h2>
-              <ul className="divide-y divide-hairline">
+              <ul className="mt-3 space-y-2">
                 {group.items.map((event) => (
                   <li key={event.id}>
                     <EventListRow
                       event={event}
-                      registrationCount={event.registrationCount ?? 0}
+                      attendeeCount={event.attendeeCount ?? 0}
+                      checkedInCount={event.checkedInCount ?? 0}
+                      awaitingConfirmationCount={event.awaitingConfirmationCount}
                     />
                   </li>
                 ))}
@@ -172,7 +178,7 @@ export default function EventsPage() {
       {events.length > 0 && isAdmin && (
         <Link
           href="/events/new"
-          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-brand text-white shadow-lg hover:opacity-90 z-10"
+          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-brand text-ink shadow-lg hover:opacity-90 z-10"
           aria-label="建立新活動"
         >
           <Plus className="size-8" />

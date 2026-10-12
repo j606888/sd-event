@@ -57,7 +57,7 @@ export function LocationSelect({
           ))}
           <SelectItem
             value={ADD_VALUE}
-            className="mt-1 border-t border-gray-100 pl-3 font-medium text-brand focus:text-brand"
+            className="mt-1 border-t border-gray-100 pl-3 font-medium text-brand-strong focus:text-brand-strong"
           >
             <span className="flex items-center gap-1.5">
               <Plus className="size-4" />

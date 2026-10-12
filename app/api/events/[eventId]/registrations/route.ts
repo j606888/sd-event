@@ -26,6 +26,7 @@ import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
 import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/registration-item-filter";
 import { registrationMatchesSearch } from "@/lib/registration-search";
+import { parseCheckInFilterParam, registrationMatchesCheckIn } from "@/lib/registration-checkin-filter";
 import { eq, desc, count, or, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -87,7 +88,7 @@ export async function GET(request: Request, { params }: Params) {
   // Filter params
   const paymentStatus = searchParams.get("paymentStatus") || "all";
   const hiddenFilter = searchParams.get("hiddenFilter") || "all";
-  const checkInFilter = searchParams.get("checkInFilter") || "all";
+  const checkInFilter = parseCheckInFilterParam(searchParams.get("checkInFilter"));
   const couponFilter = searchParams.get("couponFilter") || "all";
   const purchaseItemId = parsePurchaseItemIdParam(searchParams.get("purchaseItemId"));
 
@@ -125,7 +126,13 @@ export async function GET(request: Request, { params }: Params) {
     whereConditions.push(registrationHasPurchaseItem(purchaseItemId));
   }
 
-  // COUNT query for pagination total (before checkInFilter which is applied in JS)
+  // 入場狀態（SQL 端過濾，分頁筆數才會正確）
+  const checkInCondition = registrationMatchesCheckIn(checkInFilter);
+  if (checkInCondition) {
+    whereConditions.push(checkInCondition);
+  }
+
+  // COUNT query for pagination total
   const [{ total }] = await db
     .select({ total: count() })
     .from(eventRegistrations)
@@ -158,46 +165,81 @@ export async function GET(request: Request, { params }: Params) {
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
-  // 取得每個報名的參加者數量與已入場數量（單一查詢）
+  // 參加者明細：名單列要直接顯示姓名／角色，並能不進明細就按入場
   const registrationIds = registrations.map((r) => r.id);
-  const attendeeCounts =
+  const [attendeeRows, itemRows, purchaseItemOptions] = await Promise.all([
     registrationIds.length > 0
-      ? await db
+      ? db
           .select({
+            id: eventAttendees.id,
             registrationId: eventAttendees.registrationId,
-            total: count(),
-            checkedIn: sql<number>`cast(count(case when ${eventAttendees.checkedIn} then 1 end) as int)`,
+            name: eventAttendees.name,
+            role: eventAttendees.role,
+            checkedIn: eventAttendees.checkedIn,
+            checkedInAt: eventAttendees.checkedInAt,
           })
           .from(eventAttendees)
           .where(inArray(eventAttendees.registrationId, registrationIds))
-          .groupBy(eventAttendees.registrationId)
-      : [];
+          .orderBy(asc(eventAttendees.id))
+      : [],
+    registrationIds.length > 0
+      ? db
+          .select({
+            registrationId: eventRegistrationPurchaseItems.registrationId,
+            purchaseItemId: eventRegistrationPurchaseItems.purchaseItemId,
+            quantity: eventRegistrationPurchaseItems.quantity,
+          })
+          .from(eventRegistrationPurchaseItems)
+          .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds))
+          .orderBy(asc(eventRegistrationPurchaseItems.id))
+      : [],
+    // 「報名項目」篩選的選項（只給名稱，不含金額，驗票人員也能用）
+    db
+      .select({ id: eventPurchaseItems.id, name: eventPurchaseItems.name })
+      .from(eventPurchaseItems)
+      .where(eq(eventPurchaseItems.eventId, eventId))
+      .orderBy(asc(eventPurchaseItems.sortOrder), asc(eventPurchaseItems.id)),
+  ]);
 
-  const countMap = new Map(attendeeCounts.map((a) => [a.registrationId, Number(a.total)]));
-  const checkedInMap = new Map(attendeeCounts.map((a) => [a.registrationId, Number(a.checkedIn)]));
-
-  // 組合結果
-  let result = registrations.map((reg) => ({
-    ...reg,
-    attendeeCount: countMap.get(reg.id) || 0,
-    checkedInCount: checkedInMap.get(reg.id) || 0,
-  }));
-
-  // Apply checkInFilter in JavaScript (attendee counts already available)
-  if (checkInFilter === "none") {
-    result = result.filter((r) => r.attendeeCount > 0 && r.checkedInCount === 0);
-  } else if (checkInFilter === "partial") {
-    result = result.filter((r) => r.checkedInCount > 0 && r.checkedInCount < r.attendeeCount);
-  } else if (checkInFilter === "all_entered") {
-    result = result.filter((r) => r.attendeeCount > 0 && r.checkedInCount === r.attendeeCount);
+  const attendeesByRegistration = new Map<number, (typeof attendeeRows)[number][]>();
+  for (const row of attendeeRows) {
+    const list = attendeesByRegistration.get(row.registrationId);
+    if (list) list.push(row);
+    else attendeesByRegistration.set(row.registrationId, [row]);
   }
 
-  // 「報名項目」篩選的選項（只給名稱，不含金額，驗票人員也能用）
-  const purchaseItemOptions = await db
-    .select({ id: eventPurchaseItems.id, name: eventPurchaseItems.name })
-    .from(eventPurchaseItems)
-    .where(eq(eventPurchaseItems.eventId, eventId))
-    .orderBy(asc(eventPurchaseItems.sortOrder), asc(eventPurchaseItems.id));
+  const itemNameById = new Map(purchaseItemOptions.map((i) => [i.id, i.name] as const));
+  const itemLabel = (purchaseItemId: number, quantity: number) => {
+    const name = itemNameById.get(purchaseItemId);
+    if (!name) return null;
+    return quantity > 1 ? `${name} × ${quantity}` : name;
+  };
+  const itemLabelsByRegistration = new Map<number, string[]>();
+  for (const row of itemRows) {
+    const label = itemLabel(row.purchaseItemId, row.quantity);
+    if (!label) continue;
+    const list = itemLabelsByRegistration.get(row.registrationId);
+    if (list) list.push(label);
+    else itemLabelsByRegistration.set(row.registrationId, [label]);
+  }
+
+  // 組合結果
+  const result = registrations.map((reg) => {
+    const attendees = (attendeesByRegistration.get(reg.id) ?? []).map(
+      ({ id, name, role, checkedIn, checkedInAt }) => ({ id, name, role, checkedIn, checkedInAt })
+    );
+    // 舊制單選報名沒有 join 列，退回 registration.purchaseItemId
+    const labels =
+      itemLabelsByRegistration.get(reg.id) ??
+      (reg.purchaseItemId != null ? [itemLabel(reg.purchaseItemId, 1)].filter(Boolean) : []);
+    return {
+      ...reg,
+      attendees,
+      attendeeCount: attendees.length,
+      checkedInCount: attendees.filter((a) => a.checkedIn).length,
+      itemSummary: labels.join("、"),
+    };
+  });
 
   return NextResponse.json({
     registrations: result.map((reg) => applyRegistrationVisibility(reg, canSeeMoney)),

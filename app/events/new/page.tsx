@@ -45,7 +45,7 @@ export default function NewEventPage() {
                 onClick={() => setSelectedType(t.value)}
                 className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-all hover:border-brand hover:shadow-md"
               >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-leader to-follower text-white">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-strong">
                   <Icon className="size-6" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -56,7 +56,7 @@ export default function NewEventPage() {
                     {t.description}
                   </span>
                 </span>
-                <ChevronRight className="size-5 shrink-0 text-gray-300 transition-colors group-hover:text-brand" />
+                <ChevronRight className="size-5 shrink-0 text-gray-300 transition-colors group-hover:text-brand-strong" />
               </button>
             );
           })}

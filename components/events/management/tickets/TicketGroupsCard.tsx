@@ -141,7 +141,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
       <>
         {item.name}
         {(item.seatCount ?? 1) > 1 && (
-          <span className="ml-2 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand">
+          <span className="ml-2 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand-strong">
             {item.seatCount} 人套票
           </span>
         )}

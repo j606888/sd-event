@@ -35,7 +35,7 @@ export async function sendRegistrationSuccessEmail(
     <p>您好，</p>
     <p>感謝您報名${eventTitle ? `「${eventTitle}」` : "活動"}！</p>
     <p>我們已經收到您的報名資訊，請點擊下方連結確認您的報名狀態：</p>
-    <p><a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: #5295BC; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">👉 查看報名狀態與付款資訊</a></p>
+    <p><a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: #1E2F3D; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">👉 查看報名狀態與付款資訊</a></p>
     <p><strong>注意事項：</strong></p>
     <ul>
       <li>若您尚未付款，請於 24 小時內完成匯款以保留名額。</li>
@@ -93,7 +93,7 @@ export async function sendPaymentConfirmedEmail(
     <p>您好，</p>
     <p>恭喜您！我們已確認收到您的款項，您的報名狀態已更新為「報名成功」。</p>
     <p>活動當天請出示下方連結中的憑證（QR Code）進行報到：</p>
-    <p><a href="${entryVoucherUrl}" style="display: inline-block; padding: 12px 24px; background-color: #5295BC; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">🎫 打開我的活動憑證 / QR Code</a></p>
+    <p><a href="${entryVoucherUrl}" style="display: inline-block; padding: 12px 24px; background-color: #1E2F3D; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">🎫 打開我的活動憑證 / QR Code</a></p>
     ${eventTimeText || eventLocation ? `
     <p><strong>活動資訊：</strong></p>
     <ul>
@@ -188,7 +188,7 @@ export async function sendNewRegistrationNotificationEmail(
     </ul>
     <p><strong>參加者（${n.attendees.length} 位）：</strong></p>
     <ul>${attendeesHtml}</ul>
-    <p><a href="${manageUrl}" style="display: inline-block; padding: 12px 24px; background-color: #5295BC; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">查看報名名單</a></p>
+    <p><a href="${manageUrl}" style="display: inline-block; padding: 12px 24px; background-color: #1E2F3D; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">查看報名名單</a></p>
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
     <p style="color: #666; font-size: 12px;">— SD Event｜您收到這封信是因為團隊設定中開啟了「新報名通知信」，可請團隊管理員在團隊頁關閉。</p>
   `;

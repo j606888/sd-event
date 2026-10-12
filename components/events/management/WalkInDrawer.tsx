@@ -292,7 +292,7 @@ export function WalkInDrawer({
                                     : [...selected, item.id]
                                 );
                             }}
-                            className="h-4 w-4 text-brand"
+                            className="h-4 w-4 text-brand-strong"
                           />
                           <WalkInItemName item={item} />
                           <span className="text-sm text-gray-600">
@@ -313,7 +313,7 @@ export function WalkInDrawer({
                           name={`walkin-group-${group.id}`}
                           checked={selected.length === 0}
                           onChange={() => setGroupSelection(group, [])}
-                          className="h-4 w-4 text-brand"
+                          className="h-4 w-4 text-brand-strong"
                         />
                         <span className="flex-1 text-sm text-gray-900">不需要</span>
                       </label>
@@ -348,7 +348,7 @@ export function WalkInDrawer({
                           setSelectedPlanIds([]);
                         }
                       }}
-                      className="h-4 w-4 text-brand"
+                      className="h-4 w-4 text-brand-strong"
                     />
                     <WalkInItemName item={item} />
                     <span className="text-sm text-gray-600">
@@ -402,7 +402,7 @@ export function WalkInDrawer({
                         name={`walkin-role-${p.id}`}
                         checked={p.role === role}
                         onChange={() => updateParticipant(p.id, "role", role)}
-                        className="h-4 w-4 text-brand"
+                        className="h-4 w-4 text-brand-strong"
                       />
                       {role}
                     </label>
@@ -426,7 +426,7 @@ export function WalkInDrawer({
                 type="button"
                 variant="outline"
                 onClick={addParticipant}
-                className="w-full gap-1.5 border-brand text-brand hover:bg-brand/10"
+                className="w-full gap-1.5 border-brand text-brand-strong hover:bg-brand/10"
               >
                 <Plus className="h-4 w-4" />
                 增加參加者
@@ -473,7 +473,7 @@ export function WalkInDrawer({
               type="checkbox"
               checked={autoCheckIn}
               onChange={(e) => setAutoCheckIn(e.target.checked)}
-              className="h-4 w-4 text-brand"
+              className="h-4 w-4 text-brand-strong"
             />
             建立後立即報到（標記為已入場）
           </label>
@@ -488,7 +488,7 @@ export function WalkInDrawer({
               type="button"
               onClick={handleSubmit}
               disabled={createWalkIn.isPending}
-              className="bg-brand text-white hover:bg-brand-hover"
+              className="bg-brand text-ink hover:bg-brand-hover"
             >
               {createWalkIn.isPending ? "建立中…" : "確認報名（現金）"}
             </Button>
@@ -506,7 +506,7 @@ function WalkInItemName({ item }: { item: EventPurchaseItem }) {
     <span className="flex-1 text-sm text-gray-900">
       {item.name}
       {seats > 1 && (
-        <span className="ml-1.5 rounded bg-brand/10 px-1 py-0.5 text-xs font-medium text-brand">
+        <span className="ml-1.5 rounded bg-brand/10 px-1 py-0.5 text-xs font-medium text-brand-strong">
           {seats} 人套票
         </span>
       )}

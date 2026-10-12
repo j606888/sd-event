@@ -57,7 +57,7 @@ export function EventEditTabs({
     <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex flex-col gap-1.5 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
       <Button
         type="submit"
-        className="w-full bg-primary text-white hover:bg-brand-hover sm:w-auto sm:self-start sm:px-8"
+        className="w-full bg-primary text-ink hover:bg-brand-hover sm:w-auto sm:self-start sm:px-8"
         disabled={saving || readOnly}
         title={readOnly ? "模擬檢視為唯讀模式" : undefined}
       >

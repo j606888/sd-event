@@ -197,7 +197,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-4">
                     <span className="text-xs text-gray-400">{rangeLabel(i)}</span>
                     {i === activeIndex && (
-                      <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+                      <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand-strong">
                         目前適用
                       </span>
                     )}
@@ -208,7 +208,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                           updatePriceTier(i, "endsAt", "");
                           persistPriceTier(i);
                         }}
-                        className="rounded text-xs font-medium text-brand underline-offset-2 hover:underline"
+                        className="rounded text-xs font-medium text-brand-strong underline-offset-2 hover:underline"
                       >
                         改為到活動結束
                       </button>

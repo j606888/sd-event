@@ -178,7 +178,7 @@ export default function EventOrganizersPage() {
                   />
                 </div>
               ) : (
-                <Building2 className="size-5 shrink-0 text-brand" />
+                <Building2 className="size-5 shrink-0 text-brand-strong" />
               )}
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{org.name}</p>
@@ -246,7 +246,7 @@ export default function EventOrganizersPage() {
                     "rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-8",
                   label: "text-gray-500",
                   button:
-                    "bg-brand text-white rounded-md px-4 py-2 text-sm font-medium after:bg-brand-hover",
+                    "bg-brand text-ink rounded-md px-4 py-2 text-sm font-medium after:bg-brand-hover",
                 }}
               />
             )}
@@ -282,7 +282,7 @@ export default function EventOrganizersPage() {
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
               取消
             </Button>
-            <Button type="submit" className="bg-primary text-white hover:bg-brand-hover">
+            <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
               {editingOrganizerId ? "更新" : "新增"}
             </Button>
           </div>
