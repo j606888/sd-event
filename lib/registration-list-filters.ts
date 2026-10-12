@@ -7,6 +7,8 @@ export type PaymentFilter = "all" | "pending" | "reported" | "confirmed" | "reje
 export type CheckInFilter = "all" | "none" | "partial" | "all_entered";
 export type HiddenFilter = "all" | "hidden" | "non_hidden";
 export type CouponFilter = "all" | "used" | "not_used";
+/** 報名項目篩選："all" 或 purchaseItem id */
+export type PurchaseItemFilter = "all" | number;
 
 export const PAYMENT_OPTIONS: { value: PaymentFilter; label: string }[] = [
   { value: "all", label: "全部" },

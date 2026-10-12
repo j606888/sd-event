@@ -25,7 +25,7 @@ import {
   useCheckIn,
   useResendConfirmationEmail,
 } from "@/hooks/use-registrations";
-import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter } from "@/lib/registration-list-filters";
+import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter, PurchaseItemFilter } from "@/lib/registration-list-filters";
 
 function EventDetailSkeleton() {
   return (
@@ -85,6 +85,7 @@ function EventDetailPageInner() {
   const [checkInFilter, setCheckInFilter] = useState<CheckInFilter>("all");
   const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>("non_hidden");
   const [couponFilter, setCouponFilter] = useState<CouponFilter>("all");
+  const [purchaseItemFilter, setPurchaseItemFilter] = useState<PurchaseItemFilter>("all");
   const [page, setPage] = useState(1);
 
   // Debounce search query
@@ -96,7 +97,7 @@ function EventDetailPageInner() {
   // Reset page when search or filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, paymentFilter, checkInFilter, hiddenFilter, couponFilter]);
+  }, [debouncedSearch, paymentFilter, checkInFilter, hiddenFilter, couponFilter, purchaseItemFilter]);
 
   // Server state
   const eventQuery = useEvent(eventId);
@@ -110,6 +111,7 @@ function EventDetailPageInner() {
     hiddenFilter,
     checkInFilter,
     couponFilter,
+    purchaseItemFilter,
   };
 
   const registrationsQuery = useRegistrations(eventId, registrationsParams);
@@ -176,17 +178,20 @@ function EventDetailPageInner() {
     }
   };
 
-  // 統計分頁的款項／入場數字點下去，跳到「報名者」並套用對應篩選。
-  // 未指定的那個篩選重設為「全部」，避免上次留下的條件把結果篩空。
+  // 統計分頁的款項／入場／報名項目點下去，跳到「報名者」並套用對應篩選。
+  // 未指定的篩選重設為「全部」，避免上次留下的條件把結果篩空。
   const handleStatsDrillDown = ({
     payment,
     checkIn,
+    purchaseItemId,
   }: {
     payment?: PaymentFilter;
     checkIn?: CheckInFilter;
+    purchaseItemId?: number;
   }) => {
     setPaymentFilter(payment ?? "all");
     setCheckInFilter(checkIn ?? "all");
+    setPurchaseItemFilter(purchaseItemId ?? "all");
     setPage(1);
     setSelectedRegistrationId(null);
     setTab("registrations");
@@ -200,6 +205,7 @@ function EventDetailPageInner() {
       hiddenFilter,
       checkInFilter,
       couponFilter,
+      ...(purchaseItemFilter !== "all" && { purchaseItemId: String(purchaseItemFilter) }),
     });
     window.location.href = `/api/events/${eventId}/registrations/export?${qs}`;
   };
@@ -422,6 +428,9 @@ function EventDetailPageInner() {
                   onHiddenFilterChange={setHiddenFilter}
                   couponFilter={couponFilter}
                   onCouponFilterChange={setCouponFilter}
+                  purchaseItemFilter={purchaseItemFilter}
+                  onPurchaseItemFilterChange={setPurchaseItemFilter}
+                  purchaseItemOptions={registrationsData?.purchaseItemOptions ?? []}
                   totalUnfilteredCount={registrationsData?.pagination?.total ?? 0}
                   isLoading={registrationsQuery.isLoading}
                 />

@@ -18,7 +18,6 @@ export function OrganizerDrawer({
 }: OrganizerDrawerProps) {
   const [name, setName] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
-  const [lineId, setLineId] = useState("");
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +40,6 @@ export function OrganizerDrawer({
         body: JSON.stringify({
           name: trimmedName,
           photoUrl: photoUrl.trim() || undefined,
-          lineId: lineId.trim() || undefined,
           instagram: instagram.trim() || undefined,
           facebook: facebook.trim() || undefined,
         }),
@@ -57,7 +55,6 @@ export function OrganizerDrawer({
       }
       setName("");
       setPhotoUrl("");
-      setLineId("");
       setInstagram("");
       setFacebook("");
       onCancel();
@@ -86,15 +83,6 @@ export function OrganizerDrawer({
           placeholder="輸入名稱"
           value={name}
           onChange={(e) => setName(e.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="org-line">Line ID</Label>
-        <Input
-          id="org-line"
-          placeholder="輸入 Line ID"
-          value={lineId}
-          onChange={(e) => setLineId(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">

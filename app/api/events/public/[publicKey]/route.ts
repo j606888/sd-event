@@ -5,6 +5,7 @@ import {
   eventLocations,
   organizers,
   bankInfos,
+  linePayees,
   eventPurchaseItems,
   eventPurchaseItemGroups,
   eventPriceTiers,
@@ -61,6 +62,7 @@ export async function GET(_request: Request, { params }: Params) {
     location,
     organizer,
     bankInfo,
+    linePayee,
     purchaseItems,
     noticeItems,
     priceTiers,
@@ -84,11 +86,25 @@ export async function GET(_request: Request, { params }: Params) {
           .limit(1)
           .then((rows) => rows[0] || null)
       : Promise.resolve(null),
+    // 名稱／備註（label）只給主辦端看，對外不回傳
     event.bankInfoId
       ? db
-          .select()
+          .select({
+            id: bankInfos.id,
+            bankName: bankInfos.bankName,
+            bankCode: bankInfos.bankCode,
+            account: bankInfos.account,
+          })
           .from(bankInfos)
           .where(eq(bankInfos.id, event.bankInfoId))
+          .limit(1)
+          .then((rows) => rows[0] || null)
+      : Promise.resolve(null),
+    event.linePayeeId
+      ? db
+          .select({ id: linePayees.id, lineId: linePayees.lineId })
+          .from(linePayees)
+          .where(eq(linePayees.id, event.linePayeeId))
           .limit(1)
           .then((rows) => rows[0] || null)
       : Promise.resolve(null),
@@ -203,6 +219,7 @@ export async function GET(_request: Request, { params }: Params) {
       location,
       organizer,
       bankInfo,
+      linePayee,
       purchaseItems: itemsWithPrice,
       groups: groupsWithItems,
       activeTier: activeTier

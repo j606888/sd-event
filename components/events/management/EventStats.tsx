@@ -42,11 +42,12 @@ const PAYMENT_DRILL_DOWN: Record<"confirmed" | "reported" | "pending", PaymentFi
 type RegistrationFilterRequest = {
   payment?: PaymentFilter;
   checkIn?: CheckInFilter;
+  purchaseItemId?: number;
 };
 
 type EventStatsProps = {
   eventId: string;
-  /** 帶入時，款項與入場的數字可點擊，跳到「報名者」分頁並套用篩選。 */
+  /** 帶入時，款項、入場與報名項目可點擊，跳到「報名者」分頁並套用篩選。 */
   onFilterRegistrations?: (filters: RegistrationFilterRequest) => void;
 };
 
@@ -271,22 +272,41 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
           <p className="text-sm text-gray-500">尚無報名項目資料</p>
         ) : (
           <ul className="divide-y divide-hairline">
-            {purchaseItemSummary.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between py-2.5 text-sm"
-              >
-                <span className="text-gray-700">{item.name}</span>
-                <span>
-                  <span className="font-medium text-gray-900 tabular-nums">
-                    {item.attendeeCount} 人
+            {purchaseItemSummary.map((item) => {
+              // 點下去看是誰報了這個項目
+              const onClick = drillDown({ purchaseItemId: item.id });
+              const content = (
+                <>
+                  <span className="text-left text-gray-700">{item.name}</span>
+                  <span className="shrink-0">
+                    <span className="font-medium text-gray-900 tabular-nums">
+                      {item.attendeeCount} 人
+                    </span>
+                    <span className="ml-3 text-gray-500 tabular-nums">
+                      {money(item.revenue)}
+                    </span>
                   </span>
-                  <span className="ml-3 text-gray-500 tabular-nums">
-                    {money(item.revenue)}
-                  </span>
-                </span>
-              </li>
-            ))}
+                </>
+              );
+
+              return (
+                <li key={item.id}>
+                  {onClick ? (
+                    <button
+                      type="button"
+                      onClick={onClick}
+                      className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md py-2.5 text-sm transition-colors hover:bg-gray-50"
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                      {content}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
 

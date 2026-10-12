@@ -55,11 +55,13 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const account = typeof body.account === "string" ? body.account : null;
+  const label = typeof body.label === "string" && body.label.trim() ? body.label.trim() : null;
 
   const [bankInfo] = await db
     .insert(bankInfos)
     .values({
       teamId,
+      label,
       bankName,
       bankCode,
       account,

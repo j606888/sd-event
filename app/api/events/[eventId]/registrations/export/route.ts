@@ -12,6 +12,7 @@ import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
 import { eq, asc, desc, or, like, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { matchesCheckInFilter, type CheckInFilter } from "@/lib/registration-list-filters";
+import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/registration-item-filter";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -77,6 +78,7 @@ export async function GET(request: Request, { params }: Params) {
   const hiddenFilter = searchParams.get("hiddenFilter") || "all";
   const checkInFilter = (searchParams.get("checkInFilter") || "all") as CheckInFilter;
   const couponFilter = searchParams.get("couponFilter") || "all";
+  const purchaseItemId = parsePurchaseItemIdParam(searchParams.get("purchaseItemId"));
 
   // 與列表 API 相同的 where 條件（搜尋 / 付款狀態 / 隱藏）
   const whereConditions = [eq(eventRegistrations.eventId, eventId)];
@@ -110,6 +112,10 @@ export async function GET(request: Request, { params }: Params) {
     whereConditions.push(isNotNull(eventRegistrations.couponCode));
   } else if (couponFilter === "not_used") {
     whereConditions.push(isNull(eventRegistrations.couponCode));
+  }
+
+  if (purchaseItemId != null) {
+    whereConditions.push(registrationHasPurchaseItem(purchaseItemId));
   }
 
   const registrations = await db

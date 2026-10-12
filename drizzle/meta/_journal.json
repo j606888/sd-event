@@ -113,6 +113,13 @@
       "when": 1791729659992,
       "tag": "0015_polite_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791782606684,
+      "tag": "0016_jittery_lockjaw",
+      "breakpoints": true
     }
   ]
 }

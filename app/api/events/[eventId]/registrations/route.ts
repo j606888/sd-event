@@ -24,6 +24,7 @@ import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pr
 import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
 import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
+import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/registration-item-filter";
 import { eq, desc, count, or, like, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -87,6 +88,7 @@ export async function GET(request: Request, { params }: Params) {
   const hiddenFilter = searchParams.get("hiddenFilter") || "all";
   const checkInFilter = searchParams.get("checkInFilter") || "all";
   const couponFilter = searchParams.get("couponFilter") || "all";
+  const purchaseItemId = parsePurchaseItemIdParam(searchParams.get("purchaseItemId"));
 
   // 建立查詢條件
   const whereConditions = [eq(eventRegistrations.eventId, eventId)];
@@ -121,6 +123,11 @@ export async function GET(request: Request, { params }: Params) {
     whereConditions.push(isNotNull(eventRegistrations.couponCode));
   } else if (couponFilter === "not_used") {
     whereConditions.push(isNull(eventRegistrations.couponCode));
+  }
+
+  // 報名項目篩選（例：誰報了 Full Pass）
+  if (purchaseItemId != null) {
+    whereConditions.push(registrationHasPurchaseItem(purchaseItemId));
   }
 
   // COUNT query for pagination total (before checkInFilter which is applied in JS)
@@ -190,9 +197,17 @@ export async function GET(request: Request, { params }: Params) {
     result = result.filter((r) => r.attendeeCount > 0 && r.checkedInCount === r.attendeeCount);
   }
 
+  // 「報名項目」篩選的選項（只給名稱，不含金額，驗票人員也能用）
+  const purchaseItemOptions = await db
+    .select({ id: eventPurchaseItems.id, name: eventPurchaseItems.name })
+    .from(eventPurchaseItems)
+    .where(eq(eventPurchaseItems.eventId, eventId))
+    .orderBy(asc(eventPurchaseItems.sortOrder), asc(eventPurchaseItems.id));
+
   return NextResponse.json({
     registrations: result.map((reg) => applyRegistrationVisibility(reg, canSeeMoney)),
     pagination: { total: Number(total), page, pageSize },
+    purchaseItemOptions,
   });
 }
 

@@ -13,6 +13,7 @@ import {
   MapPin,
   Building2,
   Landmark,
+  MessageCircle,
   LogOut,
   ShieldCheck,
 } from "lucide-react";
@@ -54,7 +55,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
 
   const isActive = (href: string) => {
     if (href === "/events") {
-      return pathname === "/events" || (pathname.startsWith("/events/") && !pathname.startsWith("/events/locations") && !pathname.startsWith("/events/organizers") && !pathname.startsWith("/events/bank"));
+      return pathname === "/events" || (pathname.startsWith("/events/") && !pathname.startsWith("/events/locations") && !pathname.startsWith("/events/organizers") && !pathname.startsWith("/events/bank") && !pathname.startsWith("/events/line-payees"));
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   };
@@ -226,6 +227,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
                   <SidebarLink href="/events/locations" icon={MapPin} label="活動地點" active={isActive("/events/locations")} onClick={onClose} />
                   <SidebarLink href="/events/organizers" icon={Building2} label="主辦單位" active={isActive("/events/organizers")} onClick={onClose} />
                   <SidebarLink href="/events/bank" icon={Landmark} label="銀行資訊" active={isActive("/events/bank")} onClick={onClose} />
+                  <SidebarLink href="/events/line-payees" icon={MessageCircle} label="LINE 付款好友" active={isActive("/events/line-payees")} onClick={onClose} />
                 </nav>
               </div>
             )}

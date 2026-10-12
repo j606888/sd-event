@@ -4,6 +4,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { LocationDrawer } from "./LocationDrawer";
 import { OrganizerDrawer } from "./OrganizerDrawer";
 import { BankInfoDrawer } from "./BankInfoDrawer";
+import { LinePayeeDrawer } from "./LinePayeeDrawer";
 import { PurchaseItemDrawer } from "./PurchaseItemDrawer";
 import { NoticeItemDrawer } from "./NoticeItemDrawer";
 import type { UseEventFormReturn } from "@/hooks/use-event-form";
@@ -15,7 +16,7 @@ type EventFormDrawersProps = {
   form: UseEventFormReturn;
 };
 
-/** 表單相關抽屜（地點／票券／須知／主辦／銀行），create 與 edit 共用 */
+/** 表單相關抽屜（地點／票券／須知／主辦／銀行／LINE 付款好友），create 與 edit 共用 */
 export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawersProps) {
   const {
     drawer,
@@ -30,6 +31,7 @@ export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawe
     handleLocationSuccess,
     handleOrganizerSuccess,
     handleBankInfoSuccess,
+    handleLinePayeeSuccess,
     handlePurchaseItemSuccess,
     handlePurchaseItemUpdated,
     handleNoticeItemSuccess,
@@ -42,7 +44,7 @@ export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawe
       open={true}
       onClose={closeDrawer}
       subtitle={
-        drawer === "location" || drawer === "organizer" || drawer === "bank"
+        drawer === "location" || drawer === "organizer" || drawer === "bank" || drawer === "linePayee"
           ? "New"
           : drawer === "purchaseItem" && editingItemIndex != null
             ? "Edit Item"
@@ -59,7 +61,9 @@ export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawe
               ? "新增須知項目"
               : drawer === "organizer"
                 ? "新增主辦單位"
-                : "新增銀行資訊"
+                : drawer === "linePayee"
+                  ? "新增 LINE 付款好友"
+                  : "新增銀行資訊"
       }
     >
       {drawer === "location" && (
@@ -108,6 +112,13 @@ export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawe
         <BankInfoDrawer
           teamId={teamId}
           onSuccess={handleBankInfoSuccess}
+          onCancel={closeDrawer}
+        />
+      )}
+      {drawer === "linePayee" && (
+        <LinePayeeDrawer
+          teamId={teamId}
+          onSuccess={handleLinePayeeSuccess}
           onCancel={closeDrawer}
         />
       )}

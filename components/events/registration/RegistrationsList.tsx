@@ -14,10 +14,12 @@ import {
   type CheckInFilter,
   type HiddenFilter,
   type CouponFilter,
+  type PurchaseItemFilter,
 } from "@/lib/registration-list-filters";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Registration } from "@/types/registration";
+import type { PurchaseItemOption } from "@/hooks/use-registrations";
 
 type RegistrationsListProps = {
   registrations: Registration[];
@@ -34,13 +36,17 @@ type RegistrationsListProps = {
   onHiddenFilterChange: (v: HiddenFilter) => void;
   couponFilter: CouponFilter;
   onCouponFilterChange: (v: CouponFilter) => void;
+  purchaseItemFilter: PurchaseItemFilter;
+  onPurchaseItemFilterChange: (v: PurchaseItemFilter) => void;
+  /** 「報名項目」篩選的選項（活動的所有票種，含已隱藏的） */
+  purchaseItemOptions: PurchaseItemOption[];
   /** Total count before filters (for empty state message) */
   totalUnfilteredCount?: number;
   isLoading?: boolean;
 };
 
 /** 篩選 pill 群：選中＝品牌色實心，未選＝灰底 */
-function FilterPills<T extends string>({
+function FilterPills<T extends string | number>({
   options,
   value,
   onChange,
@@ -94,6 +100,9 @@ export function RegistrationsList({
   onHiddenFilterChange,
   couponFilter,
   onCouponFilterChange,
+  purchaseItemFilter,
+  onPurchaseItemFilterChange,
+  purchaseItemOptions,
   totalUnfilteredCount = 0,
   isLoading = false,
 }: RegistrationsListProps) {
@@ -103,7 +112,17 @@ export function RegistrationsList({
     (paymentFilter !== "all" ? 1 : 0) +
     (checkInFilter !== "all" ? 1 : 0) +
     (hiddenFilter !== "non_hidden" ? 1 : 0) +
-    (couponFilter !== "all" ? 1 : 0);
+    (couponFilter !== "all" ? 1 : 0) +
+    (purchaseItemFilter !== "all" ? 1 : 0);
+
+  const itemFilterOptions: { value: PurchaseItemFilter; label: string }[] = [
+    { value: "all", label: "全部" },
+    ...purchaseItemOptions.map((item) => ({ value: item.id, label: item.name })),
+  ];
+  const activeItemName =
+    purchaseItemFilter === "all"
+      ? null
+      : purchaseItemOptions.find((item) => item.id === purchaseItemFilter)?.name ?? null;
 
   return (
     <div className="space-y-4">
@@ -146,6 +165,24 @@ export function RegistrationsList({
         </div>
       </div>
 
+      {/* 項目篩選生效時明確標示，從統計頁跳過來才看得出目前在看哪個項目 */}
+      {activeItemName && (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          報名項目
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 py-1 pr-1.5 pl-3 text-xs font-medium text-brand">
+            {activeItemName}
+            <button
+              type="button"
+              onClick={() => onPurchaseItemFilterChange("all")}
+              className="rounded-full p-0.5 hover:bg-brand/15 cursor-pointer"
+              aria-label="清除報名項目篩選"
+            >
+              <X className="size-3.5" />
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* Filter Drawer */}
       <Drawer open={filterOpen} onClose={() => setFilterOpen(false)} title="篩選條件">
         <div className="flex justify-end -mt-1 mb-2">
@@ -167,6 +204,16 @@ export function RegistrationsList({
               onChange={onPaymentFilterChange}
             />
           </div>
+          {purchaseItemOptions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">報名項目</h3>
+              <FilterPills
+                options={itemFilterOptions}
+                value={purchaseItemFilter}
+                onChange={onPurchaseItemFilterChange}
+              />
+            </div>
+          )}
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">入場狀態</h3>
             <FilterPills

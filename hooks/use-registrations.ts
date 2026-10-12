@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { PaymentFilter, HiddenFilter, CheckInFilter, CouponFilter } from "@/lib/registration-list-filters";
+import type { PaymentFilter, HiddenFilter, CheckInFilter, CouponFilter, PurchaseItemFilter } from "@/lib/registration-list-filters";
 import type { Registration, RegistrationDetailData } from "@/types/registration";
 import {
   createWalkInRegistration,
@@ -18,6 +18,15 @@ export type RegistrationsParams = {
   hiddenFilter: HiddenFilter;
   checkInFilter: CheckInFilter;
   couponFilter: CouponFilter;
+  purchaseItemFilter: PurchaseItemFilter;
+};
+
+export type PurchaseItemOption = { id: number; name: string };
+
+type RegistrationsResponse = {
+  registrations: Registration[];
+  pagination: { total: number; page: number; pageSize: number };
+  purchaseItemOptions: PurchaseItemOption[];
 };
 
 export function useRegistrations(eventId: string, params: RegistrationsParams) {
@@ -32,19 +41,19 @@ export function useRegistrations(eventId: string, params: RegistrationsParams) {
         hiddenFilter: params.hiddenFilter,
         checkInFilter: params.checkInFilter,
         couponFilter: params.couponFilter,
+        ...(params.purchaseItemFilter !== "all" && {
+          purchaseItemId: String(params.purchaseItemFilter),
+        }),
       });
       const res = await fetch(`/api/events/${eventId}/registrations?${qs}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("無法載入報名列表");
-      return res.json() as Promise<{
-        registrations: Registration[];
-        pagination: { total: number; page: number; pageSize: number };
-      }>;
+      return res.json() as Promise<RegistrationsResponse>;
     },
     enabled: !!eventId,
     staleTime: 10_000,
-    placeholderData: (prev: unknown) => prev as { registrations: Registration[]; pagination: { total: number; page: number; pageSize: number } } | undefined,
+    placeholderData: (prev: unknown) => prev as RegistrationsResponse | undefined,
   });
 }
 

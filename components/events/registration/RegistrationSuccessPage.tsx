@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
 import { isRenderableImageSrc } from "@/lib/utils";
-import { siInstagram, siLine, siFacebook } from "simple-icons";
+import { siInstagram, siFacebook } from "simple-icons";
 import { PendingPaymentHeader } from "./headers/PendingPaymentHeader";
 import { ReportedPaymentHeader } from "./headers/ReportedPaymentHeader";
 import { ConfirmedPaymentHeader } from "./headers/ConfirmedPaymentHeader";
@@ -218,16 +218,6 @@ export function RegistrationSuccessPage({
                       className="text-gray-500 hover:text-gray-700"
                     >
                       <SimpleIcon icon={siInstagram} size={20} />
-                    </a>
-                  )}
-                  {event.organizer.lineId && (
-                    <a
-                      href={`https://line.me/ti/p/${event.organizer.lineId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <SimpleIcon icon={siLine} size={20} />
                     </a>
                   )}
                   {event.organizer.facebook && (

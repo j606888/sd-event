@@ -2,6 +2,7 @@ import type {
   EventLocation,
   EventOrganizer,
   EventBankInfo,
+  EventLinePayee,
   EventPurchaseItem,
 } from "@/types/event";
 
@@ -34,6 +35,7 @@ export type RegistrationApiResponse = {
     location: EventLocation | null;
     organizer: EventOrganizer | null;
     bankInfo: EventBankInfo | null;
+    linePayee: EventLinePayee | null;
   };
   purchaseItem: EventPurchaseItem | null; // For backward compatibility
   purchaseItems: EventPurchaseItem[]; // Array of purchase items (for multiple selection)

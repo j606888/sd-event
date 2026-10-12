@@ -12,6 +12,7 @@ import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
 type BankInfo = {
   id: number;
   teamId: number;
+  label: string | null;
   bankName: string;
   bankCode: string;
   account: string | null;
@@ -28,6 +29,7 @@ export default function EventBankPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingBankInfoId, setEditingBankInfoId] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [formLabel, setFormLabel] = useState("");
   const [formBankName, setFormBankName] = useState("");
   const [formBankCode, setFormBankCode] = useState("");
   const [formAccount, setFormAccount] = useState("");
@@ -57,6 +59,7 @@ export default function EventBankPage() {
   const openDrawer = () => {
     setEditingBankInfoId(null);
     setSubmitError(null);
+    setFormLabel("");
     setFormBankName("");
     setFormBankCode("");
     setFormAccount("");
@@ -66,6 +69,7 @@ export default function EventBankPage() {
   const openEditDrawer = (bankInfo: BankInfo) => {
     setEditingBankInfoId(bankInfo.id);
     setSubmitError(null);
+    setFormLabel(bankInfo.label || "");
     setFormBankName(bankInfo.bankName);
     setFormBankCode(bankInfo.bankCode);
     setFormAccount(bankInfo.account || "");
@@ -95,6 +99,8 @@ export default function EventBankPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          // 編輯時送空字串代表清除備註
+          label: formLabel.trim() || (isEditing ? "" : undefined),
           bankName,
           bankCode,
           account: formAccount.trim() || undefined,
@@ -163,9 +169,9 @@ export default function EventBankPage() {
             >
               <Landmark className="size-5 shrink-0 text-brand" />
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-gray-900">{bank.bankName}</p>
+                <p className="font-medium text-gray-900">{bank.label || bank.bankName}</p>
                 <p className="text-sm text-gray-500">
-                  代碼 {bank.bankCode}
+                  {bank.label ? `${bank.bankName} · ` : ""}代碼 {bank.bankCode}
                   {bank.account ? ` · ${bank.account}` : ""}
                 </p>
               </div>
@@ -184,6 +190,16 @@ export default function EventBankPage() {
           {submitError && (
             <p className="text-sm text-red-500">{submitError}</p>
           )}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="bank-label">名稱／備註</Label>
+            <Input
+              id="bank-label"
+              value={formLabel}
+              onChange={(e) => setFormLabel(e.target.value)}
+              placeholder="例如：小明的帳戶、工作室公帳"
+            />
+            <p className="text-xs text-gray-500">只有主辦方看得到，用來區分多組帳戶</p>
+          </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="bank-name">銀行名稱 *</Label>
             <Input
