@@ -125,10 +125,34 @@ export function useCreateWalkIn(eventId: string) {
   });
 }
 
-export function useCheckIn(
-  eventId: string,
-  selectedRegistrationId: number | null
+/** 入場／取消入場後要重抓的查詢：明細、名單、統計三處都顯示入場數 */
+function invalidateCheckInQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  eventId: string
 ) {
+  queryClient.invalidateQueries({ queryKey: ["registration", eventId] });
+  queryClient.invalidateQueries({ queryKey: ["registrations", eventId] });
+  queryClient.invalidateQueries({ queryKey: ["eventStats", eventId] });
+}
+
+/** 取消入場：門口按錯人時的復原 */
+export function useUndoCheckIn(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (attendeeId: number) => {
+      const res = await fetch(`/api/attendees/${attendeeId}/check-in`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data as { error?: string }).error || "取消入場失敗");
+      return data;
+    },
+    onSuccess: () => invalidateCheckInQueries(queryClient, eventId),
+  });
+}
+
+export function useCheckIn(eventId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (attendeeId: number) => {
@@ -140,14 +164,7 @@ export function useCheckIn(
       if (!res.ok) throw new Error((data as { error?: string }).error || "檢查入場失敗");
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["registration", eventId, selectedRegistrationId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["registrations", eventId] });
-      // 入場數會直接影響統計分頁的入場進度，漏掉會讓數字停在舊值
-      queryClient.invalidateQueries({ queryKey: ["eventStats", eventId] });
-    },
+    onSuccess: () => invalidateCheckInQueries(queryClient, eventId),
   });
 }
 

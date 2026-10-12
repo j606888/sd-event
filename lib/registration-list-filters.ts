@@ -4,7 +4,8 @@
  */
 
 export type PaymentFilter = "all" | "pending" | "reported" | "confirmed" | "rejected";
-export type CheckInFilter = "all" | "none" | "partial" | "all_entered";
+/** "not_all"＝還有人沒入場（未入場 + 部分入場），門口快速篩選用 */
+export type CheckInFilter = "all" | "none" | "partial" | "all_entered" | "not_all";
 export type HiddenFilter = "all" | "hidden" | "non_hidden";
 export type CouponFilter = "all" | "used" | "not_used";
 /** 報名項目篩選："all" 或 purchaseItem id */
@@ -55,6 +56,7 @@ export function matchesCheckInFilter(
   if (filter === "none") return attendeeCount === 0 || checked === 0;
   if (filter === "all_entered") return attendeeCount > 0 && checked >= attendeeCount;
   if (filter === "partial") return attendeeCount > 0 && checked > 0 && checked < attendeeCount;
+  if (filter === "not_all") return checked < attendeeCount;
   return true;
 }
 

@@ -1,23 +1,14 @@
 "use client";
 
 import {
-  Info,
-  Ticket,
-  Users,
+  Search,
   ChartColumn,
-  ScanLine,
+  UserPlus,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
-import { EVENT_TABS, type EventTabId } from "@/hooks/use-tab-param";
+import { EVENT_TABS, SETTINGS_TAB_IDS, type EventTabId } from "@/hooks/use-tab-param";
 import { cn } from "@/lib/utils";
-
-const TAB_META: Record<EventTabId, { icon: LucideIcon; shortLabel: string }> = {
-  basic: { icon: Info, shortLabel: "基本" },
-  tickets: { icon: Ticket, shortLabel: "票券" },
-  registrations: { icon: Users, shortLabel: "報名" },
-  stats: { icon: ChartColumn, shortLabel: "統計" },
-  verify: { icon: ScanLine, shortLabel: "驗票" },
-};
 
 type EventTabBarProps = {
   activeTab: EventTabId;
@@ -25,87 +16,156 @@ type EventTabBarProps = {
   registrationCount: number;
   /** 可見分頁；預設全部。驗票人員只拿到 STAFF_TAB_IDS */
   tabIds?: readonly EventTabId[];
+  /** 手機底部導覽列的「現場報名」；不給就不顯示 */
+  onWalkIn?: () => void;
 };
+
+const isSettingsTab = (id: EventTabId) => (SETTINGS_TAB_IDS as readonly string[]).includes(id);
 
 /**
  * 活動管理頁分頁導覽：
- * - sm 以上：上方水平分頁（active = 品牌色 + 底線）
- * - 手機：固定底部導覽列，icon + 短標籤，免橫向捲動
+ * - sm 以上：上方水平分頁，日常分頁靠左、設定分頁靠右自成一組
+ * - 手機：固定底部導覽列（報名者／統計／現場報名／活動設定），設定內再用小分頁切換
  */
-export function EventTabBar({ activeTab, onSelect, registrationCount, tabIds }: EventTabBarProps) {
-  const tabs = tabIds
-    ? tabIds
-        .map((id) => EVENT_TABS.find((t) => t.id === id))
-        .filter((t): t is (typeof EVENT_TABS)[number] => Boolean(t))
-    : EVENT_TABS;
+export function EventTabBar({
+  activeTab,
+  onSelect,
+  registrationCount,
+  tabIds,
+  onWalkIn,
+}: EventTabBarProps) {
+  const tabs = EVENT_TABS.filter((t) => !tabIds || tabIds.includes(t.id));
+  const dailyTabs = tabs.filter((t) => !isSettingsTab(t.id));
+  const settingsTabs = tabs.filter((t) => isSettingsTab(t.id));
+  const inSettings = isSettingsTab(activeTab);
+
+  const desktopTab = (tab: (typeof EVENT_TABS)[number], quiet = false) => {
+    const active = activeTab === tab.id;
+    return (
+      <button
+        key={tab.id}
+        type="button"
+        onClick={() => onSelect(tab.id)}
+        className={cn(
+          "relative flex h-11 items-center gap-2 px-3.5 text-sm transition-colors cursor-pointer",
+          active
+            ? "font-bold text-ink"
+            : cn("text-muted-ink hover:text-ink", quiet ? "font-normal" : "font-medium")
+        )}
+      >
+        {tab.label}
+        {tab.id === "registrations" && registrationCount > 0 && (
+          <span
+            className={cn(
+              "rounded-full px-2 py-px font-display text-xs font-semibold tabular-nums",
+              active ? "bg-brand-soft text-brand-strong" : "bg-field text-muted-ink"
+            )}
+          >
+            {registrationCount}
+          </span>
+        )}
+        {active && (
+          <span className="absolute inset-x-0 bottom-0 h-[3px] bg-brand" aria-hidden />
+        )}
+      </button>
+    );
+  };
+
+  const mobileItem = ({
+    key,
+    icon: Icon,
+    label,
+    active,
+    onClick,
+  }: {
+    key: string;
+    icon: LucideIcon;
+    label: string;
+    active: boolean;
+    onClick: () => void;
+  }) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer",
+        active ? "text-ink" : "text-muted-ink"
+      )}
+    >
+      <Icon
+        className={cn("size-[22px]", active && "text-brand-strong")}
+        strokeWidth={active ? 2.2 : 1.8}
+      />
+      <span className={cn("text-[11px] leading-tight", active && "font-bold")}>{label}</span>
+    </button>
+  );
 
   return (
     <>
-      {/* 桌機/平板：上方分頁，靠左排列 */}
-      <div className="hidden border-b border-hairline sm:flex">
-        {tabs.map((tab) => {
-          const active = activeTab === tab.id;
-          return (
+      {/* 桌機/平板：上方分頁 */}
+      <div className="hidden items-center border-b border-hairline sm:flex">
+        {dailyTabs.map((tab) => desktopTab(tab))}
+        {settingsTabs.length > 0 && (
+          <>
+            <span className="flex-1" />
+            <span className="px-1.5 text-xs text-gray-400">活動設定</span>
+            {settingsTabs.map((tab) => desktopTab(tab, true))}
+          </>
+        )}
+      </div>
+
+      {/* 手機：設定類的兩個分頁收在同一個底部項目裡，進去後用這排切換 */}
+      {inSettings && settingsTabs.length > 1 && (
+        <div className="flex gap-1 rounded-xl bg-field p-1 sm:hidden">
+          {settingsTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => onSelect(tab.id)}
               className={cn(
-                "relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors cursor-pointer",
-                active ? "text-brand-strong" : "text-gray-500 hover:text-gray-900"
+                "h-9 flex-1 rounded-lg text-sm transition-colors cursor-pointer",
+                activeTab === tab.id
+                  ? "bg-white font-bold text-ink shadow-xs"
+                  : "font-medium text-muted-ink"
               )}
             >
               {tab.label}
-              {tab.id === "registrations" && registrationCount > 0 && (
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums",
-                    active ? "bg-brand text-ink" : "bg-gray-100 text-gray-600"
-                  )}
-                >
-                  {registrationCount}
-                </span>
-              )}
-              {active && (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-brand" aria-hidden />
-              )}
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* 手機：固定底部導覽列 */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hairline bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hairline bg-white/95 px-2 pt-1 backdrop-blur pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:hidden"
         aria-label="活動管理分頁"
       >
-        {tabs.map((tab) => {
-          const active = activeTab === tab.id;
-          const { icon: Icon, shortLabel } = TAB_META[tab.id];
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => onSelect(tab.id)}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 pt-2 pb-1.5 transition-colors cursor-pointer",
-                active ? "text-brand-strong" : "text-gray-400 hover:text-gray-600"
-              )}
-            >
-              <span className="relative">
-                <Icon className="size-5" strokeWidth={active ? 2.2 : 1.8} />
-                {tab.id === "registrations" && registrationCount > 0 && (
-                  <span className="absolute -right-2.5 -top-1 rounded-full bg-follower px-1 py-px text-[9px] font-bold leading-tight text-white tabular-nums">
-                    {registrationCount > 99 ? "99+" : registrationCount}
-                  </span>
-                )}
-              </span>
-              <span className={cn("text-[10px] leading-tight", active && "font-semibold")}>
-                {shortLabel}
-              </span>
-            </button>
-          );
-        })}
+        {dailyTabs.map((tab) =>
+          mobileItem({
+            key: tab.id,
+            icon: tab.id === "registrations" ? Search : ChartColumn,
+            label: tab.label,
+            active: activeTab === tab.id,
+            onClick: () => onSelect(tab.id),
+          })
+        )}
+        {onWalkIn &&
+          mobileItem({
+            key: "walk-in",
+            icon: UserPlus,
+            label: "現場報名",
+            active: false,
+            onClick: onWalkIn,
+          })}
+        {settingsTabs.length > 0 &&
+          mobileItem({
+            key: "settings",
+            icon: SlidersHorizontal,
+            label: "活動設定",
+            active: inSettings,
+            onClick: () => onSelect(inSettings ? activeTab : settingsTabs[0].id),
+          })}
       </nav>
     </>
   );
