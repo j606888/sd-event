@@ -161,12 +161,12 @@ export default function EventOrganizersPage() {
           尚無主辦單位，點擊「新增主辦單位」建立
         </div>
       ) : (
-        <ul className="divide-y divide-hairline border-t border-hairline">
+        <ul className="surface-card overflow-hidden divide-y divide-hairline">
           {organizers.map((org) => (
             <li
               key={org.id}
               onClick={() => openEditDrawer(org)}
-              className="flex items-center gap-3 rounded-lg px-2 py-3.5 cursor-pointer hover:bg-brand/[0.04] transition-colors"
+              className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-paper transition-colors"
             >
               {isRenderableImageSrc(org.photoUrl) ? (
                 <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-gray-100">

@@ -160,12 +160,12 @@ export default function EventBankPage() {
           尚無銀行資訊，點擊「新增銀行資訊」建立
         </div>
       ) : (
-        <ul className="divide-y divide-hairline border-t border-hairline">
+        <ul className="surface-card overflow-hidden divide-y divide-hairline">
           {bankInfos.map((bank) => (
             <li
               key={bank.id}
               onClick={() => openEditDrawer(bank)}
-              className="flex items-center gap-3 rounded-lg px-2 py-3.5 cursor-pointer hover:bg-brand/[0.04] transition-colors"
+              className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-paper transition-colors"
             >
               <Landmark className="size-5 shrink-0 text-brand-strong" />
               <div className="min-w-0 flex-1">

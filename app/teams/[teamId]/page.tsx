@@ -278,13 +278,13 @@ export default function TeamDetailPage() {
       </div>
 
       <div className="space-y-2">
-        <h2 className="border-b border-hairline pb-2 text-xs font-bold tracking-[0.15em] text-gray-400">團隊成員</h2>
+        <h2 className="text-xs font-bold tracking-[0.15em] text-muted-ink">團隊成員</h2>
         {members.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
             尚無成員，點擊「邀請成員」新增
           </div>
         ) : (
-          <ul className="divide-y divide-hairline">
+          <ul className="surface-card overflow-hidden divide-y divide-hairline">
             {members.map((member) => {
               // 管理員都能管成員；但擁有者這一列誰都不能動（避免團隊被鎖死）
               const canManage = isTeamAdmin(currentUserRole);
@@ -294,7 +294,7 @@ export default function TeamDetailPage() {
               return (
                 <li
                   key={member.userId}
-                  className="flex items-center gap-3 px-2 py-3.5"
+                  className="flex items-center gap-3 px-5 py-4"
                 >
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15 text-sm font-semibold text-brand-strong">
                     {member.user.name.charAt(0).toUpperCase()}
@@ -371,12 +371,12 @@ export default function TeamDetailPage() {
 
       {invitations.length > 0 && (
         <div className="space-y-2 mt-8">
-          <h2 className="border-b border-hairline pb-2 text-xs font-bold tracking-[0.15em] text-gray-400">待處理邀請</h2>
-          <ul className="divide-y divide-hairline">
+          <h2 className="text-xs font-bold tracking-[0.15em] text-muted-ink">待處理邀請</h2>
+          <ul className="surface-card overflow-hidden divide-y divide-hairline">
             {invitations.map((invitation) => (
               <li
                 key={invitation.id}
-                className="flex items-center gap-3 px-2 py-3.5"
+                className="flex items-center gap-3 px-5 py-4"
               >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700">
                   <Mail className="size-5" />

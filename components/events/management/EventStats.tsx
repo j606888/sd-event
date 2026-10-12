@@ -20,7 +20,7 @@ const ROLE_TILE: Record<keyof RoleCounts, string> = {
   "Not sure": "bg-field text-muted-ink",
 };
 
-const CARD = "rounded-2xl border border-hairline bg-white p-5 sm:p-6";
+const CARD = "surface-card p-5 sm:p-6";
 
 /** 款項明細各列點下去要套用的報名者篩選。 */
 const PAYMENT_DRILL_DOWN: Record<"confirmed" | "reported" | "pending", PaymentFilter> = {

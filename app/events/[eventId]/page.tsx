@@ -456,7 +456,7 @@ function EventDetailPageInner() {
               </div>
 
               {selectedRegistrationId !== null && (
-                <div className="min-w-0 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:rounded-2xl lg:border lg:border-hairline lg:bg-white lg:p-5">
+                <div className="min-w-0 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto surface-card p-4 lg:p-5">
                   {registrationDetailQuery.isLoading || !selectedRegistration ? (
                     <RegistrationDetailSkeleton onBack={() => setSelectedRegistrationId(null)} />
                   ) : (

@@ -82,10 +82,10 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
       </div>
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start lg:gap-8">
-        {/* 左欄：各設定區塊以髮絲線分隔，不再包卡片框 */}
+        {/* 左欄：整欄是一張白卡，各設定區塊在卡內以髮絲線分隔 */}
         {/* 此頁為即時自動儲存，唯讀時直接停用整欄互動（寫入本來也會被擋下） */}
         <div
-          className={`flex flex-col divide-y divide-hairline ${
+          className={`surface-card flex flex-col divide-y divide-hairline px-4 py-5 sm:px-6 ${
             readOnly ? "pointer-events-none opacity-60" : ""
           }`}
           aria-disabled={readOnly || undefined}

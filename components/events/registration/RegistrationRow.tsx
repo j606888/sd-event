@@ -70,7 +70,7 @@ export function RegistrationRow({
     <div
       className={cn(
         "flex items-center gap-3 rounded-2xl border bg-white py-2 pl-4 pr-2 transition-colors",
-        selected ? "border-brand bg-brand-soft/50 ring-1 ring-brand" : "border-hairline hover:border-brand/60"
+        selected ? "border-brand bg-brand-soft/50 ring-1 ring-brand" : "border-card-border hover:border-brand"
       )}
     >
       <button
