@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { BasicInfoFields } from "./BasicInfoFields";
-import { OrganizerPaymentFields } from "./OrganizerPaymentFields";
+import { BasicInfoLayout } from "./BasicInfoLayout";
 import { EventFormDrawers } from "./EventFormDrawers";
 import { TicketSettings } from "./tickets/TicketSettings";
 import { useEventForm, type EventFormInitialData } from "@/hooks/use-event-form";
@@ -52,25 +51,52 @@ export function EventEditTabs({
     handleSubmit(e);
   };
 
-  const saveFooter = (
-    // 手機版 sticky 在底部導覽列上方；sm 起回到內容流
-    <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex flex-col gap-1.5 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
-      <Button
-        type="submit"
-        className="w-full bg-primary text-ink hover:bg-brand-hover sm:w-auto sm:self-start sm:px-8"
-        disabled={saving || readOnly}
-        title={readOnly ? "模擬檢視為唯讀模式" : undefined}
+  const saveButton = (className: string) => (
+    <Button
+      type="submit"
+      className={className}
+      disabled={saving || readOnly}
+      title={readOnly ? "模擬檢視為唯讀模式" : undefined}
+    >
+      {saving ? "儲存中…" : "儲存變更"}
+    </Button>
+  );
+  const dirty = basicDirty && !saving && !readOnly;
+
+  // sm 以上：儲存列在表單最上方並黏住，改了哪裡都不用滑到底才能存
+  const saveBar = (
+    <div
+      className={`sticky top-0 z-10 hidden items-center gap-3 rounded-2xl border py-1.5 pl-4 pr-1.5 sm:flex ${
+        dirty ? "border-butter bg-butter-soft" : "border-card-border bg-white"
+      }`}
+    >
+      <span
+        className={`flex flex-1 items-center gap-2 text-[13px] font-medium ${
+          dirty ? "text-butter-ink" : "text-muted-ink"
+        }`}
       >
-        {saving ? "儲存中…" : "儲存變更"}
-      </Button>
+        <span
+          className={`size-2 shrink-0 rounded-full ${dirty ? "bg-butter" : "bg-brand"}`}
+          aria-hidden
+        />
+        {readOnly
+          ? "模擬檢視為唯讀模式，無法儲存變更"
+          : dirty
+            ? "有還沒儲存的變更"
+            : "此頁的變更要按「儲存變更」才會生效"}
+      </span>
+      {saveButton("h-9 rounded-xl px-7 font-bold")}
+    </div>
+  );
+
+  // 手機：sticky 在底部導覽列上方
+  const saveFooter = (
+    <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex flex-col gap-1.5 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:hidden">
+      {saveButton("w-full font-bold")}
       {readOnly && (
-        <p className="text-xs text-amber-600">模擬檢視為唯讀模式，無法儲存變更</p>
+        <p className="text-xs text-butter-ink">模擬檢視為唯讀模式，無法儲存變更</p>
       )}
-      {basicDirty && !saving && !readOnly && (
-        <p className="text-xs text-amber-600">
-          此頁變更需按「儲存變更」才會生效
-        </p>
-      )}
+      {dirty && <p className="text-xs text-butter-ink">有還沒儲存的變更</p>}
     </div>
   );
 
@@ -85,12 +111,12 @@ export function EventEditTabs({
     <div className="w-full">
       {/* 基本資訊（含主辦與收款） */}
       <form
-        className={`max-w-2xl flex-col gap-5 ${activeTab === "basic" ? "flex" : "hidden"}`}
+        className={`max-w-6xl flex-col gap-3.5 ${activeTab === "basic" ? "flex" : "hidden"}`}
         onSubmit={onSubmit}
       >
+        {saveBar}
         {errorBanner}
-        <BasicInfoFields mode="edit" form={form} />
-        <OrganizerPaymentFields form={form} />
+        <BasicInfoLayout mode="edit" form={form} />
         {saveFooter}
       </form>
 

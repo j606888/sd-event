@@ -70,7 +70,7 @@ export function EventListRow({
       href={`/events/${event.id}`}
       className={cn(
         "flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border bg-white p-3 pr-4 transition-colors hover:border-brand sm:flex-nowrap",
-        status === "draft" ? "border-dashed border-gray-300" : "border-hairline"
+        status === "draft" ? "border-dashed border-gray-400" : "border-card-border"
       )}
     >
       {/* Thumbnail */}

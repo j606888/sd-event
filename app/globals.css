@@ -31,9 +31,11 @@
   --muted-ink: #55636f;    /* secondary text                                  */
 
   /* --- Dashboard surface system (organizer app only) ----------------------
-     White surfaces on the paper ground; structure comes from hairlines. */
-  --surface: #ffffff;      /* dashboard content background                    */
-  --hairline: #e3e9ed;     /* thin dividers between sections & list rows      */
+     White cards on the paper ground. A card is told apart by its fill and
+     a card-border outline; hairlines only divide what is inside one. */
+  --surface: var(--paper); /* dashboard content background                    */
+  --hairline: #e3e9ed;     /* dividers INSIDE a card (rows, sections)         */
+  --card-border: #d5dde3;  /* outline of a white card on the paper ground     */
   --field: #ecf0f3;        /* form field fill (inputs, selects, textareas)    */
 
   --primary: var(--brand);
@@ -91,6 +93,7 @@
   --color-muted-ink: var(--muted-ink);
   --color-surface: var(--surface);
   --color-hairline: var(--hairline);
+  --color-card-border: var(--card-border);
   --color-field: var(--field);
   --font-nunito: var(--font-nunito);
   --font-inter: var(--font-inter);
@@ -176,6 +179,13 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* The one card surface for the dashboard: lists, panels and form sections. */
+@utility surface-card {
+  background-color: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
 }
 
 @layer base {

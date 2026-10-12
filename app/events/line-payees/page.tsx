@@ -155,12 +155,12 @@ export default function EventLinePayeesPage() {
           尚無 LINE 付款好友，點擊「新增」建立
         </div>
       ) : (
-        <ul className="divide-y divide-hairline border-t border-hairline">
+        <ul className="surface-card overflow-hidden divide-y divide-hairline">
           {linePayees.map((payee) => (
             <li
               key={payee.id}
               onClick={() => openEditDrawer(payee)}
-              className="flex items-center gap-3 rounded-lg px-2 py-3.5 cursor-pointer hover:bg-brand/[0.04] transition-colors"
+              className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-paper transition-colors"
             >
               <SimpleIcon icon={siLine} size={20} className="shrink-0 text-[#06C755]" />
               <div className="min-w-0 flex-1">

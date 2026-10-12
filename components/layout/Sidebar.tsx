@@ -317,7 +317,7 @@ function SidebarLink({ href, icon: Icon, label, active, onClick }: any) {
     <Link
       href={href}
       onClick={onClick}
-      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${active
+      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 outline-none transition-all focus-visible:ring-2 focus-visible:ring-brand ${active
           ? "bg-brand-soft text-brand-strong"
           : "text-muted-ink hover:bg-field hover:text-ink"
         }`}

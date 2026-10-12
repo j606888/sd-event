@@ -148,7 +148,7 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
   const hasAnythingToShow = visibleIndexes.length > 0 || groups.length > 0;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-hairline bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-3 surface-card p-4">
       <div>
         <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
           <Eye className="size-4 text-brand-strong" />

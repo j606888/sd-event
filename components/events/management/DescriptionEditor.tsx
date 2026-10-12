@@ -24,6 +24,8 @@ let placeholderSeq = 0;
 type DescriptionEditorProps = {
   value: string;
   onChange: (value: string) => void;
+  /** 桌機雙欄版面用：編輯區撐滿所在卡片剩餘的高度，長描述不用在小框裡捲 */
+  tall?: boolean;
 };
 
 /**
@@ -32,7 +34,7 @@ type DescriptionEditorProps = {
  * 圖片採「先插入佔位、上傳完再換掉網址」的做法（同 GitHub 的輸入框）：
  * 上傳期間主辦方可以繼續打字，回填時用唯一的 token 定位，不會因為游標移動而插錯地方。
  */
-export function DescriptionEditor({ value, onChange }: DescriptionEditorProps) {
+export function DescriptionEditor({ value, onChange, tall = false }: DescriptionEditorProps) {
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [uploadingCount, setUploadingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export function DescriptionEditor({ value, onChange }: DescriptionEditorProps) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn("flex flex-col gap-2", tall && "min-h-0 flex-1")}>
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="description">活動描述</Label>
         <SegmentedToggle
@@ -192,12 +194,18 @@ export function DescriptionEditor({ value, onChange }: DescriptionEditorProps) {
             onDragLeave={() => setDragging(false)}
             className={cn(
               "w-full min-w-0 rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] focus:ring-2 focus:ring-brand/30 placeholder:text-gray-400 md:text-sm",
+              tall && "min-h-[20rem] flex-1 resize-none",
               dragging && "ring-2 ring-brand/50"
             )}
           />
         </>
       ) : (
-        <div className="min-h-[18rem] w-full min-w-0 rounded-md bg-field px-3 py-2 text-sm leading-relaxed text-gray-800 shadow-xs">
+        <div
+          className={cn(
+            "w-full min-w-0 rounded-md bg-field px-3 py-2 text-sm leading-relaxed text-gray-800 shadow-xs",
+            tall ? "min-h-[20rem] flex-1" : "min-h-[18rem]"
+          )}
+        >
           {value.trim() ? (
             <Markdown>{value}</Markdown>
           ) : (

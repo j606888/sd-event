@@ -55,7 +55,7 @@ export function EventNumbersStrip({
       <button
         type="button"
         onClick={onShowAll}
-        className={cn(CELL, "cursor-pointer border-hairline bg-white transition-colors hover:border-brand")}
+        className={cn(CELL, "cursor-pointer border-card-border bg-white transition-colors hover:border-brand")}
       >
         <span className={cn(LABEL, "text-muted-ink")}>報名人數</span>
         <span className={cn(NUMBER, "text-ink")}>
@@ -93,7 +93,7 @@ export function EventNumbersStrip({
             onClick={onShowAwaitingConfirmation}
             className={cn(
               CELL,
-              "hidden cursor-pointer border-hairline bg-white transition-colors hover:border-butter sm:flex"
+              "hidden cursor-pointer border-card-border bg-white transition-colors hover:border-butter sm:flex"
             )}
           >
             <span className={cn(LABEL, "text-muted-ink")}>待確認收款</span>
@@ -106,7 +106,7 @@ export function EventNumbersStrip({
             </span>
           </button>
 
-          <div className={cn(CELL, "hidden border-hairline bg-white sm:flex")}>
+          <div className={cn(CELL, "hidden border-card-border bg-white sm:flex")}>
             <span className={cn(LABEL, "text-muted-ink")}>已入帳</span>
             <span className={cn(NUMBER, "text-brand-strong")}>{money(payments.collected)}</span>
             <span className={cn(LABEL, "text-muted-ink")}>

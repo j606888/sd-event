@@ -80,7 +80,7 @@ export default function AdminUsersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="搜尋姓名或 Email"
-          className="pl-9"
+          className="border border-card-border bg-white pl-9"
         />
       </div>
 

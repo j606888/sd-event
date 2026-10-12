@@ -158,12 +158,12 @@ export default function EventLocationsPage() {
           尚無活動地點，點擊「新增地點」建立
         </div>
       ) : (
-        <ul className="divide-y divide-hairline border-t border-hairline">
+        <ul className="surface-card overflow-hidden divide-y divide-hairline">
           {locations.map((loc) => (
             <li
               key={loc.id}
               onClick={() => openEditDrawer(loc)}
-              className="flex items-center gap-3 rounded-lg px-2 py-3.5 cursor-pointer hover:bg-brand/[0.04] transition-colors"
+              className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-paper transition-colors"
             >
               <MapPin className="size-5 shrink-0 text-brand-strong" />
               <div className="min-w-0 flex-1">
