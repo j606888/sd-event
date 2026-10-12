@@ -26,11 +26,11 @@ const ROLE_LABELS: Record<keyof RoleCounts, string> = {
   "Not sure": "尚未確定",
 };
 
-// 角色配色沿用品牌 token：Leader 藍／Follower 珊瑚／尚未確定中性灰
+// 角色配色沿用品牌 token：Leader 石板藍／Follower 灰玫瑰／尚未確定中性灰
 const ROLE_COLORS: Record<keyof RoleCounts, string> = {
   Leader: "var(--leader)",
   Follower: "var(--follower)",
-  "Not sure": "#b4b4b4",
+  "Not sure": "#b3bec6",
 };
 
 const ROLE_ORDER: (keyof RoleCounts)[] = ["Leader", "Follower", "Not sure"];
@@ -89,9 +89,9 @@ export type PaymentRow = {
 };
 
 const PAYMENT_ROW_META: Record<PaymentRowKey, { label: string; color: string }> = {
-  confirmed: { label: "已確認入帳", color: "#00a63e" },
-  reported: { label: "已回報・待確認", color: "#fe9a00" },
-  pending: { label: "尚未付款", color: "#d1d5dc" },
+  confirmed: { label: "已確認入帳", color: "var(--brand-strong)" },
+  reported: { label: "已回報・待確認", color: "var(--butter)" },
+  pending: { label: "尚未付款", color: "#c5ced6" },
 };
 
 /**

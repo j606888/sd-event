@@ -80,7 +80,7 @@ export default function EventsPage() {
         <p className="text-red-500">{error ?? teamError}</p>
         <Link
           href="/login?next=%2Fevents"
-          className="mt-2 inline-block text-brand underline"
+          className="mt-2 inline-block text-brand-strong underline"
         >
           前往登入
         </Link>
@@ -132,7 +132,7 @@ export default function EventsPage() {
         ) : (
           <Link
             href="/events/new"
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:opacity-90 shadow-sm"
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand text-ink text-sm font-medium hover:opacity-90 shadow-sm"
             aria-label="建立新活動"
           >
             <Plus className="size-4" />
@@ -172,7 +172,7 @@ export default function EventsPage() {
       {events.length > 0 && isAdmin && (
         <Link
           href="/events/new"
-          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-brand text-white shadow-lg hover:opacity-90 z-10"
+          className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-brand text-ink shadow-lg hover:opacity-90 z-10"
           aria-label="建立新活動"
         >
           <Plus className="size-8" />

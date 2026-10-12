@@ -296,7 +296,7 @@ export default function TeamDetailPage() {
                   key={member.userId}
                   className="flex items-center gap-3 px-2 py-3.5"
                 >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15 text-sm font-semibold text-brand">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/15 text-sm font-semibold text-brand-strong">
                     {member.user.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -305,7 +305,7 @@ export default function TeamDetailPage() {
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           member.role === "staff"
-                            ? "bg-follower/15 text-follower"
+                            ? "bg-butter-soft text-butter-ink"
                             : "bg-gray-100 text-gray-700"
                         }`}
                       >
@@ -460,7 +460,7 @@ export default function TeamDetailPage() {
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
               取消
             </Button>
-            <Button type="submit" className="bg-primary text-white hover:bg-brand-hover">
+            <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
               邀請
             </Button>
           </div>

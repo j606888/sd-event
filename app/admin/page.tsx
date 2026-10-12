@@ -113,7 +113,7 @@ export default function AdminUsersPage() {
                     <div className="font-semibold text-gray-900">
                       {u.name}
                       {u.isSuperAdmin && (
-                        <span className="ml-2 rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">
+                        <span className="ml-2 rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-strong">
                           ADMIN
                         </span>
                       )}
@@ -148,7 +148,7 @@ export default function AdminUsersPage() {
                           type="button"
                           onClick={() => handleImpersonate(u)}
                           disabled={pendingId === u.id}
-                          className="flex items-center gap-1 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                          className="flex items-center gap-1 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
                         >
                           <Eye className="size-3.5" />
                           {pendingId === u.id ? "進入中…" : "以此身分檢視"}

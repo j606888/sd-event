@@ -128,7 +128,7 @@ export function PaymentStep({
                   <span className="text-gray-500">折扣碼</span>
                   <span className="text-gray-900">
                     <span className="font-mono">{formData.appliedCoupon.code}</span>
-                    <span className="ml-2 text-brand">−NT${discountAmount}</span>
+                    <span className="ml-2 text-brand-strong">−NT${discountAmount}</span>
                   </span>
                 </div>
               )}
@@ -164,7 +164,7 @@ export function PaymentStep({
                     name="paymentMethod"
                     checked={formData.paymentMethod === method}
                     onChange={() => onPaymentMethodChange(method)}
-                    className="w-4 h-4 text-brand border-gray-300 focus:ring-brand"
+                    className="w-4 h-4 text-brand-strong border-gray-300 focus:ring-brand"
                   />
                   <span className="text-gray-900">{method}</span>
                 </label>
@@ -226,7 +226,7 @@ export function PaymentStep({
           <Button
             onClick={onSubmit}
             disabled={!formData.paymentMethod || submitting}
-            className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
+            className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
           >
             {submitting ? "處理中…" : "確認報名"}
           </Button>

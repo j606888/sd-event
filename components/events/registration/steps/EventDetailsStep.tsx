@@ -68,7 +68,7 @@ export function EventDetailsStep({
             />
           </div>
         ) : (
-          <div className="relative flex h-36 items-end overflow-hidden bg-gradient-to-br from-leader to-follower p-5">
+          <div className="relative flex h-36 items-end overflow-hidden bg-ink p-5">
             <Disc3 className="absolute -right-2 -top-2 size-24 text-white/15" />
             <h1 className="font-display text-2xl font-bold text-white drop-shadow-sm">
               {event.title}
@@ -109,7 +109,7 @@ export function EventDetailsStep({
                       href={event.location.googleMapUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-brand mt-1 inline-block"
+                      className="text-sm text-brand-strong mt-1 inline-block"
                     >
                       導航 &gt;
                     </a>
@@ -131,7 +131,7 @@ export function EventDetailsStep({
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="font-display text-base font-semibold text-ink">方案介紹</h2>
                 {event.activeTier?.endsAt && (
-                  <span className="rounded-full bg-follower/10 px-2.5 py-0.5 text-xs font-medium text-follower">
+                  <span className="rounded-full bg-butter-soft px-2.5 py-0.5 text-xs font-medium text-butter-ink">
                     {event.activeTier.name}價至 {formatTierDeadline(event.activeTier.endsAt)} 止
                   </span>
                 )}
@@ -148,7 +148,7 @@ export function EventDetailsStep({
                       <h3 className="flex items-center gap-2 font-display text-[15px] font-semibold text-ink">
                         <span
                           aria-hidden
-                          className="h-4 w-1 shrink-0 rounded-full bg-follower"
+                          className="h-4 w-1 shrink-0 rounded-full bg-brand"
                         />
                         {section.title}
                       </h3>
@@ -245,7 +245,7 @@ export function EventDetailsStep({
                 type="checkbox"
                 checked={agreedToTerms}
                 onChange={(e) => onAgreedToTermsChange(e.target.checked)}
-                className="mt-0.5 w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                className="mt-0.5 w-4 h-4 text-brand-strong border-gray-300 rounded focus:ring-brand"
               />
               <span className="text-[15px] text-gray-700">我已閱讀並同意報名須知</span>
             </label>
@@ -254,7 +254,7 @@ export function EventDetailsStep({
           <Button
             onClick={onNext}
             disabled={!canProceed}
-            className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
+            className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
           >
             報名活動
           </Button>

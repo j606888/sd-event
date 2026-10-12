@@ -167,7 +167,7 @@ export default function EventBankPage() {
               onClick={() => openEditDrawer(bank)}
               className="flex items-center gap-3 rounded-lg px-2 py-3.5 cursor-pointer hover:bg-brand/[0.04] transition-colors"
             >
-              <Landmark className="size-5 shrink-0 text-brand" />
+              <Landmark className="size-5 shrink-0 text-brand-strong" />
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{bank.label || bank.bankName}</p>
                 <p className="text-sm text-gray-500">
@@ -231,7 +231,7 @@ export default function EventBankPage() {
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
               取消
             </Button>
-            <Button type="submit" className="bg-primary text-white hover:bg-brand-hover">
+            <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
               {editingBankInfoId ? "更新" : "新增"}
             </Button>
           </div>

@@ -52,7 +52,7 @@ export function LinePayeeFields({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-fit items-center gap-1 text-xs text-brand hover:underline"
+            className="inline-flex w-fit items-center gap-1 text-xs text-brand-strong hover:underline"
           >
             <ExternalLink className="size-3" />
             測試連結：開啟看看是不是加到正確的人

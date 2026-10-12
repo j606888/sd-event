@@ -25,6 +25,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/brand/Logo";
 
 type Team = { id: number; name: string } | null;
 
@@ -129,21 +130,19 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
       {/* 2. Sidebar 主體 */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-70 w-[280px] bg-ink transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-70 w-[280px] border-r border-hairline bg-white transition-transform duration-300 ease-in-out
           ${open ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
           flex h-full flex-col
         `}
       >
         {/* Header - 固定高度 */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">
-          <span className="font-display text-xl font-bold text-white">
-            SD Event<span className="text-follower">.</span>
-          </span>
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-hairline px-5">
+          <Logo />
           <button
             type="button"
             onClick={onClose}
-            className="flex lg:hidden size-9 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
+            className="flex lg:hidden size-9 items-center justify-center rounded-md text-muted-ink hover:bg-field hover:text-ink"
           >
             <X className="size-5" />
           </button>
@@ -154,9 +153,9 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
           {/* Team selector */}
           <div className="mb-2">
             <Select value={currentTeamId} onValueChange={handleTeamChange}>
-              <SelectTrigger className="w-full bg-white/10 text-white shadow-none h-auto py-3 px-3 cursor-pointer hover:bg-white/15 focus:ring-white/20">
+              <SelectTrigger className="w-full bg-paper text-ink shadow-none h-auto py-3 px-3 cursor-pointer hover:bg-field focus:ring-brand/40">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-follower/25 text-sm font-bold text-follower">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-sm font-bold text-brand-strong">
                     {teamInitial}
                   </div>
                   <SelectValue className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -175,7 +174,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
                     return (
                       <SelectItem key={t.id} value={String(t.id)}>
                         <div className="flex items-center gap-2">
-                          <div className="flex size-6 shrink-0 items-center justify-center rounded bg-brand/15 text-xs font-bold text-brand">
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded bg-brand/15 text-xs font-bold text-brand-strong">
                             {initial}
                           </div>
                           <span className={isSelected ? "font-semibold" : ""}>{t.name}</span>
@@ -196,14 +195,14 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
                 setTeamName("");
                 setCreateError(null);
               }}
-              className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-follower hover:text-follower-hover transition-colors"
+              className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-brand-strong hover:text-ink transition-colors"
             >
               <Plus className="size-3.5" />
               建立新團隊
             </button>
           ) : (
             <div className="mb-6 px-2">
-              <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/70">
+              <span className="inline-flex items-center rounded-full bg-field px-2.5 py-1 text-[11px] font-semibold text-muted-ink">
                 {isStaff ? TEAM_ROLE_LABEL.staff : ""}
               </span>
             </div>
@@ -220,7 +219,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
 
             {isAdmin && (
               <div>
-                <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-white/35">
+                <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">
                   常用資訊
                 </p>
                 <nav className="flex flex-col gap-1">
@@ -234,7 +233,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
 
             {isSuperAdmin && (
               <div>
-                <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-white/35">
+                <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">
                   站方
                 </p>
                 <nav className="flex flex-col gap-1">
@@ -249,9 +248,9 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
             <button
               type="button"
               onClick={() => { onClose(); handleLogout(); }}
-              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/50 hover:bg-white/5 hover:text-red-300 transition-colors"
+              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-ink hover:bg-field hover:text-red-600 transition-colors"
             >
-              <div className="flex size-8 items-center justify-center rounded-lg bg-white/10 transition-colors">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-field transition-colors">
                 <LogOut className="size-4" />
               </div>
               登出帳號
@@ -300,7 +299,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
             </Button>
             <Button 
               type="submit" 
-              className="bg-primary text-white hover:bg-brand-hover"
+              className="bg-primary text-ink hover:bg-brand-hover"
               disabled={creating}
             >
               {creating ? "建立中..." : "建立"}
@@ -319,14 +318,11 @@ function SidebarLink({ href, icon: Icon, label, active, onClick }: any) {
       href={href}
       onClick={onClick}
       className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${active
-          ? "bg-white/10 text-white"
-          : "text-white/60 hover:bg-white/5 hover:text-white"
+          ? "bg-brand-soft text-brand-strong"
+          : "text-muted-ink hover:bg-field hover:text-ink"
         }`}
     >
-      {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-follower" />
-      )}
-      <Icon className={`size-5 ${active ? "text-follower" : "text-white/40 group-hover:text-white/70"}`} />
+      <Icon className={`size-5 ${active ? "text-brand-strong" : "text-gray-400 group-hover:text-muted-ink"}`} />
       <span className="font-semibold text-sm">{label}</span>
     </Link>
   );

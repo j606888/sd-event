@@ -1,23 +1,35 @@
 "use client";
 
-import { Cloud, Clock, CheckCircle2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type PaymentStatus = "pending" | "reported" | "confirmed" | "rejected" | string;
 
-const STATUS_CONFIG: Record<string, { icon: React.ElementType; label: string; className: string }> = {
-  pending: { icon: Cloud, label: "尚未付款", className: "bg-gray-100 text-gray-700" },
-  reported: { icon: Clock, label: "待確認", className: "bg-amber-100 text-amber-700" },
-  confirmed: { icon: CheckCircle2, label: "已確認收款", className: "bg-green-100 text-green-700" },
-  rejected: { icon: X, label: "已拒絕", className: "bg-red-100 text-red-700" },
+const STATUS_CONFIG: Record<string, { label: string; text: string; dot: string }> = {
+  pending: { label: "未付款", text: "text-muted-ink", dot: "bg-gray-300" },
+  reported: { label: "待確認收款", text: "text-butter-ink", dot: "bg-butter" },
+  confirmed: { label: "已收款", text: "text-brand-strong", dot: "bg-brand" },
+  rejected: { label: "已拒絕", text: "text-red-700", dot: "bg-red-400" },
 };
 
 const DEFAULT_CONFIG = STATUS_CONFIG.pending;
 
-export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
-  const { icon: Icon, label, className } = STATUS_CONFIG[status] ?? DEFAULT_CONFIG;
+export function PaymentStatusBadge({
+  status,
+  className,
+}: {
+  status: PaymentStatus;
+  className?: string;
+}) {
+  const { label, text, dot } = STATUS_CONFIG[status] ?? DEFAULT_CONFIG;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${className}`}>
-      <Icon className="w-3 h-3 shrink-0" />
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-bold",
+        text,
+        className
+      )}
+    >
+      <span className={cn("size-2 shrink-0 rounded-full", dot)} aria-hidden />
       {label}
     </span>
   );

@@ -150,7 +150,7 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
       <button
         type="button"
         onClick={() => setPreviewOpen(true)}
-        className="fixed bottom-20 right-4 z-20 flex items-center gap-1.5 rounded-full bg-follower px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-follower-hover lg:hidden"
+        className="fixed bottom-20 right-4 z-20 flex items-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-ink/90 lg:hidden"
       >
         <Eye className="size-4" />
         預覽報名頁

@@ -234,7 +234,7 @@ export function ReportPaymentPage({
                     variant="outline"
                     size="sm"
                     onClick={() => handleCopy(bankInfo.account!, "bank")}
-                    className="h-8 text-brand border-brand hover:bg-brand/10"
+                    className="h-8 text-brand-strong border-brand hover:bg-brand/10"
                   >
                     {copiedText === "bank" ? (
                       <>
@@ -321,7 +321,7 @@ export function ReportPaymentPage({
             isUploading ||
             (!selectedFile && !paymentScreenshotUrl && !paymentNote.trim())
           }
-          className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
+          className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
         >
           {uploading || isUploading
             ? "上傳中…"

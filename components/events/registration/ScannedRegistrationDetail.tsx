@@ -154,7 +154,7 @@ export function ScannedRegistrationDetail({
                   onClick={() => requestCheckIn(attendee.id)}
                   disabled={checkingIn === attendee.id}
                   size="sm"
-                  className="bg-brand text-white hover:bg-brand-hover h-8 px-3 text-xs"
+                  className="bg-brand text-ink hover:bg-brand-hover h-8 px-3 text-xs"
                 >
                   {checkingIn === attendee.id ? "處理中…" : "入場"}
                 </Button>

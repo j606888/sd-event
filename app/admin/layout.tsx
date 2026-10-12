@@ -29,7 +29,7 @@ export default async function AdminLayout({
             href="/admin"
             className="flex items-center gap-2 font-display text-lg font-bold text-white"
           >
-            <ShieldCheck className="size-5 text-follower" />
+            <ShieldCheck className="size-5 text-brand" />
             總管理
           </Link>
 

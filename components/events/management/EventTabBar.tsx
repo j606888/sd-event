@@ -52,7 +52,7 @@ export function EventTabBar({ activeTab, onSelect, registrationCount, tabIds }: 
               onClick={() => onSelect(tab.id)}
               className={cn(
                 "relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors cursor-pointer",
-                active ? "text-brand" : "text-gray-500 hover:text-gray-900"
+                active ? "text-brand-strong" : "text-gray-500 hover:text-gray-900"
               )}
             >
               {tab.label}
@@ -60,7 +60,7 @@ export function EventTabBar({ activeTab, onSelect, registrationCount, tabIds }: 
                 <span
                   className={cn(
                     "rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums",
-                    active ? "bg-brand text-white" : "bg-gray-100 text-gray-600"
+                    active ? "bg-brand text-ink" : "bg-gray-100 text-gray-600"
                   )}
                 >
                   {registrationCount}
@@ -89,7 +89,7 @@ export function EventTabBar({ activeTab, onSelect, registrationCount, tabIds }: 
               onClick={() => onSelect(tab.id)}
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 pt-2 pb-1.5 transition-colors cursor-pointer",
-                active ? "text-brand" : "text-gray-400 hover:text-gray-600"
+                active ? "text-brand-strong" : "text-gray-400 hover:text-gray-600"
               )}
             >
               <span className="relative">

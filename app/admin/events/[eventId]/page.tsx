@@ -65,7 +65,7 @@ export default function AdminEventDetailPage({
             href={`/e/${event.publicKey}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 text-xs font-semibold text-brand hover:underline"
+            className="flex items-center gap-1 text-xs font-semibold text-brand-strong hover:underline"
           >
             公開頁面
             <ExternalLink className="size-3" />

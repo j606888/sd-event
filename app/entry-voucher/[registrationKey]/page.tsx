@@ -252,7 +252,7 @@ export default function EntryVoucherPage() {
                       href={data.event.location.googleMapUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-brand mt-1 inline-block text-xs"
+                      className="text-brand-strong mt-1 inline-block text-xs"
                     >
                       導航 &gt;
                     </a>
@@ -290,7 +290,7 @@ export default function EntryVoucherPage() {
                   NT {data.registration.totalAmount}
                   {data.registration.couponCode &&
                     (data.registration.discountAmount ?? 0) > 0 && (
-                      <span className="ml-2 font-mono text-xs font-normal text-brand">
+                      <span className="ml-2 font-mono text-xs font-normal text-brand-strong">
                         {data.registration.couponCode}
                       </span>
                     )}

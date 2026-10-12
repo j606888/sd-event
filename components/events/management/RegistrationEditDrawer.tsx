@@ -193,7 +193,7 @@ export function RegistrationEditDrawer({
                       name={`edit-role-${a.key}`}
                       checked={a.role === role}
                       onChange={() => updateAttendee(a.key, "role", role)}
-                      className="h-4 w-4 text-brand"
+                      className="h-4 w-4 text-brand-strong"
                     />
                     {role}
                   </label>
@@ -220,7 +220,7 @@ export function RegistrationEditDrawer({
             type="button"
             variant="outline"
             onClick={addAttendee}
-            className="w-full gap-1.5 border-brand text-brand hover:bg-brand/10"
+            className="w-full gap-1.5 border-brand text-brand-strong hover:bg-brand/10"
           >
             <Plus className="h-4 w-4" />
             增加參加者
@@ -250,7 +250,7 @@ export function RegistrationEditDrawer({
             type="button"
             onClick={handleSubmit}
             disabled={saving}
-            className="bg-brand text-white hover:bg-brand-hover"
+            className="bg-brand text-ink hover:bg-brand-hover"
           >
             {saving ? "儲存中…" : "儲存"}
           </Button>

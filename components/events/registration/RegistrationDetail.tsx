@@ -125,7 +125,7 @@ function ContactRow({
       <Icon className="size-4 shrink-0 text-gray-400" />
       <a
         href={href}
-        className="min-w-0 flex-1 truncate text-sm font-medium text-brand hover:text-brand-hover hover:underline"
+        className="min-w-0 flex-1 truncate text-sm font-medium text-brand-strong hover:text-ink hover:underline"
       >
         {value}
       </a>
@@ -314,7 +314,7 @@ export function RegistrationDetail({
                     void handleConfirmPayment();
                   }
                 }}
-                className="h-[38px] gap-2 bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-hover"
+                className="h-[38px] gap-2 bg-brand px-4 text-sm font-semibold text-ink hover:bg-brand-hover"
               >
                 <CheckCircle2 className="size-4" />
                 {updating ? "處理中…" : "確認收款"}
@@ -546,7 +546,7 @@ export function RegistrationDetail({
                       </span>
                     )}
                   </span>
-                  <span className="font-display tabular-nums text-brand">
+                  <span className="font-display tabular-nums text-brand-strong">
                     −{registration.discountAmount!.toLocaleString()}
                   </span>
                 </div>
@@ -603,7 +603,7 @@ export function RegistrationDetail({
                   href={registration.paymentScreenshotUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-hover"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-strong hover:text-ink"
                 >
                   <ExternalLink className="size-3.5" />
                   原圖

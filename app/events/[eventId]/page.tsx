@@ -223,7 +223,7 @@ function EventDetailPageInner() {
             ? eventQuery.error.message
             : "找不到活動"}
         </p>
-        <Link href="/events" className="mt-2 inline-block text-brand underline">
+        <Link href="/events" className="mt-2 inline-block text-brand-strong underline">
           返回活動列表
         </Link>
       </div>
@@ -408,7 +408,7 @@ function EventDetailPageInner() {
                     onClick={() => setWalkInOpen(true)}
                     disabled={readOnly}
                     title={readOnly ? "模擬檢視為唯讀模式" : undefined}
-                    className="gap-1.5 bg-brand text-white hover:bg-brand-hover"
+                    className="gap-1.5 bg-brand text-ink hover:bg-brand-hover"
                   >
                     <UserPlus className="size-4" />
                     現場報名
@@ -489,7 +489,7 @@ function EventDetailPageInner() {
               onClick={() => {
                 window.location.href = `/events/${eventId}/scan`;
               }}
-              className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
+              className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
             >
               開啟掃描器
             </Button>

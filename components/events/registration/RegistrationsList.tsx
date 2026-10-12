@@ -64,7 +64,7 @@ function FilterPills<T extends string | number>({
           onClick={() => onChange(opt.value)}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
             value === opt.value
-              ? "bg-brand text-white"
+              ? "bg-brand text-ink"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
@@ -158,7 +158,7 @@ export function RegistrationsList({
             <Filter className="w-4 h-4" />
           </Button>
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white">
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-ink">
               {activeFilterCount}
             </span>
           )}
@@ -169,7 +169,7 @@ export function RegistrationsList({
       {activeItemName && (
         <div className="flex items-center gap-2 text-sm text-gray-500">
           報名項目
-          <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 py-1 pr-1.5 pl-3 text-xs font-medium text-brand">
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 py-1 pr-1.5 pl-3 text-xs font-medium text-brand-strong">
             {activeItemName}
             <button
               type="button"
@@ -299,7 +299,7 @@ export function RegistrationsList({
                         </span>
                       )}
                       {canSeeMoney && reg.couponCode && (
-                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium font-mono bg-brand/10 text-brand">
+                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium font-mono bg-brand/10 text-brand-strong">
                           {reg.couponCode}
                         </span>
                       )}

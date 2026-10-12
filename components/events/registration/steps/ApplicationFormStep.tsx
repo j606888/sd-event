@@ -145,7 +145,7 @@ export function ApplicationFormStep({
             <h2 className="font-semibold text-gray-900">參加者資料</h2>
             {bundleItem && requiredParticipants != null && (
               <div className="flex items-start gap-2 rounded-lg border border-brand/30 bg-brand/5 p-3 text-sm text-gray-700">
-                <Users className="mt-0.5 size-4 shrink-0 text-brand" />
+                <Users className="mt-0.5 size-4 shrink-0 text-brand-strong" />
                 <div className="space-y-1">
                   <p>
                     你選擇了「<span className="font-medium">{bundleItem.name}</span>
@@ -166,7 +166,7 @@ export function ApplicationFormStep({
                   className="border border-gray-200 rounded-lg p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="px-3 py-1 bg-brand text-white rounded text-sm font-medium">
+                    <div className="px-3 py-1 bg-brand text-ink rounded text-sm font-medium">
                       參加者 {index + 1}
                     </div>
                     {formData.participants.length > 1 && requiredParticipants == null && (
@@ -240,7 +240,7 @@ export function ApplicationFormStep({
               <Button
                 onClick={onAddParticipant}
                 variant="outline"
-                className="w-full border-brand text-brand hover:bg-brand/10"
+                className="w-full border-brand text-brand-strong hover:bg-brand/10"
               >
                 <Plus className="w-4 h-4" />
                 增加參加者
@@ -277,8 +277,8 @@ export function ApplicationFormStep({
                 {formData.appliedCoupon ? (
                   <div className="mt-1 flex items-center justify-between rounded-lg border border-brand bg-brand/5 px-3 py-2.5">
                     <div className="flex items-center gap-2 text-sm">
-                      <TicketPercent className="size-4 text-brand" />
-                      <span className="font-mono font-medium text-brand">
+                      <TicketPercent className="size-4 text-brand-strong" />
+                      <span className="font-mono font-medium text-brand-strong">
                         {formData.appliedCoupon.code}
                       </span>
                       <span className="text-gray-600">
@@ -316,7 +316,7 @@ export function ApplicationFormStep({
                       variant="outline"
                       onClick={onApplyCoupon}
                       disabled={!formData.couponCode.trim() || applyingCoupon}
-                      className="border-brand text-brand hover:bg-brand/10"
+                      className="border-brand text-brand-strong hover:bg-brand/10"
                     >
                       {applyingCoupon ? "驗證中…" : "套用"}
                     </Button>
@@ -335,7 +335,7 @@ export function ApplicationFormStep({
                   <span className="mr-2 text-gray-400 line-through">
                     ${formData.totalAmount}
                   </span>
-                  <span className="font-semibold text-brand">${finalAmount}</span>
+                  <span className="font-semibold text-brand-strong">${finalAmount}</span>
                 </span>
               </div>
             )}
@@ -344,7 +344,7 @@ export function ApplicationFormStep({
           <Button
             onClick={onNext}
             disabled={!canProceed || applyingCoupon}
-            className="w-full bg-brand text-white hover:bg-brand-hover h-12 text-base font-medium"
+            className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
           >
             {applyingCoupon ? "驗證折扣碼…" : "選擇付款方式"}
           </Button>

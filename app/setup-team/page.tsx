@@ -103,7 +103,7 @@ export default function SetupTeamPage() {
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <main className="w-full max-w-md flex-1 flex flex-col justify-center p-6">
         <h1
-          className="text-[28px] font-extrabold text-brand mb-2 self-start"
+          className="text-[28px] font-extrabold text-brand-strong mb-2 self-start"
           style={{ fontFamily: "var(--font-nunito)" }}
         >
           SD Event.
@@ -129,7 +129,7 @@ export default function SetupTeamPage() {
           )}
           <Button
             type="submit"
-            className="w-full bg-brand hover:bg-[#4285A] text-white"
+            className="w-full bg-brand hover:bg-brand-hover text-ink"
             disabled={submitting}
           >
             {submitting ? "建立中…" : "建立團隊"}
