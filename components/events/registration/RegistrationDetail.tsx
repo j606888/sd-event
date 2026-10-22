@@ -17,6 +17,7 @@ import {
   Pencil,
   Phone,
   QrCode,
+  Undo2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmActionDrawer } from "./ConfirmActionDrawer";
+import { RefundDrawer, type RefundInput } from "./RefundDrawer";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { RoleBadge } from "./RoleBadge";
 import { FlagBadge } from "./FlagBadge";
@@ -58,6 +60,9 @@ type RegistrationDetailProps = {
   onUndoCheckIn?: (attendeeId: number) => Promise<void>;
   onEdit?: () => void;
   onResendEmail?: () => Promise<void>;
+  /** 標記為已退款／撤銷退款；不給就不顯示 */
+  onRefund?: (input: RefundInput) => Promise<void>;
+  onUndoRefund?: () => Promise<void>;
   /**
    * page：整頁明細，含返回與上一筆／下一筆（手機、平板）。
    * panel：桌機名單右側的窄欄，名單還在旁邊所以只留關閉鈕，內容改單欄。
@@ -102,6 +107,12 @@ export function RegistrationDetailSkeleton({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
+
+const REFUND_METHOD_LABELS: Record<string, string> = {
+  "Bank Transfer": "銀行轉帳",
+  "Line Pay": "LINE Pay",
+  Cash: "現金",
+};
 
 /** 區塊標題，整頁共用同一種字級與字重 */
 function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -169,6 +180,8 @@ export function RegistrationDetail({
   onUndoCheckIn,
   onEdit,
   onResendEmail,
+  onRefund,
+  onUndoRefund,
   layout = "page",
 }: RegistrationDetailProps) {
   const isPanel = layout === "panel";
@@ -189,6 +202,8 @@ export function RegistrationDetail({
   const [confirmPaymentOpen, setConfirmPaymentOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [hiddenConfirmOpen, setHiddenConfirmOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [undoRefundOpen, setUndoRefundOpen] = useState(false);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
   const [resendError, setResendError] = useState<string | null>(null);
 
@@ -196,6 +211,7 @@ export function RegistrationDetail({
   const checkedInCount = attendees.filter((a) => a.checkedIn).length;
   const notCheckedIn = attendees.filter((a) => !a.checkedIn);
   const paymentConfirmed = registration.paymentStatus === "confirmed";
+  const refunded = registration.paymentStatus === "refunded";
   const isAwaitingPayment =
     registration.paymentStatus === "pending" ||
     registration.paymentStatus === "reported";
@@ -426,9 +442,18 @@ export function RegistrationDetail({
                     {registration.hidden ? "取消隱藏" : "標記為隱藏"}
                   </DropdownMenuItem>
                 )}
-                {registration.paymentStatus !== "rejected" && (
+                {paymentConfirmed && onRefund && (
                   <>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setRefundOpen(true)}>
+                      <Undo2 />
+                      標記為已退款…
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {registration.paymentStatus !== "rejected" && !refunded && (
+                  <>
+                    {!(paymentConfirmed && onRefund) && <DropdownMenuSeparator />}
                     <DropdownMenuItem
                       variant="destructive"
                       onSelect={() => setRejectOpen(true)}
@@ -445,6 +470,58 @@ export function RegistrationDetail({
       </div>
 
       {resendError && <p className="text-sm text-red-500">{resendError}</p>}
+
+      {/* 退款紀錄 */}
+      {refunded && (
+        <section className="space-y-3 rounded-xl border border-card-border bg-paper p-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-ink">
+            <Undo2 className="size-4 text-leader" />
+            {canManage && registration.totalAmount != null
+              ? `已退款 NT$${registration.totalAmount.toLocaleString()}`
+              : "已退款"}
+          </div>
+          <div className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-1.5 text-sm">
+            {registration.refundedAt && (
+              <>
+                <span className="text-muted-ink">退款日期</span>
+                <span className="text-ink">{formatTimestamp(registration.refundedAt)}</span>
+              </>
+            )}
+            {registration.refundMethod && (
+              <>
+                <span className="text-muted-ink">方式</span>
+                <span className="text-ink">
+                  {REFUND_METHOD_LABELS[registration.refundMethod] ?? registration.refundMethod}
+                </span>
+              </>
+            )}
+            {registration.refundedByName && (
+              <>
+                <span className="text-muted-ink">處理人</span>
+                <span className="text-ink">{registration.refundedByName}</span>
+              </>
+            )}
+            {registration.refundNote && (
+              <>
+                <span className="text-muted-ink">備註</span>
+                <span className="min-w-0 break-words text-ink">{registration.refundNote}</span>
+              </>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-2.5 text-[13px] text-muted-ink">
+            <span>此筆不計入人數、L/F 與入帳金額</span>
+            {!readOnly && canManage && onUndoRefund && (
+              <button
+                type="button"
+                onClick={() => setUndoRefundOpen(true)}
+                className="h-9 cursor-pointer font-semibold text-brand-strong underline underline-offset-2 hover:text-ink"
+              >
+                撤銷退款
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* 雙欄：左邊是要操作的，右邊是要核對的 */}
       <div
@@ -490,7 +567,7 @@ export function RegistrationDetail({
                   {checkedInCount} / {attendees.length} 已入場
                 </span>
               </SectionHeading>
-              {!readOnly && notCheckedIn.length > 1 && (
+              {!readOnly && !refunded && notCheckedIn.length > 1 && (
                 <Button
                   type="button"
                   variant="outline"
@@ -543,6 +620,10 @@ export function RegistrationDetail({
                     </>
                   ) : readOnly ? (
                     <span className="shrink-0 pr-1.5 text-xs text-gray-400">未入場</span>
+                  ) : refunded ? (
+                    <span className="flex h-11 shrink-0 items-center rounded-md border border-dashed border-card-border px-3 text-xs text-muted-ink">
+                      已退款，無法入場
+                    </span>
                   ) : (
                     <Button
                       type="button"
@@ -626,6 +707,21 @@ export function RegistrationDetail({
                     NT${registration.totalAmount.toLocaleString()}
                   </span>
                 </div>
+              )}
+
+              {canManage && refunded && registration.totalAmount != null && (
+                <>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-500">已退款</span>
+                    <span className="font-display tabular-nums text-leader">
+                      −NT${registration.totalAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="font-bold text-ink">實收</span>
+                    <span className="font-display font-bold tabular-nums text-ink">NT$0</span>
+                  </div>
+                </>
               )}
             </div>
           </section>
@@ -719,6 +815,32 @@ export function RegistrationDetail({
         pendingLabel="處理中…"
         destructive
         onConfirm={() => onStatusUpdate("rejected")}
+      />
+
+      {/* 標記退款 */}
+      {onRefund && registration.totalAmount != null && (
+        <RefundDrawer
+          open={refundOpen}
+          onClose={() => setRefundOpen(false)}
+          contactName={registration.contactName}
+          contactEmail={registration.contactEmail}
+          attendeeCount={attendees.length}
+          totalAmount={registration.totalAmount}
+          onConfirm={onRefund}
+        />
+      )}
+
+      {/* 撤銷退款 */}
+      <ConfirmActionDrawer
+        open={undoRefundOpen}
+        onClose={() => setUndoRefundOpen(false)}
+        title="撤銷退款？"
+        description="狀態會回到「已收款」，退款紀錄會被清除，這筆報名重新計入人數與入帳金額。不會寄信給報名者。"
+        confirmLabel="撤銷退款"
+        pendingLabel="處理中…"
+        onConfirm={async () => {
+          if (onUndoRefund) await onUndoRefund();
+        }}
       />
 
       {/* 隱藏／取消隱藏 */}

@@ -121,7 +121,7 @@ export async function GET(_request: Request, { params }: Params) {
       (a) => a.role !== "Leader" && a.role !== "Follower"
     ).length,
     revenue: registrations
-      .filter((r) => !r.hidden)
+      .filter((r) => !r.hidden && r.paymentStatus !== "refunded")
       .reduce((sum, r) => sum + r.totalAmount, 0),
     confirmedRevenue: registrations
       .filter((r) => !r.hidden && r.paymentStatus === "confirmed")

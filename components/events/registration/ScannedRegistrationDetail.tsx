@@ -65,6 +65,7 @@ export function ScannedRegistrationDetail({
   };
 
   const attendeeCount = localAttendees.length;
+  const refunded = registration.paymentStatus === "refunded";
   const allCheckedIn = localAttendees.every((a) => a.checkedIn);
 
   return (
@@ -104,6 +105,12 @@ export function ScannedRegistrationDetail({
           )}
         </div>
       </div>
+
+      {refunded && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          這筆報名已退款，QR 憑證已失效，請勿放行入場
+        </div>
+      )}
 
       {/* Registration Item */}
       {(registration.purchaseItems && registration.purchaseItems.length > 0) || registration.purchaseItem ? (
@@ -149,6 +156,8 @@ export function ScannedRegistrationDetail({
                   <CheckCircle2 className="w-3 h-3" />
                   <span>已入場</span>
                 </div>
+              ) : refunded ? (
+                <span className="text-xs text-muted-ink">已退款</span>
               ) : (
                 <Button
                   onClick={() => requestCheckIn(attendee.id)}

@@ -9,6 +9,7 @@ import {
   eventPriceTiers,
   eventRegistrationPurchaseItems,
   teamMembers,
+  users,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { getTeamRole, requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
@@ -148,6 +149,16 @@ export async function GET(_request: Request, { params }: Params) {
     ? [legacyPurchaseItem]
     : [];
 
+  // 退款紀錄要顯示是誰處理的
+  const refundedByName = registration.refundedByUserId
+    ? await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, registration.refundedByUserId))
+        .limit(1)
+        .then((rows) => rows[0]?.name ?? null)
+    : null;
+
   // 驗票人員看得到報名內容與報到狀態，但看不到金額
   const canSeeMoney = isTeamAdmin(await getTeamRole(event.teamId, session.userId));
 
@@ -155,6 +166,7 @@ export async function GET(_request: Request, { params }: Params) {
     registration: applyRegistrationVisibility(
       {
         ...registration,
+        refundedByName,
         attendeeFlagLabel: event.attendeeFlagLabel,
         attendees: attendees.map((a) => ({
           id: a.id,
@@ -235,6 +247,14 @@ export async function PATCH(request: Request, { params }: Params) {
   }> = {
     updatedAt: new Date(),
   };
+
+  // 已退款的報名只能走 /refund 撤銷，否則退款紀錄會殘留在別的狀態上
+  if (body.paymentStatus !== undefined && registration.paymentStatus === "refunded") {
+    return NextResponse.json(
+      { error: "這筆報名已退款，請先撤銷退款再改付款狀態" },
+      { status: 400 }
+    );
+  }
 
   if (
     typeof body.paymentStatus === "string" &&

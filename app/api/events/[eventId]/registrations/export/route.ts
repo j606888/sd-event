@@ -27,7 +27,8 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "待付款",
   reported: "待確認",
   confirmed: "已完成付款",
-  rejected: "已退款",
+  rejected: "已拒絕",
+  refunded: "已退款",
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -92,7 +93,7 @@ export async function GET(request: Request, { params }: Params) {
     whereConditions.push(
       eq(
         eventRegistrations.paymentStatus,
-        paymentStatus as "pending" | "reported" | "confirmed" | "rejected"
+        paymentStatus as "pending" | "reported" | "confirmed" | "rejected" | "refunded"
       )
     );
   }

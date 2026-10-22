@@ -7,7 +7,7 @@ import { getTeamRole, requireAuth, requireTeamAdmin, requireTeamMember } from "@
 import { isTeamAdmin } from "@/lib/team-roles";
 import { isEventType } from "@/lib/event-templates";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
-import { eq, inArray, desc, count, and, sql } from "drizzle-orm";
+import { eq, ne, inArray, desc, count, and, sql } from "drizzle-orm";
 
 function generatePublicKey(): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -82,7 +82,8 @@ export async function GET(request: Request) {
             .where(
               and(
                 inArray(eventRegistrations.eventId, eventIds),
-                eq(eventRegistrations.hidden, false)
+                eq(eventRegistrations.hidden, false),
+                ne(eventRegistrations.paymentStatus, "refunded")
               )
             )
             .groupBy(eventRegistrations.eventId)
@@ -94,7 +95,7 @@ export async function GET(request: Request) {
       registrationCounts.map((r) => [r.eventId, Number(r.awaitingConfirmation)])
     );
 
-    // 列表上直接看得到每場來了多少人、入場幾人（只算未隱藏的報名）
+    // 列表上直接看得到每場來了多少人、入場幾人（只算未隱藏、未退款的報名）
     const attendeeTotals =
       eventIds.length > 0
         ? await db
@@ -111,7 +112,8 @@ export async function GET(request: Request) {
             .where(
               and(
                 inArray(eventRegistrations.eventId, eventIds),
-                eq(eventRegistrations.hidden, false)
+                eq(eventRegistrations.hidden, false),
+                ne(eventRegistrations.paymentStatus, "refunded")
               )
             )
             .groupBy(eventRegistrations.eventId)

@@ -11,6 +11,10 @@ const MONEY_FIELDS = [
   "discountAmount",
   "couponCode",
   "paymentScreenshotUrl",
+  "refundMethod",
+  "refundNote",
+  "refundedByUserId",
+  "refundedByName",
 ] as const;
 
 type WithPurchaseItems = {
