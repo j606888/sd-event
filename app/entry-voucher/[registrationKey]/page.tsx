@@ -83,6 +83,13 @@ export default function EntryVoucherPage() {
           return;
         }
 
+        // 已退款的報名憑證失效，不產生 QR code
+        if (responseData.registration.paymentStatus === "refunded") {
+          setError("這筆報名已退款，入場憑證已失效");
+          setLoading(false);
+          return;
+        }
+
         const transformedData = transformApiData(responseData);
         if (!transformedData) {
           if (!isPolling) {

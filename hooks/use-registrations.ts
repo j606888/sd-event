@@ -184,3 +184,41 @@ export function useResendConfirmationEmail(eventId: string) {
     },
   });
 }
+
+/** 標記為已退款（refund 不為 null）或撤銷退款（refund 為 null） */
+export function useRefundRegistration(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      registrationId,
+      refund,
+    }: {
+      registrationId: number;
+      refund: { method: string; note: string; notify: boolean } | null;
+    }) => {
+      const res = await fetch(
+        `/api/events/${eventId}/registrations/${registrationId}/refund`,
+        refund
+          ? {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(refund),
+            }
+          : { method: "DELETE", credentials: "include" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error || "退款操作失敗");
+      }
+      return data;
+    },
+    onSuccess: (_data, { registrationId }) => {
+      queryClient.invalidateQueries({ queryKey: ["registrations", eventId] });
+      queryClient.invalidateQueries({
+        queryKey: ["registration", eventId, registrationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["eventStats", eventId] });
+    },
+  });
+}

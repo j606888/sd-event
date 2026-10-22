@@ -203,3 +203,47 @@ export async function sendNewRegistrationNotificationEmail(
   }
   return { ok: true };
 }
+
+/**
+ * Send email when the organizer marks a registration as refunded.
+ * The refund itself is done outside the system; this only notifies the attendee.
+ */
+export async function sendRefundedEmail(
+  to: string,
+  registrationKey: string,
+  amount: number,
+  eventTitle?: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!resend) {
+    console.warn("RESEND_API_KEY not set, skipping refunded email");
+    return { ok: false, error: "Email not configured" };
+  }
+
+  const url = registrationSuccessUrl(registrationKey);
+  const subject = eventTitle
+    ? `[已退款] 活動報名已退款：${eventTitle}`
+    : "[已退款] 活動報名已退款";
+
+  const html = `
+    <p>您好，</p>
+    <p>您報名${eventTitle ? `「${eventTitle}」` : "活動"}的款項 <strong>NT$ ${amount.toLocaleString()}</strong> 已由主辦單位退還。</p>
+    <p>這筆報名已取消，入場 QR 憑證也一併失效。如果沒有收到退款，請直接與主辦單位聯絡。</p>
+    <p><a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: #1E2F3D; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">查看報名狀態</a></p>
+    <p>希望下次活動再見！</p>
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+    <p style="color: #666; font-size: 12px;">— SD Event</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from,
+    to: [to],
+    subject,
+    html,
+  });
+
+  if (error) {
+    console.error("Resend sendRefundedEmail error:", error);
+    return { ok: false, error: String(error.message) };
+  }
+  return { ok: true };
+}

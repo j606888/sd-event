@@ -29,6 +29,7 @@ import {
   useCheckIn,
   useUndoCheckIn,
   useResendConfirmationEmail,
+  useRefundRegistration,
 } from "@/hooks/use-registrations";
 import type { PaymentFilter, CheckInFilter, HiddenFilter, CouponFilter, PurchaseItemFilter } from "@/lib/registration-list-filters";
 
@@ -133,6 +134,7 @@ function EventDetailPageInner() {
   const selectedRegistration = registrationDetailQuery.data ?? null;
 
   const updateRegistration = useUpdateRegistration(eventId);
+  const refundRegistration = useRefundRegistration(eventId);
   const checkInMutation = useCheckIn(eventId);
   const undoCheckInMutation = useUndoCheckIn(eventId);
   const resendConfirmation = useResendConfirmationEmail(eventId);
@@ -517,6 +519,22 @@ function EventDetailPageInner() {
                       }}
                       onUndoCheckIn={async (attendeeId) => {
                         await undoCheckInMutation.mutateAsync(attendeeId);
+                      }}
+                      onRefund={async (refund) => {
+                        if (selectedRegistrationId) {
+                          await refundRegistration.mutateAsync({
+                            registrationId: selectedRegistrationId,
+                            refund,
+                          });
+                        }
+                      }}
+                      onUndoRefund={async () => {
+                        if (selectedRegistrationId) {
+                          await refundRegistration.mutateAsync({
+                            registrationId: selectedRegistrationId,
+                            refund: null,
+                          });
+                        }
                       }}
                     />
                   )}

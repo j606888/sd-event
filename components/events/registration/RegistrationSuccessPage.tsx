@@ -12,6 +12,7 @@ import { PendingPaymentHeader } from "./headers/PendingPaymentHeader";
 import { ReportedPaymentHeader } from "./headers/ReportedPaymentHeader";
 import { ConfirmedPaymentHeader } from "./headers/ConfirmedPaymentHeader";
 import { RejectedPaymentHeader } from "./headers/RejectedPaymentHeader";
+import { RefundedPaymentHeader } from "./headers/RefundedPaymentHeader";
 import type { RegistrationSuccessPageProps } from "@/types/registration";
 
 export function RegistrationSuccessPage({
@@ -33,6 +34,8 @@ export function RegistrationSuccessPage({
         return <ReportedPaymentHeader />;
       case "rejected":
         return <RejectedPaymentHeader />;
+      case "refunded":
+        return <RefundedPaymentHeader />;
       default:
         return <PendingPaymentHeader />;
     }

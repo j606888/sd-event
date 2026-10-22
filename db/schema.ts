@@ -361,10 +361,17 @@ export const eventRegistrations = pgTable("event_registrations", {
   /** 折抵金額快照 */
   discountAmount: integer("discount_amount").notNull().default(0),
   /** 付款狀態 */
-  paymentStatus: text("payment_status").notNull().default("pending"), // "pending", "reported", "confirmed", "rejected"
+  paymentStatus: text("payment_status").notNull().default("pending"), // "pending", "reported", "confirmed", "rejected", "refunded"
   /** 付款回報資訊 */
   paymentScreenshotUrl: text("payment_screenshot_url"),
   paymentNote: text("payment_note"), // 銀行末五碼或其他訊息
+  /** 退款紀錄（paymentStatus = "refunded" 時才有值；一律全額退款，金額即 totalAmount） */
+  refundedAt: timestamp("refunded_at"),
+  refundMethod: text("refund_method"), // "Bank Transfer", "Line Pay", "Cash"
+  refundNote: text("refund_note"),
+  refundedByUserId: integer("refunded_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
   /** 管理員可將報名標記為隱藏，在報名詳情頁可再取消隱藏 */
   hidden: boolean("hidden").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

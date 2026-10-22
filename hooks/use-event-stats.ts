@@ -11,9 +11,13 @@ export type EventStatsData = {
   roleCounts: RoleCounts;
   totalAttendees: number;
   checkedInCount: number;
+  /** 已退款的筆數；這些報名不算進上面的人數與入場 */
+  refundedCount?: number;
   /** 以下金額相關欄位只有管理員拿得到；驗票人員的回應裡沒有 */
   paymentAmountTotals?: PaymentAmountTotals;
   paymentCounts?: PaymentCounts;
+  /** 已退款總額；不算進 paymentAmountTotals */
+  refundedAmount?: number;
   purchaseItemSummary?: Array<{
     id: number;
     name: string;

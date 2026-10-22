@@ -11,6 +11,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   reported: "已回報",
   confirmed: "已確認",
   rejected: "已退回",
+  refunded: "已退款",
 };
 
 function formatDateTime(value: string): string {

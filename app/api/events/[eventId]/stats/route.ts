@@ -12,7 +12,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
-import { eq, inArray, and, asc, count, sql } from "drizzle-orm";
+import { eq, ne, inArray, and, asc, count, sql } from "drizzle-orm";
 import { priceUnitsFor } from "@/lib/seat-count";
 import {
   createHistoricalPriceResolver,
@@ -52,7 +52,24 @@ export async function GET(_request: Request, { params }: Params) {
   // 驗票人員只拿得到人數與入場數（門口的數字列要用），金額與項目收入一律不回
   const canSeeMoney = isTeamAdmin(await getTeamRole(event.teamId, session.userId));
 
-  // Get non-hidden registrations — only id and purchaseItemId needed now.
+  // 已退款的報名不算人數、L/F、入場與收入，只另外回報筆數與金額
+  const [refunded] = await db
+    .select({
+      count: count(),
+      amount: sql<number>`cast(coalesce(sum(${eventRegistrations.totalAmount}), 0) as int)`,
+    })
+    .from(eventRegistrations)
+    .where(
+      and(
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.hidden, false),
+        eq(eventRegistrations.paymentStatus, "refunded")
+      )
+    );
+  const refundedCount = Number(refunded?.count ?? 0);
+  const refundedAmount = Number(refunded?.amount ?? 0);
+
+  // Get non-hidden, non-refunded registrations — only id and purchaseItemId needed now.
   const regs = await db
     .select({
       id: eventRegistrations.id,
@@ -65,7 +82,8 @@ export async function GET(_request: Request, { params }: Params) {
     .where(
       and(
         eq(eventRegistrations.eventId, eventId),
-        eq(eventRegistrations.hidden, false)
+        eq(eventRegistrations.hidden, false),
+        ne(eventRegistrations.paymentStatus, "refunded")
       )
     );
   const registrationIds = regs.map((r) => r.id);
@@ -75,10 +93,12 @@ export async function GET(_request: Request, { params }: Params) {
       roleCounts: { Leader: 0, Follower: 0, "Not sure": 0 },
       totalAttendees: 0,
       checkedInCount: 0,
+      refundedCount,
     };
     if (!canSeeMoney) return NextResponse.json(empty);
     return NextResponse.json({
       ...empty,
+      refundedAmount,
       paymentAmountTotals: {
         confirmed: 0,
         reported: 0,
@@ -115,7 +135,7 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   if (!canSeeMoney) {
-    return NextResponse.json({ roleCounts, totalAttendees, checkedInCount });
+    return NextResponse.json({ roleCounts, totalAttendees, checkedInCount, refundedCount });
   }
 
   // Query 2: Payment amount totals + registration counts via GROUP BY.
@@ -130,7 +150,8 @@ export async function GET(_request: Request, { params }: Params) {
     .where(
       and(
         eq(eventRegistrations.eventId, eventId),
-        eq(eventRegistrations.hidden, false)
+        eq(eventRegistrations.hidden, false),
+        ne(eventRegistrations.paymentStatus, "refunded")
       )
     )
     .groupBy(eventRegistrations.paymentStatus);
@@ -289,8 +310,10 @@ export async function GET(_request: Request, { params }: Params) {
     roleCounts,
     totalAttendees,
     checkedInCount,
+    refundedCount,
     paymentAmountTotals,
     paymentCounts,
+    refundedAmount,
     purchaseItemSummary,
     discountTotal,
   });

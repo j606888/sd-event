@@ -42,7 +42,15 @@ export function EventNumbersStrip({
   }
   if (!data) return null;
 
-  const { roleCounts, totalAttendees, checkedInCount, paymentAmountTotals, paymentCounts } = data;
+  const {
+    roleCounts,
+    totalAttendees,
+    checkedInCount,
+    paymentAmountTotals,
+    paymentCounts,
+    refundedCount = 0,
+    refundedAmount = 0,
+  } = data;
   const checkIn = checkInSummary(totalAttendees, checkedInCount);
   const payments =
     paymentAmountTotals && paymentCounts
@@ -70,6 +78,9 @@ export function EventNumbersStrip({
           <span className="rounded-md bg-field px-1.5 py-0.5 text-muted-ink">
             不確定 {roleCounts["Not sure"]}
           </span>
+          {refundedCount > 0 && (
+            <span className="py-0.5 font-medium text-muted-ink">另有 {refundedCount} 筆已退款</span>
+          )}
         </span>
       </button>
 
@@ -110,7 +121,9 @@ export function EventNumbersStrip({
             <span className={cn(LABEL, "text-muted-ink")}>已入帳</span>
             <span className={cn(NUMBER, "text-brand-strong")}>{money(payments.collected)}</span>
             <span className={cn(LABEL, "text-muted-ink")}>
-              全部付款可收 {money(payments.expectedTotal)}
+              {refundedAmount > 0
+                ? `已退款 ${money(refundedAmount)}，不計入`
+                : `全部付款可收 ${money(payments.expectedTotal)}`}
             </span>
           </div>
         </>

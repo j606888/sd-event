@@ -45,7 +45,10 @@ export async function POST(_request: Request, { params }: Params) {
 
   // 取得報名記錄以取得活動 ID
   const [registration] = await db
-    .select({ eventId: eventRegistrations.eventId })
+    .select({
+      eventId: eventRegistrations.eventId,
+      paymentStatus: eventRegistrations.paymentStatus,
+    })
     .from(eventRegistrations)
     .where(eq(eventRegistrations.id, attendee.registrationId))
     .limit(1);
@@ -67,6 +70,11 @@ export async function POST(_request: Request, { params }: Params) {
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);
   if (forbidden) return forbidden;
+
+  // 已退款的報名 QR 憑證已失效，不能入場
+  if (registration.paymentStatus === "refunded") {
+    return NextResponse.json({ error: "這筆報名已退款，無法入場" }, { status: 409 });
+  }
 
   // 如果已經入場，直接返回
   if (attendee.checkedIn) {

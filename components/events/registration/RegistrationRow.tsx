@@ -15,11 +15,14 @@ export type RowAction =
   /** 款項還沒確認，入場前要先跳警告 */
   | { kind: "check_in_unpaid"; count: number }
   | { kind: "entered"; at: string | null }
+  | { kind: "refunded" }
   | { kind: "none" };
 
 export function getRowAction(reg: Registration, canManage: boolean): RowAction {
   const remaining = reg.attendees.filter((a) => !a.checkedIn).length;
   if (reg.attendees.length === 0) return { kind: "none" };
+  // 已退款的 QR 憑證失效，不給入場鈕
+  if (reg.paymentStatus === "refunded") return { kind: "refunded" };
   if (remaining === 0) {
     const times = reg.attendees
       .map((a) => a.checkedInAt)
@@ -113,7 +116,7 @@ export function RegistrationRow({
               {reg.contactPhone}
             </span>
           )}
-          <span className="truncate">
+          <span className={cn("truncate", reg.paymentStatus === "refunded" && "line-through")}>
             {[
               reg.itemSummary,
               canManage && reg.totalAmount != null ? `NT$ ${reg.totalAmount.toLocaleString()}` : null,
@@ -175,6 +178,16 @@ export function RegistrationRow({
           {action.at && (
             <span className="font-display tabular-nums">{formatClockTime(action.at)}</span>
           )}
+        </span>
+      )}
+      {action.kind === "refunded" && (
+        <span
+          className={cn(
+            ACTION_BASE,
+            "cursor-default border border-dashed border-card-border text-[13px] text-muted-ink"
+          )}
+        >
+          不需入場
         </span>
       )}
       {action.kind === "none" && <span className="w-[104px] shrink-0 @2xl:w-[112px]" />}

@@ -39,7 +39,7 @@ export type Attendee = {
   checkedIn: boolean;
 };
 
-export type PaymentStatus = "pending" | "reported" | "confirmed" | "rejected";
+export type PaymentStatus = "pending" | "reported" | "confirmed" | "rejected" | "refunded";
 
 export type RegistrationSuccessPageProps = {
   event: RegistrationSuccessEventData;
@@ -146,6 +146,11 @@ export type RegistrationDetailData = {
   source?: RegistrationSource | string;
   paymentScreenshotUrl?: string | null;
   paymentNote: string | null;
+  /** 退款紀錄（paymentStatus = "refunded" 時才有值）；方式、備註、處理人驗票人員看不到 */
+  refundedAt?: string | null;
+  refundMethod?: string | null;
+  refundNote?: string | null;
+  refundedByName?: string | null;
   hidden?: boolean;
   createdAt: string;
   /** 活動的參加者勾選項目名稱；null = 未使用 */

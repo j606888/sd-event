@@ -103,7 +103,7 @@ export async function GET(request: Request, { params }: Params) {
   // Payment status filter
   if (paymentStatus !== "all") {
     whereConditions.push(
-      eq(eventRegistrations.paymentStatus, paymentStatus as "pending" | "reported" | "confirmed" | "rejected")
+      eq(eventRegistrations.paymentStatus, paymentStatus as "pending" | "reported" | "confirmed" | "rejected" | "refunded")
     );
   }
 

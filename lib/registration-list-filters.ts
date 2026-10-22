@@ -3,7 +3,7 @@
  * Ensures counts and filtered list stay in sync when filters are lifted to parent.
  */
 
-export type PaymentFilter = "all" | "pending" | "reported" | "confirmed" | "rejected";
+export type PaymentFilter = "all" | "pending" | "reported" | "confirmed" | "rejected" | "refunded";
 /** "not_all"＝還有人沒入場（未入場 + 部分入場），門口快速篩選用 */
 export type CheckInFilter = "all" | "none" | "partial" | "all_entered" | "not_all";
 export type HiddenFilter = "all" | "hidden" | "non_hidden";
@@ -16,7 +16,8 @@ export const PAYMENT_OPTIONS: { value: PaymentFilter; label: string }[] = [
   { value: "confirmed", label: "已完成付款" },
   { value: "pending", label: "待付款" },
   { value: "reported", label: "待確認" },
-  { value: "rejected", label: "已退款" },
+  { value: "rejected", label: "已拒絕" },
+  { value: "refunded", label: "已退款" },
 ];
 
 export const CHECK_IN_OPTIONS: { value: CheckInFilter; label: string }[] = [
@@ -39,7 +40,7 @@ export const COUPON_OPTIONS: { value: CouponFilter; label: string }[] = [
 ];
 
 export function matchesPaymentFilter(
-  status: "pending" | "reported" | "confirmed" | "rejected",
+  status: "pending" | "reported" | "confirmed" | "rejected" | "refunded",
   filter: PaymentFilter
 ): boolean {
   if (filter === "all") return true;
@@ -68,7 +69,7 @@ export function matchesHiddenFilter(hidden: boolean | undefined, filter: HiddenF
 
 export type RegistrationForFilter = {
   id: number;
-  paymentStatus: "pending" | "reported" | "confirmed" | "rejected";
+  paymentStatus: "pending" | "reported" | "confirmed" | "rejected" | "refunded";
   attendeeCount: number;
   checkedInCount?: number;
   hidden?: boolean;
