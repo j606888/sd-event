@@ -14,6 +14,9 @@ type EventNumbersStripProps = {
 
 const money = (n: number) => `NT$ ${n.toLocaleString()}`;
 
+// 會變動的數字要是元素裡唯一的字串：跟其他節點並排的話，頁面被 Google 翻譯後
+// React 改到的是已被換掉的舊文字節點，畫面上的數字會停在翻譯當下。
+
 // 手機上數字列要矮，搜尋框才會留在第一屏；金額兩格手機不顯示（統計分頁一點就到）
 const CELL = "flex flex-col gap-1 rounded-2xl border px-3.5 py-2.5 text-left sm:gap-1.5 sm:px-4 sm:py-3.5";
 const LABEL = "text-xs";
@@ -67,19 +70,19 @@ export function EventNumbersStrip({
       >
         <span className={cn(LABEL, "text-muted-ink")}>報名人數</span>
         <span className={cn(NUMBER, "text-ink")}>
-          {totalAttendees}
+          <span>{totalAttendees}</span>
           <span className="text-sm font-medium text-muted-ink"> 人</span>
         </span>
         <span className="flex flex-wrap gap-1.5 text-xs font-bold">
-          <span className="rounded-md bg-leader px-1.5 py-0.5 text-white">L {roleCounts.Leader}</span>
+          <span className="rounded-md bg-leader px-1.5 py-0.5 text-white">{`L ${roleCounts.Leader}`}</span>
           <span className="rounded-md bg-follower-soft px-1.5 py-0.5 text-follower">
-            F {roleCounts.Follower}
+            {`F ${roleCounts.Follower}`}
           </span>
           <span className="rounded-md bg-field px-1.5 py-0.5 text-muted-ink">
-            不確定 {roleCounts["Not sure"]}
+            {`不確定 ${roleCounts["Not sure"]}`}
           </span>
           {refundedCount > 0 && (
-            <span className="py-0.5 font-medium text-muted-ink">另有 {refundedCount} 筆已退款</span>
+            <span className="py-0.5 font-medium text-muted-ink">{`另有 ${refundedCount} 筆已退款`}</span>
           )}
         </span>
       </button>
@@ -91,10 +94,10 @@ export function EventNumbersStrip({
       >
         <span className={cn(LABEL, "text-ink/80")}>已入場</span>
         <span className={cn(NUMBER, "text-ink")}>
-          {checkIn.entered}
-          <span className="text-sm font-medium text-ink/80"> / {totalAttendees} 人</span>
+          <span>{checkIn.entered}</span>
+          <span className="text-sm font-medium text-ink/80">{` / ${totalAttendees} 人`}</span>
         </span>
-        <span className={cn(LABEL, "text-ink/80")}>還有 {checkIn.notEntered} 人未入場 →</span>
+        <span className={cn(LABEL, "text-ink/80")}>{`還有 ${checkIn.notEntered} 人未入場 →`}</span>
       </button>
 
       {payments && reported && (
@@ -109,7 +112,7 @@ export function EventNumbersStrip({
           >
             <span className={cn(LABEL, "text-muted-ink")}>待確認收款</span>
             <span className={cn(NUMBER, reported.count > 0 ? "text-butter-ink" : "text-muted-ink")}>
-              {reported.count}
+              <span>{reported.count}</span>
               <span className="text-sm font-medium text-muted-ink"> 筆</span>
             </span>
             <span className={cn(LABEL, "text-muted-ink")}>

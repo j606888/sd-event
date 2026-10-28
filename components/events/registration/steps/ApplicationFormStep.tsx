@@ -285,7 +285,7 @@ export function ApplicationFormStep({
                         {formData.appliedCoupon.discountType === "fixed"
                           ? `折抵 NT$${formData.appliedCoupon.value}`
                           : `折扣 ${formData.appliedCoupon.value}%`}
-                        {discountAmount > 0 && ` −NT$${discountAmount}`}
+                        {discountAmount > 0 && <span>{` −NT$${discountAmount}`}</span>}
                       </span>
                     </div>
                     <button

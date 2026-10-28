@@ -302,7 +302,7 @@ function EventDetailPageInner() {
               )}
             >
               {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
-              {shareCopied ? "已複製連結" : "分享表單"}
+              <span>{shareCopied ? "已複製連結" : "分享表單"}</span>
             </button>
             {event.status === "draft" && isAdmin ? (
               <button

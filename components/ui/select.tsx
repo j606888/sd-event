@@ -7,7 +7,13 @@ import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
-const SelectValue = SelectPrimitive.Value;
+// 選到的值是 Radix 用 portal 塞進來的；被 Google 翻譯改寫後，一開關選單 React 就會
+// 移除失敗而整頁當掉。選項多是地點、主辦等專有名詞，不翻也無妨。
+const SelectValue = React.forwardRef<
+  React.ComponentRef<typeof SelectPrimitive.Value>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Value>
+>((props, ref) => <SelectPrimitive.Value ref={ref} translate="no" {...props} />);
+SelectValue.displayName = SelectPrimitive.Value.displayName;
 
 const SelectTrigger = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Trigger>,
