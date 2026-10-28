@@ -264,7 +264,7 @@ export function RegistrationsList({
           ) : (
             !isLoading && (
               <span className="hidden shrink-0 text-xs text-muted-ink tabular-nums sm:inline">
-                共 {matchedTotal} 筆
+                {`共 ${matchedTotal} 筆`}
               </span>
             )
           )}

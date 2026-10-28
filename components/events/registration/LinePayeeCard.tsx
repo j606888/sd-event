@@ -68,17 +68,8 @@ export function LinePayeeCard({ linePayee, className = "" }: LinePayeeCardProps)
               <span className="text-gray-500">LINE ID</span>
               <span className="font-mono text-gray-900">{displayId}</span>
               <Button variant="outline" size="sm" onClick={handleCopy} className="h-7 px-2">
-                {copied ? (
-                  <>
-                    <Check className="w-3 h-3" />
-                    已複製
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3" />
-                    複製
-                  </>
-                )}
+                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copied ? "已複製" : "複製"}</span>
               </Button>
             </div>
           )}

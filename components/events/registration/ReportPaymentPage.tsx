@@ -236,17 +236,8 @@ export function ReportPaymentPage({
                     onClick={() => handleCopy(bankInfo.account!, "bank")}
                     className="h-8 text-brand-strong border-brand hover:bg-brand/10"
                   >
-                    {copiedText === "bank" ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        已複製
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        複製帳號
-                      </>
-                    )}
+                    {copiedText === "bank" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedText === "bank" ? "已複製" : "複製帳號"}</span>
                   </Button>
                 </div>
               )}

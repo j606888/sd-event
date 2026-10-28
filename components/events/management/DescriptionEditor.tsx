@@ -161,7 +161,7 @@ export function DescriptionEditor({ value, onChange, tall = false }: Description
               ) : (
                 <ImagePlus className="size-3.5" />
               )}
-              {uploadingCount > 0 ? "上傳中…" : "插入圖片"}
+              <span>{uploadingCount > 0 ? "上傳中…" : "插入圖片"}</span>
             </button>
             <span className="text-xs text-gray-400">也可以直接貼上或拖放圖片</span>
           </div>
