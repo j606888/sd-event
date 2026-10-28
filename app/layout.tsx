@@ -5,6 +5,8 @@ import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -29,23 +31,30 @@ const displayLatin = Plus_Jakarta_Sans({
   weight: ["500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: "SD Event",
-  description: "建立社教活動網站的好幫手",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: "SD Event",
+    description: t("description"),
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+
   return (
-    <html lang="zh-TW">
+    <html lang={locale}>
       <body
         className={`${nunito.variable} ${inter.variable} ${notoSansTC.variable} ${displayLatin.variable} antialiased`}
       >
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
-        <QueryProvider>{children}</QueryProvider>
+        <NextIntlClientProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </NextIntlClientProvider>
         <Analytics />
       </body>
     </html>

@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import {
   X,
-  ChevronsUpDown,
   Plus,
   Calendar,
   Users,
@@ -16,16 +16,17 @@ import {
   MessageCircle,
   LogOut,
   ShieldCheck,
+  type LucideIcon,
 } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
 import { useTeamRole } from "@/hooks/use-team-role";
-import { TEAM_ROLE_LABEL } from "@/lib/team-roles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/brand/Logo";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 type Team = { id: number; name: string } | null;
 
@@ -42,6 +43,9 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
   const router = useRouter();
   const queryClient = useQueryClient();
   const pathname = usePathname();
+  const t = useTranslations("sidebar");
+  const tCommon = useTranslations("common");
+  const tRoles = useTranslations("teamRoles");
   const { isSuperAdmin } = useSession();
   // 驗票人員只需要看到活動列表，其餘管理功能一律不顯示
   const { isAdmin, isStaff } = useTeamRole();
@@ -50,7 +54,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const teamLabel = team?.name ?? "選擇團隊";
+  const teamLabel = team?.name ?? t("selectTeam");
   const teamInitial = team?.name?.charAt(0)?.toUpperCase() ?? "?";
   const currentTeamId = team?.id ? String(team.id) : "";
 
@@ -77,7 +81,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
     setCreateError(null);
     const name = teamName.trim();
     if (!name) {
-      setCreateError("請輸入團隊名稱");
+      setCreateError(t("createTeam.nameRequired"));
       return;
     }
     setCreating(true);
@@ -90,7 +94,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setCreateError(data.error || "建立失敗");
+        setCreateError(data.error || t("createTeam.failed"));
         setCreating(false);
         return;
       }
@@ -103,7 +107,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
         router.refresh();
       }
     } catch {
-      setCreateError("建立失敗");
+      setCreateError(t("createTeam.failed"));
     } finally {
       setCreating(false);
     }
@@ -165,7 +169,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
               </SelectTrigger>
               <SelectContent className="z-[100]">
                 {teams && teams.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-gray-500">尚無團隊</div>
+                  <div className="px-3 py-2 text-sm text-gray-500">{t("noTeams")}</div>
                 ) : (
                   teams && teams.map((t: Team) => {
                     if (!t) return null;
@@ -198,12 +202,12 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
               className="mb-6 flex items-center gap-2 px-2 text-xs font-semibold text-brand-strong hover:text-ink transition-colors"
             >
               <Plus className="size-3.5" />
-              建立新團隊
+              <span>{t("newTeam")}</span>
             </button>
           ) : (
             <div className="mb-6 px-2">
               <span className="inline-flex items-center rounded-full bg-field px-2.5 py-1 text-[11px] font-semibold text-muted-ink">
-                {isStaff ? TEAM_ROLE_LABEL.staff : ""}
+                {isStaff ? tRoles("staff") : ""}
               </span>
             </div>
           )}
@@ -211,22 +215,22 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
           {/* Nav List */}
           <div className="space-y-6">
             <nav className="flex flex-col gap-1">
-              <SidebarLink href="/events" icon={Calendar} label="所有活動" active={isActive("/events")} onClick={onClose} />
+              <SidebarLink href="/events" icon={Calendar} label={t("events")} active={isActive("/events")} onClick={onClose} />
               {isAdmin && (
-                <SidebarLink href="/teams" icon={Users} label="團隊管理" active={isActive("/teams")} onClick={onClose} />
+                <SidebarLink href="/teams" icon={Users} label={t("team")} active={isActive("/teams")} onClick={onClose} />
               )}
             </nav>
 
             {isAdmin && (
               <div>
                 <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                  常用資訊
+                  {t("savedInfo")}
                 </p>
                 <nav className="flex flex-col gap-1">
-                  <SidebarLink href="/events/locations" icon={MapPin} label="活動地點" active={isActive("/events/locations")} onClick={onClose} />
-                  <SidebarLink href="/events/organizers" icon={Building2} label="主辦單位" active={isActive("/events/organizers")} onClick={onClose} />
-                  <SidebarLink href="/events/bank" icon={Landmark} label="銀行資訊" active={isActive("/events/bank")} onClick={onClose} />
-                  <SidebarLink href="/events/line-payees" icon={MessageCircle} label="LINE 付款好友" active={isActive("/events/line-payees")} onClick={onClose} />
+                  <SidebarLink href="/events/locations" icon={MapPin} label={t("locations")} active={isActive("/events/locations")} onClick={onClose} />
+                  <SidebarLink href="/events/organizers" icon={Building2} label={t("organizers")} active={isActive("/events/organizers")} onClick={onClose} />
+                  <SidebarLink href="/events/bank" icon={Landmark} label={t("bankInfos")} active={isActive("/events/bank")} onClick={onClose} />
+                  <SidebarLink href="/events/line-payees" icon={MessageCircle} label={t("linePayees")} active={isActive("/events/line-payees")} onClick={onClose} />
                 </nav>
               </div>
             )}
@@ -234,17 +238,18 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
             {isSuperAdmin && (
               <div>
                 <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                  站方
+                  {t("site")}
                 </p>
                 <nav className="flex flex-col gap-1">
-                  <SidebarLink href="/admin" icon={ShieldCheck} label="總管理" active={isActive("/admin")} onClick={onClose} />
+                  <SidebarLink href="/admin" icon={ShieldCheck} label={t("siteAdmin")} active={isActive("/admin")} onClick={onClose} />
                 </nav>
               </div>
             )}
           </div>
 
-          {/* Logout */}
-          <div className="mt-auto pt-4">
+          {/* Language + Logout */}
+          <div className="mt-auto flex flex-col gap-3 pt-4">
+            <LanguageSwitcher className="self-start" />
             <button
               type="button"
               onClick={() => { onClose(); handleLogout(); }}
@@ -253,7 +258,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
               <div className="flex size-8 items-center justify-center rounded-lg bg-field transition-colors">
                 <LogOut className="size-4" />
               </div>
-              登出帳號
+              <span>{t("logout")}</span>
             </button>
           </div>
         </div>
@@ -267,7 +272,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
           setTeamName("");
           setCreateError(null);
         }}
-        title="建立新團隊"
+        title={t("createTeam.title")}
         subtitle="New Team"
       >
         <form onSubmit={handleCreateTeam} className="flex flex-col gap-4">
@@ -275,12 +280,12 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
             <p className="text-sm text-red-500">{createError}</p>
           )}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="team-name">團隊名稱 *</Label>
+            <Label htmlFor="team-name">{t("createTeam.nameLabel")}</Label>
             <Input
               id="team-name"
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
-              placeholder="輸入團隊名稱"
+              placeholder={t("createTeam.namePlaceholder")}
               disabled={creating}
             />
           </div>
@@ -295,14 +300,14 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
               }}
               disabled={creating}
             >
-              取消
+              {tCommon("cancel")}
             </Button>
             <Button 
               type="submit" 
               className="bg-primary text-ink hover:bg-brand-hover"
               disabled={creating}
             >
-              {creating ? "建立中..." : "建立"}
+              {creating ? tCommon("creating") : tCommon("create")}
             </Button>
           </div>
         </form>
@@ -312,7 +317,15 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
 }
 
 // 抽取 Link 組件減少樣板代碼
-function SidebarLink({ href, icon: Icon, label, active, onClick }: any) {
+type SidebarLinkProps = {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+};
+
+function SidebarLink({ href, icon: Icon, label, active, onClick }: SidebarLinkProps) {
   return (
     <Link
       href={href}
