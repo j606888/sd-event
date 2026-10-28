@@ -1,0 +1,14 @@
+{
+  "paymentStatus": {
+    "pending": "Unpaid",
+    "reported": "Awaiting confirmation",
+    "confirmed": "Paid",
+    "rejected": "Rejected",
+    "refunded": "Refunded"
+  },
+  "role": {
+    "Leader": "Leader",
+    "Follower": "Follower",
+    "notSure": "Not sure"
+  }
+}

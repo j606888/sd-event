@@ -1,0 +1,22 @@
+{
+  "selectTeam": "Select a team",
+  "noTeams": "No teams yet",
+  "newTeam": "New team",
+  "events": "Events",
+  "team": "Team",
+  "savedInfo": "Saved info",
+  "locations": "Venues",
+  "organizers": "Organizers",
+  "bankInfos": "Bank accounts",
+  "linePayees": "LINE Pay payees",
+  "site": "Site",
+  "siteAdmin": "Site admin",
+  "logout": "Log out",
+  "createTeam": {
+    "title": "Create a team",
+    "nameLabel": "Team name *",
+    "namePlaceholder": "Enter a team name",
+    "nameRequired": "Please enter a team name",
+    "failed": "Couldn't create the team"
+  }
+}

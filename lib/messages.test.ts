@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import zhTW from "@/messages/zh-TW.json";
-import en from "@/messages/en.json";
+import zhTW from "@/messages/zh-TW";
+import en from "@/messages/en";
 
 type Messages = { [key: string]: string | Messages };
 

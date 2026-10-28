@@ -1,6 +1,11 @@
 import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
-import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
+import { LOCALE_COOKIE, resolveLocale, type Locale } from "@/lib/locale";
+
+const MESSAGES: Record<Locale, () => Promise<{ default: Record<string, unknown> }>> = {
+  "zh-TW": () => import("@/messages/zh-TW"),
+  en: () => import("@/messages/en"),
+};
 
 /**
  * next-intl 每個 request 的設定（沒有用 i18n routing，網址不帶語系）。
@@ -14,7 +19,7 @@ export default getRequestConfig(async () => {
 
   return {
     locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    messages: (await MESSAGES[locale]()).default,
     timeZone: "Asia/Taipei",
   };
 });

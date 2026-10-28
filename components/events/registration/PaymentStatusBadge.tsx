@@ -1,19 +1,23 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
-type PaymentStatus = "pending" | "reported" | "confirmed" | "rejected" | "refunded" | string;
+type KnownPaymentStatus = "pending" | "reported" | "confirmed" | "rejected" | "refunded";
+type PaymentStatus = KnownPaymentStatus | string;
 
-const STATUS_CONFIG: Record<string, { label: string; text: string; dot: string }> = {
-  pending: { label: "未付款", text: "text-muted-ink", dot: "bg-gray-300" },
-  reported: { label: "待確認收款", text: "text-butter-ink", dot: "bg-butter" },
-  confirmed: { label: "已收款", text: "text-brand-strong", dot: "bg-brand" },
-  rejected: { label: "已拒絕", text: "text-red-700", dot: "bg-red-400" },
+const STATUS_CONFIG: Record<KnownPaymentStatus, { text: string; dot: string }> = {
+  pending: { text: "text-muted-ink", dot: "bg-gray-300" },
+  reported: { text: "text-butter-ink", dot: "bg-butter" },
+  confirmed: { text: "text-brand-strong", dot: "bg-brand" },
+  rejected: { text: "text-red-700", dot: "bg-red-400" },
   // 空心圈：與「未付款」的灰點靠形狀區分，不只靠顏色
-  refunded: { label: "已退款", text: "text-leader", dot: "border-2 border-leader" },
+  refunded: { text: "text-leader", dot: "border-2 border-leader" },
 };
 
-const DEFAULT_CONFIG = STATUS_CONFIG.pending;
+function isKnownStatus(status: string): status is KnownPaymentStatus {
+  return Object.hasOwn(STATUS_CONFIG, status);
+}
 
 export function PaymentStatusBadge({
   status,
@@ -22,7 +26,9 @@ export function PaymentStatusBadge({
   status: PaymentStatus;
   className?: string;
 }) {
-  const { label, text, dot } = STATUS_CONFIG[status] ?? DEFAULT_CONFIG;
+  const t = useTranslations("enums.paymentStatus");
+  const key = isKnownStatus(status) ? status : "pending";
+  const { text, dot } = STATUS_CONFIG[key];
   return (
     <span
       className={cn(
@@ -32,7 +38,7 @@ export function PaymentStatusBadge({
       )}
     >
       <span className={cn("size-2 shrink-0 rounded-full", dot)} aria-hidden />
-      {label}
+      <span>{t(key)}</span>
     </span>
   );
 }

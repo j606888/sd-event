@@ -1,4 +1,8 @@
+import type { Locale } from "@/lib/locale";
+
 const WEEKDAY = ["日", "一", "二", "三", "四", "五", "六"];
+const WEEKDAY_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const TZ = "Asia/Taipei";
 
@@ -36,6 +40,14 @@ function getDatePartsInTz(d: Date): {
   };
 }
 
+type DateParts = ReturnType<typeof getDatePartsInTz>;
+
+// 英文月份、星期用固定陣列而非 Intl：server 與瀏覽器的 ICU 資料不一定相同，會造成 hydration 不一致
+/** 英文的「Fri, Apr 3」 */
+const fmtDayEn = (p: DateParts) => `${WEEKDAY_EN[p.weekday]}, ${MONTH_EN[p.month - 1]} ${p.day}`;
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
 /** Get time parts (hour 0-23, minute) in Asia/Taipei */
 function getTimePartsInTz(d: Date): { hour: number; minute: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -52,10 +64,10 @@ function getTimePartsInTz(d: Date): { hour: number; minute: number } {
 
 /**
  * 格式化日期部分 (第一列)，使用 Asia/Taipei 時區
- * 同一天: 4月3日 (五)
- * 跨天: 4/03 (五) ~ 4/05 (日)
+ * 同一天: 4月3日 (五)｜Fri, Apr 3
+ * 跨天: 4/03 (五) ~ 4/05 (日)｜Fri, Apr 3 – Sun, Apr 5
  */
-export function getEventDateLabel(startAt: string, endAt: string): string {
+export function getEventDateLabel(startAt: string, endAt: string, locale: Locale = "zh-TW"): string {
   const start = new Date(startAt);
   const end = new Date(endAt);
   const s = getDatePartsInTz(start);
@@ -69,6 +81,9 @@ export function getEventDateLabel(startAt: string, endAt: string): string {
   const fmtShort = (p: ReturnType<typeof getDatePartsInTz>) =>
     `${p.month}/${String(p.day).padStart(2, "0")} (${WEEKDAY[p.weekday]})`;
 
+  if (locale === "en") {
+    return isSameDay ? fmtDayEn(s) : `${fmtDayEn(s)} – ${fmtDayEn(e)}`;
+  }
   if (isSameDay) {
     return fmtFull(s);
   }
@@ -91,22 +106,34 @@ export function getEventTimeRange(startAt: string, endAt: string): string {
 
 /**
  * Format a single ISO timestamp (e.g. createdAt) in Asia/Taipei timezone.
- * Output: 2024年01月03日 15:45
+ * Output: 2024年01月03日 15:45｜Jan 3, 2024 15:45
  */
-export function formatTimestamp(isoString: string): string {
+export function formatTimestamp(isoString: string, locale: Locale = "zh-TW"): string {
   const date = new Date(isoString);
   const { year, month, day } = getDatePartsInTz(date);
   const { hour, minute } = getTimePartsInTz(date);
+  if (locale === "en") {
+    return `${MONTH_EN[month - 1]} ${day}, ${year} ${pad2(hour)}:${pad2(minute)}`;
+  }
   return `${year}年${String(month).padStart(2, "0")}月${String(day).padStart(2, "0")}日 ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-/** 票價時段截止日（M/D，Asia/Taipei），用於「早鳥價至 7/31 止」等提示 */
-export function formatTierDeadline(iso: string): string {
+/** 只有日期（Asia/Taipei）：2026/10/29｜Oct 29, 2026。用於「建立於…」這類不需要時間的地方。 */
+export function formatDate(isoString: string, locale: Locale = "zh-TW"): string {
+  const { year, month, day } = getDatePartsInTz(new Date(isoString));
+  if (locale === "en") return `${MONTH_EN[month - 1]} ${day}, ${year}`;
+  return `${year}/${month}/${day}`;
+}
+
+/** 票價時段截止日（Asia/Taipei），用於「早鳥價至 7/31 止」等提示：7/31｜Jul 31 */
+export function formatTierDeadline(iso: string, locale: Locale = "zh-TW"): string {
   const p = getDatePartsInTz(new Date(iso));
+  if (locale === "en") return `${MONTH_EN[p.month - 1]} ${p.day}`;
   return `${p.month}/${p.day}`;
 }
 
-export function formatEventDateShort(startAt: string, endAt: string): string {
+/** 4月3日 (五) 16:00 ~ 21:30｜Fri, Apr 3, 16:00 – 21:30；跨日時兩端都帶日期 */
+export function formatEventDateShort(startAt: string, endAt: string, locale: Locale = "zh-TW"): string {
   const start = new Date(startAt);
   const end = new Date(endAt);
   const fmt = (d: Date) => {
@@ -121,6 +148,11 @@ export function formatEventDateShort(startAt: string, endAt: string): string {
   const s = getDatePartsInTz(start);
   const e = getDatePartsInTz(end);
   const isSameDay = s.year === e.year && s.month === e.month && s.day === e.day;
+  if (locale === "en") {
+    return isSameDay
+      ? `${fmtDayEn(s)}, ${timeFmt(start)} – ${timeFmt(end)}`
+      : `${fmtDayEn(s)}, ${timeFmt(start)} – ${fmtDayEn(e)}, ${timeFmt(end)}`;
+  }
   if (isSameDay) {
     return `${fmt(start)} ${timeFmt(start)} ~ ${timeFmt(end)}`;
   }
@@ -166,13 +198,14 @@ export function fromTaipeiDateTimeLocal(value: string | null | undefined): strin
 }
 
 /**
- * 列表用的短時間格式（Asia/Taipei）：07/12 21:04
+ * 列表用的短時間格式（Asia/Taipei）：07/12 21:04｜Jul 12 21:04
  * 同一場活動的報名多半集中在幾週內，年份反而是雜訊，故省略。
  */
-export function formatShortTimestamp(isoString: string): string {
+export function formatShortTimestamp(isoString: string, locale: Locale = "zh-TW"): string {
   const date = new Date(isoString);
   const { month, day } = getDatePartsInTz(date);
   const { hour, minute } = getTimePartsInTz(date);
+  if (locale === "en") return `${MONTH_EN[month - 1]} ${day} ${pad2(hour)}:${pad2(minute)}`;
   return (
     `${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")} ` +
     `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`

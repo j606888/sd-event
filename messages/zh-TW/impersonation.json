@@ -1,0 +1,5 @@
+{
+  "viewingAs": "你正在以「{name}」的身分檢視<muted> — 唯讀模式，無法新增或修改任何資料</muted>",
+  "stop": "結束模擬",
+  "stopping": "結束中…"
+}
