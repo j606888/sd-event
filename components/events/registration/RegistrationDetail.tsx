@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocale, useTranslations } from "next-intl";
 import { ConfirmActionDrawer } from "./ConfirmActionDrawer";
 import { RefundDrawer, type RefundInput } from "./RefundDrawer";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
@@ -71,12 +72,13 @@ type RegistrationDetailProps = {
 };
 
 export function RegistrationDetailSkeleton({ onBack }: { onBack: () => void }) {
+  const t = useTranslations("registration.detail");
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
           <ChevronLeft className="w-4 h-4" />
-          <span className="text-sm">返回列表</span>
+          <span className="text-sm">{t("backToList")}</span>
         </button>
         <div className="flex items-center gap-2">
           <Skeleton className="size-[34px] rounded-lg" />
@@ -108,10 +110,10 @@ export function RegistrationDetailSkeleton({ onBack }: { onBack: () => void }) {
   );
 }
 
-const REFUND_METHOD_LABELS: Record<string, string> = {
-  "Bank Transfer": "銀行轉帳",
-  "Line Pay": "LINE Pay",
-  Cash: "現金",
+const REFUND_METHOD_KEYS: Record<string, "bankTransfer" | "linePay" | "cash"> = {
+  "Bank Transfer": "bankTransfer",
+  "Line Pay": "linePay",
+  Cash: "cash",
 };
 
 /** 區塊標題，整頁共用同一種字級與字重 */
@@ -185,6 +187,9 @@ export function RegistrationDetail({
   layout = "page",
 }: RegistrationDetailProps) {
   const isPanel = layout === "panel";
+  const t = useTranslations("registration");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
   const readOnly = useReadOnly();
   const [updating, setUpdating] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -228,7 +233,7 @@ export function RegistrationDetail({
         await onCheckIn(id);
       }
     } catch (e) {
-      setCheckInError(e instanceof Error ? e.message : "入場失敗，請重試");
+      setCheckInError(e instanceof Error ? e.message : t("detail.attendees.checkInFailed"));
     } finally {
       setCheckingInId(null);
       setCheckingInAll(false);
@@ -242,7 +247,7 @@ export function RegistrationDetail({
     try {
       await onUndoCheckIn(attendeeId);
     } catch (e) {
-      setCheckInError(e instanceof Error ? e.message : "取消入場失敗，請重試");
+      setCheckInError(e instanceof Error ? e.message : t("detail.attendees.undoCheckInFailed"));
     } finally {
       setUndoingId(null);
     }
@@ -276,11 +281,15 @@ export function RegistrationDetail({
       setTimeout(() => setResendState("idle"), 2500);
     } catch (e) {
       setResendState("idle");
-      setResendError(e instanceof Error ? e.message : "重寄失敗");
+      setResendError(e instanceof Error ? e.message : t("detail.resendFailed"));
     }
   };
 
   const canResend = paymentConfirmed && !!registration.contactEmail;
+  const sourceLabel =
+    registration.source === "walk_in"
+      ? t("detail.sourceWalkIn")
+      : t("detail.sourceOnline");
 
   return (
     <div className="w-full space-y-6">
@@ -289,7 +298,7 @@ export function RegistrationDetail({
           <button
             type="button"
             onClick={onBack}
-            aria-label="關閉明細"
+            aria-label={t("detail.closeDetail")}
             className="flex size-9 cursor-pointer items-center justify-center rounded-lg bg-field text-muted-ink transition-colors hover:text-ink"
           >
             <X className="size-4" />
@@ -303,24 +312,24 @@ export function RegistrationDetail({
           className="flex cursor-pointer items-center gap-1.5 rounded-lg py-1.5 pr-3 text-sm text-gray-600 transition-colors hover:text-ink"
         >
           <ChevronLeft className="size-4" />
-          返回列表
+          <span>{t("detail.backToList")}</span>
         </button>
         <div className="flex items-center gap-2">
           <button
             onClick={onPrevious}
             disabled={currentIndex <= 0}
-            aria-label="上一筆"
+            aria-label={t("detail.previous")}
             className="flex size-[34px] cursor-pointer items-center justify-center rounded-lg border border-hairline bg-white text-gray-500 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="size-4" />
           </button>
           <span className="min-w-[84px] text-center font-display text-[13px] tabular-nums text-gray-600">
-            第 {currentIndex + 1} / {totalCount} 筆
+            {t("detail.position", { current: currentIndex + 1, total: totalCount })}
           </span>
           <button
             onClick={onNext}
             disabled={currentIndex >= totalCount - 1}
-            aria-label="下一筆"
+            aria-label={t("detail.next")}
             className="flex size-[34px] cursor-pointer items-center justify-center rounded-lg border border-hairline bg-white text-gray-500 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronRight className="size-4" />
@@ -345,17 +354,23 @@ export function RegistrationDetail({
             {registration.hidden && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
                 <EyeOff className="size-3" />
-                已隱藏
+                <span>{t("detail.hidden")}</span>
               </span>
             )}
           </div>
           <div className="font-display text-sm tabular-nums text-gray-600">
-            {attendees.length} 人 ·{" "}
-            {canManage && registration.totalAmount != null && (
-              <>NT${registration.totalAmount.toLocaleString()} · </>
-            )}
-            {registration.source === "walk_in" ? "現場報名" : "線上報名"}{" "}
-            {formatTimestamp(registration.createdAt)}
+            {canManage && registration.totalAmount != null
+              ? t("detail.summaryWithAmount", {
+                  count: attendees.length,
+                  amount: registration.totalAmount.toLocaleString(),
+                  source: sourceLabel,
+                  time: formatTimestamp(registration.createdAt, locale),
+                })
+              : t("detail.summary", {
+                  count: attendees.length,
+                  source: sourceLabel,
+                  time: formatTimestamp(registration.createdAt, locale),
+                })}
           </div>
         </div>
 
@@ -376,7 +391,7 @@ export function RegistrationDetail({
                 className="h-[38px] gap-2 bg-butter px-4 text-sm font-semibold text-ink hover:bg-butter-hover"
               >
                 <CheckCircle2 className="size-4" />
-                {updating ? "處理中…" : "確認收款"}
+                <span>{updating ? tCommon("processing") : t("detail.confirmPayment")}</span>
               </Button>
             ) : (
               onEdit && (
@@ -387,7 +402,7 @@ export function RegistrationDetail({
                   className="h-[38px] gap-1.5 px-3.5"
                 >
                   <Pencil className="size-4" />
-                  編輯
+                  <span>{tCommon("edit")}</span>
                 </Button>
               )
             )}
@@ -397,7 +412,7 @@ export function RegistrationDetail({
                 <Button
                   type="button"
                   variant="outline"
-                  aria-label="更多操作"
+                  aria-label={t("detail.moreActions")}
                   className="size-[38px] bg-field p-0"
                 >
                   <Ellipsis className="size-4" />
@@ -407,7 +422,7 @@ export function RegistrationDetail({
                 {isAwaitingPayment && onEdit && (
                   <DropdownMenuItem onSelect={onEdit}>
                     <Pencil />
-                    編輯報名資料
+                    <span>{t("detail.editRegistration")}</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -418,11 +433,13 @@ export function RegistrationDetail({
                   }}
                 >
                   <MailCheck />
-                  {resendState === "sending"
-                    ? "寄送中…"
-                    : resendState === "sent"
-                    ? "已重寄"
-                    : "重寄確認信"}
+                  <span>
+                    {resendState === "sending"
+                      ? t("detail.resending")
+                      : resendState === "sent"
+                      ? t("detail.resent")
+                      : t("detail.resendConfirmation")}
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() =>
@@ -434,12 +451,12 @@ export function RegistrationDetail({
                   }
                 >
                   <QrCode />
-                  檢視入場 QR 憑證
+                  <span>{t("detail.viewEntryPass")}</span>
                 </DropdownMenuItem>
                 {onHiddenToggle && (
                   <DropdownMenuItem onSelect={() => setHiddenConfirmOpen(true)}>
                     {registration.hidden ? <Eye /> : <EyeOff />}
-                    {registration.hidden ? "取消隱藏" : "標記為隱藏"}
+                    <span>{registration.hidden ? t("detail.unhide") : t("detail.hide")}</span>
                   </DropdownMenuItem>
                 )}
                 {paymentConfirmed && onRefund && (
@@ -447,7 +464,7 @@ export function RegistrationDetail({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => setRefundOpen(true)}>
                       <Undo2 />
-                      標記為已退款…
+                      <span>{t("detail.markRefunded")}</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -459,7 +476,7 @@ export function RegistrationDetail({
                       onSelect={() => setRejectOpen(true)}
                     >
                       <X />
-                      拒絕這筆付款
+                      <span>{t("detail.rejectPayment")}</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -476,47 +493,53 @@ export function RegistrationDetail({
         <section className="space-y-3 rounded-xl border border-card-border bg-paper p-4">
           <div className="flex items-center gap-2 text-sm font-bold text-ink">
             <Undo2 className="size-4 text-leader" />
-            {canManage && registration.totalAmount != null
-              ? `已退款 NT$${registration.totalAmount.toLocaleString()}`
-              : "已退款"}
+            <span>
+              {canManage && registration.totalAmount != null
+                ? t("detail.refundRecord.refundedAmount", {
+                    amount: registration.totalAmount.toLocaleString(),
+                  })
+                : t("refunded")}
+            </span>
           </div>
           <div className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-1.5 text-sm">
             {registration.refundedAt && (
               <>
-                <span className="text-muted-ink">退款日期</span>
-                <span className="text-ink">{formatTimestamp(registration.refundedAt)}</span>
+                <span className="text-muted-ink">{t("detail.refundRecord.date")}</span>
+                <span className="text-ink">{formatTimestamp(registration.refundedAt, locale)}</span>
               </>
             )}
             {registration.refundMethod && (
               <>
-                <span className="text-muted-ink">方式</span>
+                <span className="text-muted-ink">{t("detail.refundRecord.method")}</span>
                 <span className="text-ink">
-                  {REFUND_METHOD_LABELS[registration.refundMethod] ?? registration.refundMethod}
+                  {REFUND_METHOD_KEYS[registration.refundMethod]
+                    ? t(`refundMethod.${REFUND_METHOD_KEYS[registration.refundMethod]}`)
+                    : registration.refundMethod}
                 </span>
               </>
             )}
             {registration.refundedByName && (
               <>
-                <span className="text-muted-ink">處理人</span>
+                <span className="text-muted-ink">{t("detail.refundRecord.handledBy")}</span>
                 <span className="text-ink">{registration.refundedByName}</span>
               </>
             )}
             {registration.refundNote && (
               <>
-                <span className="text-muted-ink">備註</span>
+                <span className="text-muted-ink">{t("detail.refundRecord.note")}</span>
                 <span className="min-w-0 break-words text-ink">{registration.refundNote}</span>
               </>
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-2.5 text-[13px] text-muted-ink">
-            <span>此筆不計入人數、L/F 與入帳金額</span>
+            <span>{t("detail.refundRecord.excluded")}</span>
             {!readOnly && canManage && onUndoRefund && (
               <button
                 type="button"
                 onClick={() => setUndoRefundOpen(true)}
                 className="h-9 cursor-pointer font-semibold text-brand-strong underline underline-offset-2 hover:text-ink"
               >
-                撤銷退款
+                {t("detail.refundRecord.undo")}
               </button>
             )}
           </div>
@@ -533,7 +556,7 @@ export function RegistrationDetail({
         <div className="space-y-7">
           {/* 聯絡人 */}
           <section className="space-y-3">
-            <SectionHeading>聯絡人</SectionHeading>
+            <SectionHeading>{t("detail.contact.heading")}</SectionHeading>
             {registration.contactPhone || registration.contactEmail ? (
               <div className="space-y-1.5">
                 {registration.contactPhone && (
@@ -541,7 +564,7 @@ export function RegistrationDetail({
                     icon={Phone}
                     href={`tel:${registration.contactPhone}`}
                     value={registration.contactPhone}
-                    copyLabel="複製電話"
+                    copyLabel={t("detail.contact.copyPhone")}
                   />
                 )}
                 {registration.contactEmail && (
@@ -549,12 +572,12 @@ export function RegistrationDetail({
                     icon={Mail}
                     href={`mailto:${registration.contactEmail}`}
                     value={registration.contactEmail}
-                    copyLabel="複製信箱"
+                    copyLabel={t("detail.contact.copyEmail")}
                   />
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">沒有留下聯絡方式</p>
+              <p className="text-sm text-gray-400">{t("detail.contact.none")}</p>
             )}
           </section>
 
@@ -562,9 +585,12 @@ export function RegistrationDetail({
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <SectionHeading>
-                參與者{" "}
+                <span>{t("detail.attendees.heading")}</span>{" "}
                 <span className="font-display text-xs font-medium tabular-nums text-gray-400">
-                  {checkedInCount} / {attendees.length} 已入場
+                  {t("detail.attendees.checkedInCount", {
+                    checkedIn: checkedInCount,
+                    total: attendees.length,
+                  })}
                 </span>
               </SectionHeading>
               {!readOnly && !refunded && notCheckedIn.length > 1 && (
@@ -577,7 +603,7 @@ export function RegistrationDetail({
                   className="gap-1.5"
                 >
                   <Check className="size-3.5" />
-                  {checkingInAll ? "處理中…" : "全部入場"}
+                  <span>{checkingInAll ? tCommon("processing") : t("detail.attendees.checkInAll")}</span>
                 </Button>
               )}
             </div>
@@ -600,7 +626,7 @@ export function RegistrationDetail({
                     <>
                       <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-strong">
                         <Check className="size-3" strokeWidth={3} />
-                        已入場
+                        <span>{t("checkedIn")}</span>
                         {attendee.checkedInAt && (
                           <span className="font-display tabular-nums">
                             {formatClockTime(attendee.checkedInAt)}
@@ -614,15 +640,19 @@ export function RegistrationDetail({
                           onClick={() => void runUndoCheckIn(attendee.id)}
                           className="h-9 shrink-0 cursor-pointer rounded-md px-2 text-xs text-muted-ink underline underline-offset-2 transition-colors hover:text-ink disabled:opacity-50"
                         >
-                          {undoingId === attendee.id ? "處理中…" : "取消入場"}
+                          {undoingId === attendee.id
+                            ? tCommon("processing")
+                            : t("detail.attendees.undoCheckIn")}
                         </button>
                       )}
                     </>
                   ) : readOnly ? (
-                    <span className="shrink-0 pr-1.5 text-xs text-gray-400">未入場</span>
+                    <span className="shrink-0 pr-1.5 text-xs text-gray-400">
+                      {t("detail.attendees.notCheckedIn")}
+                    </span>
                   ) : refunded ? (
                     <span className="flex h-11 shrink-0 items-center rounded-md border border-dashed border-card-border px-3 text-xs text-muted-ink">
-                      已退款，無法入場
+                      {t("detail.attendees.refundedNoCheckIn")}
                     </span>
                   ) : (
                     <Button
@@ -632,7 +662,7 @@ export function RegistrationDetail({
                       className="h-11 shrink-0 gap-1.5 bg-brand px-5 text-sm font-bold text-ink hover:bg-brand-hover"
                     >
                       <Check className="size-4" />
-                      {checkingInId === attendee.id ? "處理中…" : "入場"}
+                      <span>{checkingInId === attendee.id ? tCommon("processing") : t("checkIn")}</span>
                     </Button>
                   )}
                 </div>
@@ -644,7 +674,7 @@ export function RegistrationDetail({
 
           {/* 報名項目 */}
           <section className="space-y-3">
-            <SectionHeading>報名項目</SectionHeading>
+            <SectionHeading>{t("itemsHeading")}</SectionHeading>
             <div className="space-y-2.5 text-sm">
               {registration.purchaseItems && registration.purchaseItems.length > 0
                 ? registration.purchaseItems.map((item) => (
@@ -653,7 +683,7 @@ export function RegistrationDetail({
                         {item.name}
                         {item.tierName && (
                           <span className="ml-1.5 text-xs text-gray-400">
-                            （{item.tierName}）
+                            {t("tierSuffix", { tier: item.tierName })}
                           </span>
                         )}
                       </span>
@@ -680,7 +710,7 @@ export function RegistrationDetail({
               {canManage && (registration.discountAmount ?? 0) > 0 && (
                 <div className="flex justify-between gap-3">
                   <span className="text-gray-500">
-                    折扣碼
+                    <span>{t("detail.items.couponCode")}</span>
                     {registration.couponCode && (
                       <span className="ml-1.5 font-display font-semibold text-gray-900">
                         {registration.couponCode}
@@ -695,7 +725,7 @@ export function RegistrationDetail({
 
               {canManage && registration.totalAmount != null && (
                 <div className="flex justify-between gap-3 border-t border-hairline pt-2.5">
-                  <span className="text-gray-500">應收總額</span>
+                  <span className="text-gray-500">{t("detail.items.totalDue")}</span>
                   <span className="font-display font-bold tabular-nums text-ink">
                     {(registration.discountAmount ?? 0) > 0 && (
                       <span className="mr-2 font-normal text-gray-400 line-through">
@@ -704,7 +734,7 @@ export function RegistrationDetail({
                         ).toLocaleString()}
                       </span>
                     )}
-                    NT${registration.totalAmount.toLocaleString()}
+                    <span>{`NT$${registration.totalAmount.toLocaleString()}`}</span>
                   </span>
                 </div>
               )}
@@ -712,13 +742,13 @@ export function RegistrationDetail({
               {canManage && refunded && registration.totalAmount != null && (
                 <>
                   <div className="flex justify-between gap-3">
-                    <span className="text-gray-500">已退款</span>
+                    <span className="text-gray-500">{t("refunded")}</span>
                     <span className="font-display tabular-nums text-leader">
                       −NT${registration.totalAmount.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="font-bold text-ink">實收</span>
+                    <span className="font-bold text-ink">{t("detail.items.netReceived")}</span>
                     <span className="font-display font-bold tabular-nums text-ink">NT$0</span>
                   </div>
                 </>
@@ -730,19 +760,19 @@ export function RegistrationDetail({
         {/* 右欄：核對用 */}
         <div className="space-y-7">
           <section className="space-y-3">
-            <SectionHeading>付款資料</SectionHeading>
+            <SectionHeading>{t("detail.payment.heading")}</SectionHeading>
             <div className="space-y-2 text-sm">
               <div className="flex gap-3">
-                <span className="w-14 shrink-0 text-gray-400">方式</span>
+                <span className="w-14 shrink-0 text-gray-400">{t("detail.payment.method")}</span>
                 <span className="text-gray-900">
                   {registration.paymentMethod === "Cash"
-                    ? "現金"
-                    : registration.paymentMethod || "未指定"}
+                    ? t("detail.payment.cash")
+                    : registration.paymentMethod || t("detail.payment.unspecified")}
                 </span>
               </div>
               {registration.paymentNote && (
                 <div className="flex gap-3">
-                  <span className="w-14 shrink-0 text-gray-400">備註</span>
+                  <span className="w-14 shrink-0 text-gray-400">{t("detail.payment.note")}</span>
                   <span className="min-w-0 break-words text-gray-900">
                     {registration.paymentNote}
                   </span>
@@ -754,7 +784,7 @@ export function RegistrationDetail({
           {registration.paymentScreenshotUrl && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <SectionHeading>付款證明</SectionHeading>
+                <SectionHeading>{t("detail.payment.proofHeading")}</SectionHeading>
                 <a
                   href={registration.paymentScreenshotUrl}
                   target="_blank"
@@ -762,7 +792,7 @@ export function RegistrationDetail({
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-strong hover:text-ink"
                 >
                   <ExternalLink className="size-3.5" />
-                  原圖
+                  <span>{t("detail.payment.original")}</span>
                 </a>
               </div>
               <button
@@ -772,7 +802,7 @@ export function RegistrationDetail({
               >
                 <Image
                   src={registration.paymentScreenshotUrl}
-                  alt="付款截圖"
+                  alt={t("detail.payment.screenshotAlt")}
                   fill
                   className="object-contain"
                 />
@@ -786,22 +816,25 @@ export function RegistrationDetail({
       <ConfirmActionDrawer
         open={confirmPaymentOpen}
         onClose={() => setConfirmPaymentOpen(false)}
-        title="確認收款？"
-        description="這筆報名還沒有回報付款。確認後系統會寄出收款確認信，狀態改為「已確認收款」。"
+        title={t("detail.confirmPaymentDrawer.title")}
+        description={t("detail.confirmPaymentDrawer.description")}
         summary={
           <div className="flex items-center justify-between gap-3">
             <span className="text-gray-600">
-              {registration.contactName} · {attendees.length} 人
+              {t("detail.confirmPaymentDrawer.summary", {
+                name: registration.contactName,
+                count: attendees.length,
+              })}
             </span>
             {registration.totalAmount != null && (
               <span className="font-display font-bold tabular-nums text-ink">
-                NT${registration.totalAmount.toLocaleString()}
+                {`NT$${registration.totalAmount.toLocaleString()}`}
               </span>
             )}
           </div>
         }
-        confirmLabel="仍要確認收款"
-        pendingLabel="處理中…"
+        confirmLabel={t("detail.confirmPaymentDrawer.confirm")}
+        pendingLabel={tCommon("processing")}
         onConfirm={handleConfirmPayment}
       />
 
@@ -809,10 +842,10 @@ export function RegistrationDetail({
       <ConfirmActionDrawer
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
-        title="拒絕這筆付款？"
-        description="狀態會改為「已拒絕」。報名者仍可從自己的報名連結重新回報付款。"
-        confirmLabel="拒絕付款"
-        pendingLabel="處理中…"
+        title={t("detail.rejectDrawer.title")}
+        description={t("detail.rejectDrawer.description")}
+        confirmLabel={t("detail.rejectDrawer.confirm")}
+        pendingLabel={tCommon("processing")}
         destructive
         onConfirm={() => onStatusUpdate("rejected")}
       />
@@ -834,10 +867,10 @@ export function RegistrationDetail({
       <ConfirmActionDrawer
         open={undoRefundOpen}
         onClose={() => setUndoRefundOpen(false)}
-        title="撤銷退款？"
-        description="狀態會回到「已收款」，退款紀錄會被清除，這筆報名重新計入人數與入帳金額。不會寄信給報名者。"
-        confirmLabel="撤銷退款"
-        pendingLabel="處理中…"
+        title={t("detail.undoRefundDrawer.title")}
+        description={t("detail.undoRefundDrawer.description")}
+        confirmLabel={t("detail.undoRefundDrawer.confirm")}
+        pendingLabel={tCommon("processing")}
         onConfirm={async () => {
           if (onUndoRefund) await onUndoRefund();
         }}
@@ -847,14 +880,18 @@ export function RegistrationDetail({
       <ConfirmActionDrawer
         open={hiddenConfirmOpen}
         onClose={() => setHiddenConfirmOpen(false)}
-        title={registration.hidden ? "取消隱藏？" : "標記為隱藏？"}
+        title={
+          registration.hidden
+            ? t("detail.hiddenDrawer.unhideTitle")
+            : t("detail.hiddenDrawer.hideTitle")
+        }
         description={
           registration.hidden
-            ? "這筆報名會重新出現在預設的報名者列表與統計中。"
-            : "隱藏後這筆報名不會出現在預設的報名者列表與統計裡，但資料仍然保留，之後可以取消隱藏。"
+            ? t("detail.hiddenDrawer.unhideDescription")
+            : t("detail.hiddenDrawer.hideDescription")
         }
-        confirmLabel={registration.hidden ? "取消隱藏" : "標記為隱藏"}
-        pendingLabel="處理中…"
+        confirmLabel={registration.hidden ? t("detail.unhide") : t("detail.hide")}
+        pendingLabel={tCommon("processing")}
         onConfirm={async () => {
           if (onHiddenToggle) await onHiddenToggle(!registration.hidden);
         }}
@@ -864,10 +901,10 @@ export function RegistrationDetail({
       <ConfirmActionDrawer
         open={pendingCheckIn !== null}
         onClose={() => setPendingCheckIn(null)}
-        title="尚未確認收款"
-        description="這筆報名的款項還沒確認。仍要讓參與者入場嗎？"
-        confirmLabel="仍要入場"
-        pendingLabel="處理中…"
+        title={t("detail.unpaidCheckInDrawer.title")}
+        description={t("detail.unpaidCheckInDrawer.description")}
+        confirmLabel={t("detail.unpaidCheckInDrawer.confirm")}
+        pendingLabel={tCommon("processing")}
         onConfirm={async () => {
           const target = pendingCheckIn;
           setPendingCheckIn(null);
@@ -885,7 +922,7 @@ export function RegistrationDetail({
             type="button"
             onClick={() => setImagePreviewOpen(false)}
             className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30"
-            aria-label="關閉"
+            aria-label={tCommon("close")}
           >
             <X className="size-5" />
           </button>
@@ -893,7 +930,7 @@ export function RegistrationDetail({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={registration.paymentScreenshotUrl}
-              alt="付款截圖"
+              alt={t("detail.payment.screenshotAlt")}
               className="max-h-[90vh] max-w-[90vw] rounded object-contain"
             />
           </div>

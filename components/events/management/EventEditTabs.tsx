@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { BasicInfoLayout } from "./BasicInfoLayout";
 import { EventFormDrawers } from "./EventFormDrawers";
@@ -31,6 +32,8 @@ export function EventEditTabs({
   setTab,
   onSaveSuccess,
 }: EventEditTabsProps) {
+  const t = useTranslations("eventForm.editTabs");
+  const tCommon = useTranslations("common");
   const readOnly = useReadOnly();
   const form = useEventForm({
     mode: "edit",
@@ -56,9 +59,9 @@ export function EventEditTabs({
       type="submit"
       className={className}
       disabled={saving || readOnly}
-      title={readOnly ? "模擬檢視為唯讀模式" : undefined}
+      title={readOnly ? t("readOnlyTitle") : undefined}
     >
-      {saving ? "儲存中…" : "儲存變更"}
+      {saving ? tCommon("saving") : tCommon("saveChanges")}
     </Button>
   );
   const dirty = basicDirty && !saving && !readOnly;
@@ -79,11 +82,9 @@ export function EventEditTabs({
           className={`size-2 shrink-0 rounded-full ${dirty ? "bg-butter" : "bg-brand"}`}
           aria-hidden
         />
-        {readOnly
-          ? "模擬檢視為唯讀模式，無法儲存變更"
-          : dirty
-            ? "有還沒儲存的變更"
-            : "此頁的變更要按「儲存變更」才會生效"}
+        <span>
+          {readOnly ? t("readOnly") : dirty ? t("unsaved") : t("saveHint")}
+        </span>
       </span>
       {saveButton("h-9 rounded-xl px-7 font-bold")}
     </div>
@@ -94,16 +95,16 @@ export function EventEditTabs({
     <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex flex-col gap-1.5 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:hidden">
       {saveButton("w-full font-bold")}
       {readOnly && (
-        <p className="text-xs text-butter-ink">模擬檢視為唯讀模式，無法儲存變更</p>
+        <p className="text-xs text-butter-ink">{t("readOnly")}</p>
       )}
-      {dirty && <p className="text-xs text-butter-ink">有還沒儲存的變更</p>}
+      {dirty && <p className="text-xs text-butter-ink">{t("unsaved")}</p>}
     </div>
   );
 
   const errorBanner = saveError ? (
     <p className="flex items-center gap-1.5 text-sm text-red-600">
       <span className="size-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
-      {saveError}
+      <span>{saveError}</span>
     </p>
   ) : null;
 

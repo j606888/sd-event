@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Building2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ type Organizer = {
 export default function EventOrganizersPage() {
   // 驗票人員看不到團隊/常用資訊設定，導回活動列表
   const { ready: isTeamAdminReady } = useRequireTeamAdmin();
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +88,7 @@ export default function EventOrganizersPage() {
     setSubmitError(null);
     const name = formName.trim();
     if (!name) {
-      setSubmitError("請輸入名稱");
+      setSubmitError(t("nameRequired"));
       return;
     }
 
@@ -109,13 +112,13 @@ export default function EventOrganizersPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || (isEditing ? "更新失敗" : "新增失敗"));
+        setSubmitError(data.error || (isEditing ? t("updateFailed") : t("addFailed")));
         return;
       }
       setDrawerOpen(false);
       fetchOrganizers();
     } catch {
-      setSubmitError(isEditing ? "更新失敗" : "新增失敗");
+      setSubmitError(isEditing ? t("updateFailed") : t("addFailed"));
     }
   };
 
@@ -123,7 +126,7 @@ export default function EventOrganizersPage() {
   if (!isTeamAdminReady) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -131,7 +134,7 @@ export default function EventOrganizersPage() {
   if (teamLoading || (teamId == null && !teamError)) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -139,7 +142,7 @@ export default function EventOrganizersPage() {
   if (teamError || teamId == null) {
     return (
       <div className="p-6">
-        <p className="text-red-500">{teamError || "請先建立或加入團隊"}</p>
+        <p className="text-red-500">{teamError || t("noTeam")}</p>
       </div>
     );
   }
@@ -147,18 +150,18 @@ export default function EventOrganizersPage() {
   return (
     <div className="w-full max-w-3xl px-4 py-5 md:px-8 md:py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink">主辦單位</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">{t("organizer.title")}</h1>
         <Button onClick={openDrawer} className="gap-2">
           <Plus className="size-4" />
-          新增主辦單位
+          <span>{t("organizer.add")}</span>
         </Button>
       </div>
 
       {loading ? (
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       ) : organizers.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
-          尚無主辦單位，點擊「新增主辦單位」建立
+          {t("organizer.empty")}
         </div>
       ) : (
         <ul className="surface-card overflow-hidden divide-y divide-hairline">
@@ -197,20 +200,20 @@ export default function EventOrganizersPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         subtitle={editingOrganizerId ? "Edit Organizer" : "New Organizer"}
-        title={editingOrganizerId ? "編輯主辦單位" : "新增主辦單位"}
+        title={editingOrganizerId ? t("organizer.editTitle") : t("organizer.newTitle")}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {submitError && (
             <p className="text-sm text-red-500">{submitError}</p>
           )}
           <div className="flex flex-col gap-2">
-            <Label>主辦方照片</Label>
+            <Label>{t("organizer.photoLabel")}</Label>
             {isRenderableImageSrc(formPhotoUrl) ? (
               <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div className="relative aspect-square w-full max-w-[200px] mx-auto overflow-hidden rounded-lg bg-gray-100">
                   <Image
                     src={formPhotoUrl}
-                    alt="主辦方照片"
+                    alt={t("organizer.photoAlt")}
                     fill
                     className="object-cover"
                   />
@@ -219,7 +222,7 @@ export default function EventOrganizersPage() {
                   type="button"
                   onClick={() => setFormPhotoUrl(null)}
                   className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-                  aria-label="移除照片"
+                  aria-label={t("organizer.removePhoto")}
                 >
                   <X className="size-4" />
                 </button>
@@ -239,7 +242,7 @@ export default function EventOrganizersPage() {
                 }}
                 onUploadError={(err) => {
                   console.error(err);
-                  setSubmitError("上傳失敗，請重試");
+                  setSubmitError(t("organizer.uploadFailed"));
                 }}
                 appearance={{
                   container:
@@ -252,12 +255,12 @@ export default function EventOrganizersPage() {
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="org-name">名稱 *</Label>
+            <Label htmlFor="org-name">{t("nameLabel")}</Label>
             <Input
               id="org-name"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              placeholder="輸入名稱"
+              placeholder={t("namePlaceholder")}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -266,7 +269,7 @@ export default function EventOrganizersPage() {
               id="org-ig"
               value={formInstagram}
               onChange={(e) => setFormInstagram(e.target.value)}
-              placeholder="輸入 Instagram"
+              placeholder={t("organizer.instagramPlaceholder")}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -275,15 +278,15 @@ export default function EventOrganizersPage() {
               id="org-fb"
               value={formFacebook}
               onChange={(e) => setFormFacebook(e.target.value)}
-              placeholder="輸入 Facebook"
+              placeholder={t("organizer.facebookPlaceholder")}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
-              取消
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
-              {editingOrganizerId ? "更新" : "新增"}
+              {editingOrganizerId ? t("update") : tCommon("add")}
             </Button>
           </div>
         </form>

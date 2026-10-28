@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import type { EventType } from "@/lib/event-templates";
 
 export type EventData = {
@@ -27,11 +28,12 @@ export type EventData = {
 };
 
 export function useEvent(eventId: string) {
+  const t = useTranslations("events.errors");
   return useQuery({
     queryKey: ["event", eventId],
     queryFn: async () => {
       const res = await fetch(`/api/events/${eventId}`, { credentials: "include" });
-      if (!res.ok) throw new Error("無法載入活動");
+      if (!res.ok) throw new Error(t("loadEvent"));
       const data = await res.json();
       return data.event as EventData;
     },

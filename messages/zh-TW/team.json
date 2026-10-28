@@ -1,1 +1,43 @@
-{}
+{
+  "notFound": "找不到團隊",
+  "createdAt": "建立於 {date}",
+  "invite": "邀請成員",
+  "members": {
+    "title": "團隊成員",
+    "empty": "尚無成員，點擊「邀請成員」新增",
+    "notifyOnRegistration": "新報名通知信",
+    "makeAdmin": "設為管理員",
+    "makeStaff": "設為驗票人員",
+    "removeConfirm": "確定要移除此成員嗎？",
+    "removeFailed": "移除失敗",
+    "updateFailed": "更新失敗"
+  },
+  "invitations": {
+    "title": "待處理邀請",
+    "pendingSignup": "待註冊",
+    "sentAt": "邀請於 {date} 送出",
+    "resend": "重寄邀請信",
+    "resending": "寄送中…"
+  },
+  "notice": {
+    "memberAdded": "已把 {email} 加入團隊，並寄信通知對方",
+    "memberAddedEmailFailed": "已把 {email} 加入團隊，但通知信沒寄出去",
+    "invited": "已寄出邀請信給 {email}，對方用這個信箱註冊後就會加入團隊",
+    "invitedEmailFailed": "已建立邀請，但邀請信沒寄出去，可以在下方「待處理邀請」重寄",
+    "resent": "已重新寄出邀請信給 {email}",
+    "resendFailed": "邀請信寄送失敗，請稍後再試"
+  },
+  "inviteForm": {
+    "emailPlaceholder": "輸入成員 email",
+    "emailHint": "已註冊的使用者會直接加入團隊並收到通知信；未註冊的會收到邀請信，用這個信箱註冊後自動入隊",
+    "emailRequired": "請輸入 email",
+    "roleLabel": "權限",
+    "submit": "邀請",
+    "submitting": "邀請中…",
+    "failed": "邀請失敗"
+  },
+  "roleDescription": {
+    "member": "可管理活動、報名者、款項與團隊成員",
+    "staff": "只能掃碼報到與現場報名，看不到金額與營收"
+  }
+}

@@ -1,10 +1,12 @@
 "use client";
 
 import { CalendarRange, Lock, Plus, TriangleAlert, X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { endOfDayFromDateInput, resolveActiveTier } from "@/lib/pricing";
-import { taipeiDateInput } from "@/lib/format-event-date";
+import { formatTierDeadline, taipeiDateInput } from "@/lib/format-event-date";
+import type { Locale } from "@/lib/locale";
 import type { PriceTierDraft, UseEventFormReturn } from "@/hooks/use-event-form";
 
 /** "YYYY-MM-DD" + n 天，一律以台北時間計算（避免執行環境時區把日期算差一天） */
@@ -14,10 +16,16 @@ function addDays(dateInput: string, days: number): string {
   return taipeiDateInput(new Date(ms + days * 86_400_000).toISOString());
 }
 
-/** "YYYY-MM-DD" → "8/01"，時間軸上的短標示 */
-function shortDate(dateInput: string): string {
+/** "YYYY-MM-DD" → "8/01"（英文 "Aug 1"），時間軸上的短標示 */
+function shortDate(dateInput: string, locale: Locale): string {
   const [, m, d] = dateInput.split("-");
-  return m && d ? `${Number(m)}/${d}` : dateInput;
+  if (!m || !d) return dateInput;
+  if (locale === "en") {
+    // 以台北中午解讀，避免執行環境時區把日期算差一天
+    const ms = new Date(`${dateInput}T12:00:00+08:00`).getTime();
+    return Number.isNaN(ms) ? dateInput : formatTierDeadline(new Date(ms).toISOString(), locale);
+  }
+  return `${Number(m)}/${d}`;
 }
 
 /** 這個項目在此時段有沒有列價（tier 已存檔看 tierId，草稿看 tierDraftIndex） */
@@ -49,6 +57,8 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
     removePriceTier,
     openPurchaseItemEditor,
   } = form;
+  const t = useTranslations("tickets");
+  const locale = useLocale();
 
   const lastIndex = priceTiers.length - 1;
 
@@ -68,15 +78,20 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
   /** 每段的生效區間文字（起始日由前一段截止日推導） */
   const rangeLabel = (index: number): string => {
     const prevEndsAt = index > 0 ? priceTiers[index - 1]?.endsAt : "";
-    const start = index === 0 ? "即日起" : prevEndsAt ? shortDate(addDays(prevEndsAt, 1)) : "—";
+    const start =
+      index === 0
+        ? t("tiers.rangeFromNow")
+        : prevEndsAt
+          ? shortDate(addDays(prevEndsAt, 1), locale)
+          : "—";
     const tier = priceTiers[index];
     const end =
       index === lastIndex && !tier?.endsAt
-        ? "活動結束"
+        ? t("tiers.rangeEventEnd")
         : tier?.endsAt
-          ? shortDate(tier.endsAt)
+          ? shortDate(tier.endsAt, locale)
           : "—";
-    return `${start} ～ ${end}`;
+    return t("tiers.range", { start, end });
   };
 
   /** 缺日期、或日期沒有遞增 —— 只提示不擋，這頁是即時自動儲存 */
@@ -84,11 +99,13 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
     const tier = priceTiers[index];
     if (!tier) return null;
     if (index < lastIndex && !tier.endsAt) {
-      return "缺截止日，這一段會一直生效、後面的時段永遠輪不到";
+      return t("tiers.warnMissingDeadline");
     }
     const prevEndsAt = index > 0 ? priceTiers[index - 1]?.endsAt : "";
     if (tier.endsAt && prevEndsAt && tier.endsAt <= prevEndsAt) {
-      return `截止日要晚於「${priceTiers[index - 1]?.name || "上一段"}」`;
+      return t("tiers.warnNotIncreasing", {
+        prev: priceTiers[index - 1]?.name || t("tiers.previousTier"),
+      });
     }
     return null;
   };
@@ -102,7 +119,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
   return (
     <div className="flex flex-col gap-2 py-5 first:pt-0">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-sm font-bold text-ink">票價時段</h3>
+        <h3 className="font-display text-sm font-bold text-ink">{t("tiers.title")}</h3>
         {priceTiers.length > 0 && (
           <Button
             type="button"
@@ -112,7 +129,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
             onClick={() => addPriceTier()}
           >
             <Plus className="size-4" />
-            新增時段
+            <span>{t("tiers.add")}</span>
           </Button>
         )}
       </div>
@@ -122,8 +139,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
           <div className="flex items-start gap-2">
             <CalendarRange className="mt-0.5 size-4 shrink-0 text-gray-400" />
             <p className="text-xs text-gray-500">
-              目前是單一票價（不分時段）。要做早鳥優惠的話，設好時段後每張票就能各填一組價格，
-              時間到自動換價。
+              {t("tiers.emptyHint")}
             </p>
           </div>
           <Button
@@ -133,13 +149,13 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
             className="shrink-0 self-start sm:self-auto"
             onClick={() => seedDefaultPriceTiers()}
           >
-            設定早鳥／現場價
+            {t("tiers.seedDefaults")}
           </Button>
         </div>
       ) : (
         <>
           <p className="text-xs text-gray-500">
-            一段接著一段跑，時間到自動換價。最後一段沒有截止日，會一直適用到活動結束。
+            {t("tiers.hint")}
           </p>
 
           <ul className="flex flex-col gap-1.5">
@@ -149,6 +165,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
               const isLockedFallback = isLast && !tier.endsAt;
               const warning = warningFor(i);
               const missing = itemsMissingPrice(tier, i);
+              const tierLabel = tier.name || t("tierN", { n: i + 1 });
 
               return (
                 <li key={tier.id ?? `draft-${i}`} className="flex flex-col gap-1">
@@ -163,16 +180,16 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                     />
                     <Input
                       className="min-w-0 flex-1"
-                      placeholder="時段名稱（如 早鳥）"
+                      placeholder={t("tiers.namePlaceholder")}
                       value={tier.name}
                       onChange={(e) => updatePriceTier(i, "name", e.target.value)}
                       onBlur={() => persistPriceTier(i)}
-                      aria-label={`第 ${i + 1} 段名稱`}
+                      aria-label={t("tiers.nameAria", { n: i + 1 })}
                     />
                     {isLockedFallback ? (
                       <span className="flex h-9 w-36 shrink-0 items-center gap-1.5 rounded-md border border-dashed border-gray-300 px-3 text-xs text-gray-500 sm:w-40">
                         <Lock className="size-3.5 shrink-0" />
-                        到活動結束
+                        <span>{t("tiers.untilEventEnd")}</span>
                       </span>
                     ) : (
                       <Input
@@ -181,14 +198,14 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                         value={tier.endsAt}
                         onChange={(e) => updatePriceTier(i, "endsAt", e.target.value)}
                         onBlur={() => persistPriceTier(i)}
-                        aria-label={`${tier.name || `第 ${i + 1} 段`}的截止日期`}
+                        aria-label={t("tiers.deadlineAria", { tier: tierLabel })}
                       />
                     )}
                     <button
                       type="button"
                       onClick={() => removePriceTier(i)}
                       className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
-                      aria-label={`移除時段 ${tier.name || i + 1}`}
+                      aria-label={t("tiers.removeAria", { tier: tier.name || String(i + 1) })}
                     >
                       <X className="size-4" />
                     </button>
@@ -198,7 +215,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                     <span className="text-xs text-gray-400">{rangeLabel(i)}</span>
                     {i === activeIndex && (
                       <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand-strong">
-                        目前適用
+                        {t("currentTier")}
                       </span>
                     )}
                     {isLast && tier.endsAt && (
@@ -210,13 +227,13 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                         }}
                         className="rounded text-xs font-medium text-brand-strong underline-offset-2 hover:underline"
                       >
-                        改為到活動結束
+                        {t("tiers.switchToEventEnd")}
                       </button>
                     )}
                     {warning && (
                       <span className="inline-flex items-center gap-1 text-xs text-amber-700">
                         <TriangleAlert className="size-3.5 shrink-0" />
-                        {warning}
+                        <span>{warning}</span>
                       </span>
                     )}
                   </div>
@@ -225,8 +242,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                     <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 pl-4 text-xs text-amber-700">
                       <TriangleAlert className="size-3.5 shrink-0" />
                       <span>
-                        {missing.length} 張票還沒有「{tier.name || `第 ${i + 1} 段`}
-                        」的價格，會用基準價計費：
+                        {t("tiers.missingPrices", { count: missing.length, tier: tierLabel })}
                       </span>
                       {missing.map(({ item, index }) => (
                         <button
@@ -235,7 +251,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
                           onClick={() => openPurchaseItemEditor(index)}
                           className="rounded font-medium underline underline-offset-2 hover:text-amber-900"
                         >
-                          {item.name || "（未命名）"}
+                          {item.name || t("untitled")}
                         </button>
                       ))}
                     </p>

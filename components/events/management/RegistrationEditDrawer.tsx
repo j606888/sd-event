@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,8 @@ export function RegistrationEditDrawer({
   onClose,
   onSave,
 }: RegistrationEditDrawerProps) {
+  const t = useTranslations("registration");
+  const tCommon = useTranslations("common");
   const seqRef = useRef(0);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -86,12 +89,12 @@ export function RegistrationEditDrawer({
 
     const name = contactName.trim();
     if (!name) {
-      setError("請填寫聯絡人姓名");
+      setError(t("edit.contactNameRequired"));
       return;
     }
     const email = contactEmail.trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("請提供有效的 email");
+      setError(t("edit.invalidEmail"));
       return;
     }
 
@@ -99,13 +102,13 @@ export function RegistrationEditDrawer({
       .map((a) => ({ id: a.id, name: a.name.trim(), role: a.role, flagged: a.flagged }))
       .filter((a) => a.name && ROLES.includes(a.role as (typeof ROLES)[number]));
     if (validAttendees.length === 0) {
-      setError("請至少填寫一位參加者的姓名與角色");
+      setError(t("form.atLeastOneAttendee"));
       return;
     }
 
     const amountNum = Math.floor(Number(amountInput));
     if (!Number.isInteger(amountNum) || amountNum <= 0) {
-      setError("請填寫有效的總金額");
+      setError(t("edit.invalidAmount"));
       return;
     }
 
@@ -120,32 +123,37 @@ export function RegistrationEditDrawer({
       });
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "更新失敗");
+      setError(e instanceof Error ? e.message : t("edit.failed"));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Drawer open={open} onClose={onClose} title="編輯報名" subtitle="修改聯絡人、參加者與金額">
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={t("edit.title")}
+      subtitle={t("edit.subtitle")}
+    >
       <div className="space-y-6">
         {/* 聯絡人 */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-900">聯絡人</h3>
+          <h3 className="text-sm font-semibold text-gray-900">{t("edit.contactHeading")}</h3>
           <div className="space-y-2">
-            <Label htmlFor="edit-contact-name">姓名</Label>
+            <Label htmlFor="edit-contact-name">{t("edit.nameLabel")}</Label>
             <Input
               id="edit-contact-name"
-              placeholder="姓名"
+              placeholder={t("form.namePlaceholder")}
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-contact-phone">電話</Label>
+            <Label htmlFor="edit-contact-phone">{t("edit.phoneLabel")}</Label>
             <Input
               id="edit-contact-phone"
-              placeholder="電話"
+              placeholder={t("edit.phoneLabel")}
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
             />
@@ -164,24 +172,26 @@ export function RegistrationEditDrawer({
 
         {/* 參加者 */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-900">參加者</h3>
+          <h3 className="text-sm font-semibold text-gray-900">{t("form.attendeesHeading")}</h3>
           {attendees.map((a, index) => (
             <div key={a.key} className="space-y-2 rounded-lg border border-gray-200 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-500">參加者 {index + 1}</span>
+                <span className="text-xs font-medium text-gray-500">
+                  {t("form.attendeeN", { n: index + 1 })}
+                </span>
                 {attendees.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeAttendee(a.key)}
                     className="text-gray-400 hover:text-red-500"
-                    aria-label="移除參加者"
+                    aria-label={t("form.removeAttendee")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
               </div>
               <Input
-                placeholder="姓名"
+                placeholder={t("form.namePlaceholder")}
                 value={a.name}
                 onChange={(e) => updateAttendee(a.key, "name", e.target.value)}
               />
@@ -223,18 +233,18 @@ export function RegistrationEditDrawer({
             className="w-full gap-1.5 border-brand text-brand-strong hover:bg-brand/10"
           >
             <Plus className="h-4 w-4" />
-            增加參加者
+            <span>{t("form.addAttendee")}</span>
           </Button>
         </div>
 
         {/* 金額 */}
         <div className="space-y-2">
-          <Label htmlFor="edit-amount">總金額</Label>
+          <Label htmlFor="edit-amount">{t("edit.amountLabel")}</Label>
           <Input
             id="edit-amount"
             type="number"
             min={0}
-            placeholder="金額"
+            placeholder={t("form.amountPlaceholder")}
             value={amountInput}
             onChange={(e) => setAmountInput(e.target.value)}
           />
@@ -244,7 +254,7 @@ export function RegistrationEditDrawer({
 
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="outline" onClick={onClose}>
-            取消
+            {tCommon("cancel")}
           </Button>
           <Button
             type="button"
@@ -252,7 +262,7 @@ export function RegistrationEditDrawer({
             disabled={saving}
             className="bg-brand text-ink hover:bg-brand-hover"
           >
-            {saving ? "儲存中…" : "儲存"}
+            {saving ? tCommon("saving") : tCommon("save")}
           </Button>
         </div>
       </div>

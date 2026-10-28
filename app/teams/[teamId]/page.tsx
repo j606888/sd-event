@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Plus, Trash2, Mail, Clock } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,12 +11,11 @@ import { Drawer } from "@/components/ui/drawer";
 import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
 import {
   ASSIGNABLE_TEAM_ROLES,
-  TEAM_ROLE_DESCRIPTION,
-  TEAM_ROLE_LABEL,
   isTeamAdmin,
   type AssignableTeamRole,
   type TeamRole,
 } from "@/lib/team-roles";
+import { formatDate } from "@/lib/format-event-date";
 
 type TeamMember = {
   userId: number;
@@ -47,6 +47,12 @@ export default function TeamDetailPage() {
   const { ready: isTeamAdminReady } = useRequireTeamAdmin();
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations("team");
+  const tCommon = useTranslations("common");
+  const tRoles = useTranslations("teamRoles");
+  const locale = useLocale();
+  // owner 與 member 對使用者都是「管理員」
+  const roleLabel = (role: TeamRole) => tRoles(isTeamAdmin(role) ? "admin" : "staff");
   const teamId = Number(params?.teamId);
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -154,7 +160,7 @@ export default function TeamDetailPage() {
     setSubmitError(null);
     const email = formEmail.trim().toLowerCase();
     if (!email) {
-      setSubmitError("請輸入 email");
+      setSubmitError(t("inviteForm.emailRequired"));
       return;
     }
     setInviting(true);
@@ -167,27 +173,27 @@ export default function TeamDetailPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || "邀請失敗");
+        setSubmitError(data.error || t("inviteForm.failed"));
         return;
       }
       if (data.member) {
         setNotice(
           data.emailSent
-            ? { tone: "success", text: `已把 ${email} 加入團隊，並寄信通知對方` }
-            : { tone: "error", text: `已把 ${email} 加入團隊，但通知信沒寄出去` }
+            ? { tone: "success", text: t("notice.memberAdded", { email }) }
+            : { tone: "error", text: t("notice.memberAddedEmailFailed", { email }) }
         );
       } else {
         setNotice(
           data.emailSent
-            ? { tone: "success", text: `已寄出邀請信給 ${email}，對方用這個信箱註冊後就會加入團隊` }
-            : { tone: "error", text: `已建立邀請，但邀請信沒寄出去，可以在下方「待處理邀請」重寄` }
+            ? { tone: "success", text: t("notice.invited", { email }) }
+            : { tone: "error", text: t("notice.invitedEmailFailed") }
         );
       }
       setDrawerOpen(false);
       setFormEmail("");
       fetchMembers();
     } catch {
-      setSubmitError("邀請失敗");
+      setSubmitError(t("inviteForm.failed"));
     } finally {
       setInviting(false);
     }
@@ -204,11 +210,11 @@ export default function TeamDetailPage() {
       const data = await res.json().catch(() => ({}));
       setNotice(
         res.ok
-          ? { tone: "success", text: `已重新寄出邀請信給 ${invitation.email}` }
-          : { tone: "error", text: data.error || "邀請信寄送失敗，請稍後再試" }
+          ? { tone: "success", text: t("notice.resent", { email: invitation.email }) }
+          : { tone: "error", text: data.error || t("notice.resendFailed") }
       );
     } catch {
-      setNotice({ tone: "error", text: "邀請信寄送失敗，請稍後再試" });
+      setNotice({ tone: "error", text: t("notice.resendFailed") });
     } finally {
       setResendingId(null);
     }
@@ -216,7 +222,7 @@ export default function TeamDetailPage() {
 
   const handleRemoveMember = async (userId: number) => {
     if (!Number.isInteger(teamId)) return;
-    if (!confirm("確定要移除此成員嗎？")) return;
+    if (!confirm(t("members.removeConfirm"))) return;
     try {
       const res = await fetch(`/api/teams/${teamId}/members/${userId}`, {
         method: "DELETE",
@@ -224,12 +230,12 @@ export default function TeamDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "移除失敗");
+        alert(data.error || t("members.removeFailed"));
         return;
       }
       fetchMembers();
     } catch {
-      alert("移除失敗");
+      alert(t("members.removeFailed"));
     }
   };
 
@@ -244,12 +250,12 @@ export default function TeamDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "更新失敗");
+        alert(data.error || t("members.updateFailed"));
         return;
       }
       fetchMembers();
     } catch {
-      alert("更新失敗");
+      alert(t("members.updateFailed"));
     }
   };
 
@@ -268,10 +274,10 @@ export default function TeamDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "更新失敗");
+        alert(data.error || t("members.updateFailed"));
       }
     } catch {
-      alert("更新失敗");
+      alert(t("members.updateFailed"));
     }
     fetchMembers();
   };
@@ -280,7 +286,7 @@ export default function TeamDetailPage() {
   if (!isTeamAdminReady) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -288,7 +294,7 @@ export default function TeamDetailPage() {
   if (loading && members.length === 0) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -296,7 +302,7 @@ export default function TeamDetailPage() {
   if (!team) {
     return (
       <div className="p-6">
-        <p className="text-red-500">找不到團隊</p>
+        <p className="text-red-500">{t("notFound")}</p>
       </div>
     );
   }
@@ -307,13 +313,13 @@ export default function TeamDetailPage() {
         <div className="flex-1">
           <h1 className="font-display text-2xl font-bold text-ink">{team.name}</h1>
           <p className="text-sm text-gray-500">
-            建立於 {new Date(team.createdAt).toLocaleDateString("zh-TW")}
+            {t("createdAt", { date: formatDate(team.createdAt, locale) })}
           </p>
         </div>
         {isTeamAdmin(currentUserRole) && (
           <Button onClick={openDrawer} className="gap-2">
             <Plus className="size-4" />
-            邀請成員
+            <span>{t("invite")}</span>
           </Button>
         )}
       </div>
@@ -330,10 +336,10 @@ export default function TeamDetailPage() {
       )}
 
       <div className="space-y-2">
-        <h2 className="text-xs font-bold tracking-[0.15em] text-muted-ink">團隊成員</h2>
+        <h2 className="text-xs font-bold tracking-[0.15em] text-muted-ink">{t("members.title")}</h2>
         {members.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
-            尚無成員，點擊「邀請成員」新增
+            {t("members.empty")}
           </div>
         ) : (
           <ul className="surface-card overflow-hidden divide-y divide-hairline">
@@ -361,7 +367,7 @@ export default function TeamDetailPage() {
                             : "bg-gray-100 text-gray-700"
                         }`}
                       >
-                        {TEAM_ROLE_LABEL[member.role]}
+                        {roleLabel(member.role)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500">{member.user.email}</p>
@@ -386,7 +392,7 @@ export default function TeamDetailPage() {
                             }`}
                           />
                         </span>
-                        新報名通知信
+                        <span>{t("members.notifyOnRegistration")}</span>
                       </button>
                     )}
                   </div>
@@ -402,7 +408,7 @@ export default function TeamDetailPage() {
                           )
                         }
                       >
-                        {member.role === "staff" ? "設為管理員" : "設為驗票人員"}
+                        {member.role === "staff" ? t("members.makeAdmin") : t("members.makeStaff")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -423,7 +429,7 @@ export default function TeamDetailPage() {
 
       {invitations.length > 0 && (
         <div className="space-y-2 mt-8">
-          <h2 className="text-xs font-bold tracking-[0.15em] text-muted-ink">待處理邀請</h2>
+          <h2 className="text-xs font-bold tracking-[0.15em] text-muted-ink">{t("invitations.title")}</h2>
           <ul className="surface-card overflow-hidden divide-y divide-hairline">
             {invitations.map((invitation) => (
               <li
@@ -438,14 +444,14 @@ export default function TeamDetailPage() {
                     <p className="font-medium text-gray-900">{invitation.email}</p>
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 flex items-center gap-1">
                       <Clock className="size-3" />
-                      待註冊
+                      <span>{t("invitations.pendingSignup")}</span>
                     </span>
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                      {TEAM_ROLE_LABEL[invitation.role]}
+                      {roleLabel(invitation.role)}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500">
-                    邀請於 {new Date(invitation.createdAt).toLocaleDateString("zh-TW")} 送出
+                    {t("invitations.sentAt", { date: formatDate(invitation.createdAt, locale) })}
                   </p>
                 </div>
                 {isTeamAdmin(currentUserRole) && (
@@ -457,7 +463,7 @@ export default function TeamDetailPage() {
                     onClick={() => void handleResendInvitation(invitation)}
                     className="shrink-0"
                   >
-                    {resendingId === invitation.id ? "寄送中…" : "重寄邀請信"}
+                    {resendingId === invitation.id ? t("invitations.resending") : t("invitations.resend")}
                   </Button>
                 )}
               </li>
@@ -470,7 +476,7 @@ export default function TeamDetailPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         subtitle="Invite Member"
-        title="邀請成員"
+        title={t("invite")}
       >
         <form onSubmit={handleInvite} className="flex flex-col gap-4">
           {submitError && (
@@ -483,14 +489,14 @@ export default function TeamDetailPage() {
               type="email"
               value={formEmail}
               onChange={(e) => setFormEmail(e.target.value)}
-              placeholder="輸入成員 email"
+              placeholder={t("inviteForm.emailPlaceholder")}
             />
             <p className="text-xs text-gray-500">
-              已註冊的使用者會直接加入團隊並收到通知信；未註冊的會收到邀請信，用這個信箱註冊後自動入隊
+              {t("inviteForm.emailHint")}
             </p>
           </div>
           <div className="flex flex-col gap-2">
-            <Label>權限</Label>
+            <Label>{t("inviteForm.roleLabel")}</Label>
             <div className="flex flex-col gap-2">
               {ASSIGNABLE_TEAM_ROLES.map((role) => (
                 <label
@@ -510,10 +516,10 @@ export default function TeamDetailPage() {
                   />
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-gray-900">
-                      {TEAM_ROLE_LABEL[role]}
+                      {roleLabel(role)}
                     </span>
                     <span className="block text-xs text-gray-500">
-                      {TEAM_ROLE_DESCRIPTION[role]}
+                      {t(`roleDescription.${role}`)}
                     </span>
                   </span>
                 </label>
@@ -522,10 +528,10 @@ export default function TeamDetailPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
-              取消
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={inviting} className="bg-primary text-ink hover:bg-brand-hover">
-              {inviting ? "邀請中…" : "邀請"}
+              {inviting ? t("inviteForm.submitting") : t("inviteForm.submit")}
             </Button>
           </div>
         </form>

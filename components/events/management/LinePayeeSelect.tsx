@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,6 +34,7 @@ export function LinePayeeSelect({
   onValueChange,
   onAddClick,
 }: LinePayeeSelectProps) {
+  const t = useTranslations("savedInfo.linePayee");
   const safeValue = value || NONE_VALUE;
 
   const handleChange = (val: string) => {
@@ -51,14 +53,14 @@ export function LinePayeeSelect({
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="line-payee">LINE 付款好友</Label>
+      <Label htmlFor="line-payee">{t("selectLabel")}</Label>
       <Select value={safeValue} onValueChange={handleChange}>
         <SelectTrigger id="line-payee" className="w-full min-w-0">
-          <SelectValue placeholder="選擇 LINE 付款好友" />
+          <SelectValue placeholder={t("selectPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE_VALUE} description="報名表不提供 Line Pay 付款">
-            不開放 LINE 付款
+          <SelectItem value={NONE_VALUE} description={t("noneDescription")}>
+            {t("none")}
           </SelectItem>
           {linePayees.map((p) => (
             <SelectItem key={p.id} value={String(p.id)} description={<span className="break-all">{p.lineId}</span>}>
@@ -71,7 +73,7 @@ export function LinePayeeSelect({
           >
             <span className="flex items-center gap-1.5">
               <Plus className="size-4" />
-              新增 LINE 付款好友
+              <span>{t("selectAdd")}</span>
             </span>
           </SelectItem>
         </SelectContent>

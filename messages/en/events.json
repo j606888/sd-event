@@ -1,1 +1,189 @@
-{}
+{
+  "readOnly": "Read-only while viewing as another user",
+  "status": {
+    "draft": "Draft",
+    "active": "On sale",
+    "ended": "Ended"
+  },
+  "units": {
+    "people": "{count, plural, one {<num>#</num><unit> person</unit>} other {<num>#</num><unit> people</unit>}}",
+    "registrations": "{count, plural, one {<num>#</num><unit> registration</unit>} other {<num>#</num><unit> registrations</unit>}}",
+    "ofTotal": "<num>{count}</num><unit> / {total}</unit>",
+    "ofTotalPeople": "<num>{count}</num><unit> / {total}</unit>"
+  },
+  "errors": {
+    "loadEvent": "Couldn't load the event",
+    "loadStats": "Couldn't load stats",
+    "loadRegistrations": "Couldn't load registrations",
+    "loadRegistrationDetail": "Couldn't load registration details",
+    "updateFailed": "Update failed",
+    "checkInFailed": "Check-in failed",
+    "undoCheckInFailed": "Couldn't undo check-in",
+    "resendFailed": "Couldn't resend the email",
+    "refundFailed": "Refund action failed"
+  },
+  "list": {
+    "title": "All events",
+    "create": "Create event",
+    "createAria": "Create a new event",
+    "loadFailed": "Couldn't load events",
+    "goToLogin": "Go to login",
+    "redirectingToSetup": "Redirecting to team setup…",
+    "emptyAdmin": "No events yet. Click “Create event” to get started.",
+    "emptyStaff": "This team has no events yet"
+  },
+  "listRow": {
+    "registered": "Registered",
+    "checkedIn": "Checked in"
+  },
+  "card": {
+    "onSale": "On sale",
+    "registeredCount": "{count} registered",
+    "manage": "Manage"
+  },
+  "detail": {
+    "allEvents": "All events",
+    "notFound": "Event not found",
+    "backToList": "Back to events",
+    "linkCopied": "Link copied",
+    "shareForm": "Share form",
+    "publish": "Publish",
+    "publishing": "Publishing…",
+    "publishFailed": "Couldn't publish. Please try again later.",
+    "walkIn": "Walk-in",
+    "draftNotice": "This event isn't published yet: only team members can preview the registration link. Click “Publish” to open registration to everyone.",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "pageOf": "Page {page} of {total}"
+  },
+  "tabs": {
+    "registrations": "Registrants",
+    "stats": "Stats",
+    "tickets": "Tickets",
+    "basic": "Basic info"
+  },
+  "tabBar": {
+    "settings": "Settings",
+    "walkIn": "Walk-in",
+    "navLabel": "Event management tabs"
+  },
+  "stats": {
+    "loading": "Loading stats…",
+    "loadFailed": "Failed to load",
+    "headcount": "Attendees",
+    "role": {
+      "Leader": "Leader",
+      "Follower": "Follower",
+      "notSure": "Not sure"
+    },
+    "hiddenNote": "Only includes registrations that aren't hidden.",
+    "checkIn": "Check-in",
+    "checkInRate": "Check-in rate",
+    "checkedIn": "Checked in",
+    "notCheckedIn": "Not checked in",
+    "viewList": "View list →",
+    "payments": "Payments",
+    "collectProgress": "Collected",
+    "paymentRow": {
+      "confirmed": "Collected",
+      "reported": "Reported · awaiting confirmation",
+      "pending": "Not paid yet"
+    },
+    "expectedTotal": "Total if all paid",
+    "items": "Ticket sales",
+    "itemsNote": "Amounts are the sum of the actual price of each registration (including price tiers); coupon discounts are listed separately below.",
+    "itemsEmpty": "No ticket data yet",
+    "itemsSubtotal": "Subtotal",
+    "couponDiscount": "Coupon discounts",
+    "netDue": "Total after discounts"
+  },
+  "strip": {
+    "headcount": "Attendees",
+    "notSure": "Not sure {count}",
+    "refunded": "+{count} refunded",
+    "checkedIn": "Checked in",
+    "notCheckedInRemaining": "{count} not checked in yet →",
+    "toVerify": "{amount} to verify →",
+    "allVerified": "All caught up",
+    "collected": "Collected",
+    "refundedExcluded": "{amount} refunded, not included",
+    "expectedTotal": "Total if all paid: {amount}"
+  },
+  "registrations": {
+    "searchAria": "Search registrants",
+    "searchPlaceholder": "Search by name, phone, or email",
+    "clearSearch": "Clear search",
+    "matchedTotal": "{count, plural, one {# result} other {# results}}",
+    "scanAria": "Scan QR code",
+    "scan": "Scan QR",
+    "exportAria": "Export CSV",
+    "moreFilters": "More filters",
+    "itemFilterLabel": "Ticket",
+    "clearItemFilter": "Clear ticket filter",
+    "quick": {
+      "all": "All",
+      "reported": "Awaiting confirmation",
+      "pending": "Unpaid",
+      "notCheckedIn": "Not checked in",
+      "checkedIn": "Checked in"
+    },
+    "filterDrawer": {
+      "title": "Filters",
+      "payment": "Status",
+      "item": "Ticket",
+      "checkIn": "Check-in status",
+      "coupon": "Coupon code",
+      "hidden": "Show"
+    },
+    "filters": {
+      "payment": {
+        "all": "All",
+        "confirmed": "Paid",
+        "pending": "Unpaid",
+        "reported": "Awaiting confirmation",
+        "rejected": "Rejected",
+        "refunded": "Refunded"
+      },
+      "checkIn": {
+        "all": "All",
+        "none": "Not checked in",
+        "partial": "Partially checked in",
+        "allEntered": "All checked in"
+      },
+      "hidden": {
+        "nonHidden": "Not hidden",
+        "all": "All",
+        "hidden": "Hidden"
+      },
+      "coupon": {
+        "all": "All",
+        "used": "Used a coupon",
+        "notUsed": "No coupon"
+      }
+    },
+    "noMatchTitle": "No one on the list matches",
+    "noMatchHint": "Try the last 3 digits of their phone or a different filter, or register them as a walk-in.",
+    "emptyTitle": "No registrations yet",
+    "emptyHint": "Share the registration form, or register people at the door as walk-ins.",
+    "walkIn": "Walk-in",
+    "checkInFailed": "Check-in failed. Please try again.",
+    "confirmPaymentFailed": "Couldn't confirm payment. Please try again.",
+    "undoCheckInFailed": "Couldn't undo check-in. Please try again.",
+    "unpaidTitle": "Payment not confirmed yet",
+    "unpaidDescription": "Payment for this registration hasn't been confirmed. Check them in anyway?",
+    "unpaidSummary": "{name} · {count, plural, one {# person} other {# people}}",
+    "unpaidConfirm": "Check in anyway",
+    "checkedInToast": "{name} checked in"
+  },
+  "registrationRow": {
+    "viewDetailAria": "View {name}'s registration details",
+    "walkIn": "Walk-in",
+    "hidden": "Hidden",
+    "partiallyCheckedIn": "{checked}/{total} checked in",
+    "confirmPayment": "Confirm payment",
+    "checkIn": "Check in",
+    "checkInCount": "Check in {count}",
+    "checkedIn": "In",
+    "noCheckInNeeded": "No check-in needed"
+  }
+}

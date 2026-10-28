@@ -8,27 +8,17 @@ import { taipeiDateInput } from "@/lib/format-event-date";
 /** 活動類型；用於決定購買項目範本 */
 export type EventType = "Party" | "Workshop" | "Festival";
 
-/** 類型選單文案（建立活動時的範本選擇器用） */
+/**
+ * 類型選單（建立活動時的範本選擇器用）。
+ * 說明文字依介面語系翻譯：`eventForm.typeDescriptions.<value>`。
+ */
 export const EVENT_TYPES: {
   value: EventType;
   label: string;
-  description: string;
 }[] = [
-  {
-    value: "Party",
-    label: "Party",
-    description: "單一入場票，搭配早鳥優惠時段價。",
-  },
-  {
-    value: "Workshop",
-    label: "Workshop",
-    description: "Full Pass 或單堂購買，可加購 Party，含早鳥／現場價。",
-  },
-  {
-    value: "Festival",
-    label: "Festival",
-    description: "綜合方案：Pass、單堂課、Party，多檔早鳥時段。",
-  },
+  { value: "Party", label: "Party" },
+  { value: "Workshop", label: "Workshop" },
+  { value: "Festival", label: "Festival" },
 ];
 
 /** 範本：可灌入表單 draft 狀態的票價時段／群組／購買項目／群組互斥 */
@@ -50,13 +40,41 @@ export type EventTemplate = {
  * `daysFromNow: null` = fallback 段（現場價），永不過期。
  */
 type TemplateTier = {
-  name: string;
+  name: TemplateTextKey;
   sortOrder: number;
   daysFromNow: number | null;
 };
 
-type EventTemplateSource = Omit<EventTemplate, "priceTiers"> & {
+/**
+ * 範本裡的時段／區塊／票券名稱是會存進活動的預設文字，依建立者的介面語系產生：
+ * 這裡只放 key，對應 `eventForm.templates.<key>`，由 hook 傳入翻譯函式換成文字。
+ */
+export type TemplateTextKey =
+  | "superEarlyBird"
+  | "earlyBird"
+  | "regularOrDoor"
+  | "regular"
+  | "door"
+  | "classOptions"
+  | "addOns"
+  | "passOptions"
+  | "singleClass"
+  | "partyEntry"
+  | "partyGroup"
+  | "fullPassWithParty"
+  | "fullPassWithoutParty"
+  | "addOnParty"
+  | "dayPass"
+  | "fridayParty"
+  | "saturdayParty";
+
+type TemplateText = (key: TemplateTextKey) => string;
+
+type EventTemplateSource = {
   priceTiers: TemplateTier[];
+  groups: (Omit<PurchaseItemGroupDraft, "title"> & { title: TemplateTextKey })[];
+  purchaseItems: (Omit<PurchaseItemDraft, "name"> & { name: TemplateTextKey })[];
+  groupExclusions: EventTemplate["groupExclusions"];
 };
 
 /** 距今 n 天的台北日期，轉成 date input 用的 "YYYY-MM-DD" */
@@ -65,9 +83,9 @@ function dateInputInDays(days: number): string {
 }
 
 /** 範本時段 → draft 時段（把 daysFromNow 換算成實際截止日） */
-function resolveTemplateTiers(tiers: TemplateTier[]): PriceTierDraft[] {
+function resolveTemplateTiers(tiers: TemplateTier[], text: TemplateText): PriceTierDraft[] {
   return tiers.map((t) => ({
-    name: t.name,
+    name: text(t.name),
     sortOrder: t.sortOrder,
     endsAt: t.daysFromNow == null ? "" : dateInputInDays(t.daysFromNow),
   }));
@@ -80,41 +98,41 @@ function pricesFor(amounts: number[]) {
 
 const PARTY_TEMPLATE: EventTemplateSource = {
   priceTiers: [
-    { name: "超早鳥", daysFromNow: 14, sortOrder: 0 },
-    { name: "早鳥", daysFromNow: 28, sortOrder: 1 },
-    { name: "一般 / 現場", daysFromNow: null, sortOrder: 2 },
+    { name: "superEarlyBird", daysFromNow: 14, sortOrder: 0 },
+    { name: "earlyBird", daysFromNow: 28, sortOrder: 1 },
+    { name: "regularOrDoor", daysFromNow: null, sortOrder: 2 },
   ],
   groups: [],
   purchaseItems: [
-    { name: "Party 入場票", amount: 450, prices: pricesFor([300, 350, 450]) },
+    { name: "partyEntry", amount: 450, prices: pricesFor([300, 350, 450]) },
   ],
   groupExclusions: [],
 };
 
 const WORKSHOP_TEMPLATE: EventTemplateSource = {
   priceTiers: [
-    { name: "早鳥", daysFromNow: 30, sortOrder: 0 },
-    { name: "一般 / 現場", daysFromNow: null, sortOrder: 1 },
+    { name: "earlyBird", daysFromNow: 30, sortOrder: 0 },
+    { name: "regularOrDoor", daysFromNow: null, sortOrder: 1 },
   ],
   groups: [
-    { title: "課程方案", selectionMode: "single", required: true, sortOrder: 0 },
-    { title: "加購", selectionMode: "multiple", required: false, sortOrder: 1 },
+    { title: "classOptions", selectionMode: "single", required: true, sortOrder: 0 },
+    { title: "addOns", selectionMode: "multiple", required: false, sortOrder: 1 },
   ],
   purchaseItems: [
     {
-      name: "Full Pass（含 Party）",
+      name: "fullPassWithParty",
       amount: 2200,
       groupDraftIndex: 0,
       prices: pricesFor([1800, 2200]),
     },
     {
-      name: "單堂課",
+      name: "singleClass",
       amount: 700,
       groupDraftIndex: 0,
       prices: pricesFor([600, 700]),
     },
     {
-      name: "加購 Party",
+      name: "addOnParty",
       amount: 400,
       groupDraftIndex: 1,
       prices: pricesFor([300, 400]),
@@ -125,49 +143,49 @@ const WORKSHOP_TEMPLATE: EventTemplateSource = {
 
 const FESTIVAL_TEMPLATE: EventTemplateSource = {
   priceTiers: [
-    { name: "超早鳥", daysFromNow: 21, sortOrder: 0 },
-    { name: "早鳥", daysFromNow: 45, sortOrder: 1 },
-    { name: "一般", daysFromNow: 75, sortOrder: 2 },
-    { name: "現場", daysFromNow: null, sortOrder: 3 },
+    { name: "superEarlyBird", daysFromNow: 21, sortOrder: 0 },
+    { name: "earlyBird", daysFromNow: 45, sortOrder: 1 },
+    { name: "regular", daysFromNow: 75, sortOrder: 2 },
+    { name: "door", daysFromNow: null, sortOrder: 3 },
   ],
   groups: [
-    { title: "Pass 方案", selectionMode: "single", required: true, sortOrder: 0 },
-    { title: "單堂課", selectionMode: "multiple", required: false, sortOrder: 1 },
-    { title: "Party", selectionMode: "multiple", required: false, sortOrder: 2 },
+    { title: "passOptions", selectionMode: "single", required: true, sortOrder: 0 },
+    { title: "singleClass", selectionMode: "multiple", required: false, sortOrder: 1 },
+    { title: "partyGroup", selectionMode: "multiple", required: false, sortOrder: 2 },
   ],
   purchaseItems: [
     {
-      name: "Full Pass（含 Party）",
+      name: "fullPassWithParty",
       amount: 4500,
       groupDraftIndex: 0,
       prices: pricesFor([3000, 3500, 4000, 4500]),
     },
     {
-      name: "Full Pass（不含 Party）",
+      name: "fullPassWithoutParty",
       amount: 4000,
       groupDraftIndex: 0,
       prices: pricesFor([2500, 3000, 3500, 4000]),
     },
     {
-      name: "單日 Pass",
+      name: "dayPass",
       amount: 2200,
       groupDraftIndex: 0,
       prices: pricesFor([1500, 1800, 2000, 2200]),
     },
     {
-      name: "單堂課",
+      name: "singleClass",
       amount: 900,
       groupDraftIndex: 1,
       prices: pricesFor([600, 700, 800, 900]),
     },
     {
-      name: "週五 Party",
+      name: "fridayParty",
       amount: 600,
       groupDraftIndex: 2,
       prices: pricesFor([400, 450, 500, 600]),
     },
     {
-      name: "週六 Party",
+      name: "saturdayParty",
       amount: 600,
       groupDraftIndex: 2,
       prices: pricesFor([400, 450, 500, 600]),
@@ -184,14 +202,18 @@ const TEMPLATES: Record<EventType, EventTemplateSource> = {
   Festival: FESTIVAL_TEMPLATE,
 };
 
-/** 取得某類型的購買項目範本（回傳深拷貝，避免表單修改污染常數） */
-export function getEventTemplate(type: EventType): EventTemplate {
+/**
+ * 取得某類型的購買項目範本（回傳深拷貝，避免表單修改污染常數）。
+ * `text` 把名稱 key 換成介面語系的文字（通常是 `useTranslations("eventForm.templates")`）。
+ */
+export function getEventTemplate(type: EventType, text: TemplateText): EventTemplate {
   const t = TEMPLATES[type] ?? PARTY_TEMPLATE;
   return {
-    priceTiers: resolveTemplateTiers(t.priceTiers),
-    groups: t.groups.map((x) => ({ ...x })),
+    priceTiers: resolveTemplateTiers(t.priceTiers, text),
+    groups: t.groups.map((x) => ({ ...x, title: text(x.title) })),
     purchaseItems: t.purchaseItems.map((x) => ({
       ...x,
+      name: text(x.name),
       prices: x.prices?.map((p) => ({ ...p })),
     })),
     groupExclusions: t.groupExclusions.map(([a, b]): [string, string] => [a, b]),

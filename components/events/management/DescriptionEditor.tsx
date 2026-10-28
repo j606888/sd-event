@@ -2,19 +2,12 @@
 
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Label } from "@/components/ui/label";
 import { SegmentedToggle } from "@/components/ui/segmented";
 import { Markdown } from "@/components/ui/markdown";
 import { useUploadThing } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
-
-const DESCRIPTION_PLACEHOLDER = `輸入活動描述，可使用 Markdown
-
-## 活動時程
-- 14:00 Workshop 第一堂
-- 16:00 Workshop 第二堂
-
-**注意事項**：請提早 10 分鐘到場`;
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
 
@@ -35,6 +28,7 @@ type DescriptionEditorProps = {
  * 上傳期間主辦方可以繼續打字，回填時用唯一的 token 定位，不會因為游標移動而插錯地方。
  */
 export function DescriptionEditor({ value, onChange, tall = false }: DescriptionEditorProps) {
+  const t = useTranslations("eventForm");
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [uploadingCount, setUploadingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +68,7 @@ export function DescriptionEditor({ value, onChange, tall = false }: Description
     const images = files.filter((f) => f.type.startsWith("image/"));
     if (images.length === 0) return;
     if (images.some((f) => f.size > MAX_IMAGE_SIZE)) {
-      setError("圖片大小不能超過 4MB");
+      setError(t("errors.imageTooLarge"));
       return;
     }
     setError(null);
@@ -108,7 +102,7 @@ export function DescriptionEditor({ value, onChange, tall = false }: Description
     } catch (err) {
       console.error("Description image upload error:", err);
       clearPlaceholders();
-      setError("上傳圖片失敗，請重試");
+      setError(t("description.uploadFailed"));
     } finally {
       setUploadingCount((c) => c - 1);
     }
@@ -136,14 +130,14 @@ export function DescriptionEditor({ value, onChange, tall = false }: Description
   return (
     <div className={cn("flex flex-col gap-2", tall && "min-h-0 flex-1")}>
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="description">活動描述</Label>
+        <Label htmlFor="description">{t("description.label")}</Label>
         <SegmentedToggle
           value={tab}
           onChange={setTab}
-          aria-label="活動描述編輯模式"
+          aria-label={t("description.modeLabel")}
           options={[
-            { value: "write", label: "編輯" },
-            { value: "preview", label: "預覽" },
+            { value: "write", label: t("description.write") },
+            { value: "preview", label: t("description.preview") },
           ]}
         />
       </div>
@@ -161,9 +155,9 @@ export function DescriptionEditor({ value, onChange, tall = false }: Description
               ) : (
                 <ImagePlus className="size-3.5" />
               )}
-              <span>{uploadingCount > 0 ? "上傳中…" : "插入圖片"}</span>
+              <span>{uploadingCount > 0 ? t("description.uploading") : t("description.insertImage")}</span>
             </button>
-            <span className="text-xs text-gray-400">也可以直接貼上或拖放圖片</span>
+            <span className="text-xs text-gray-400">{t("description.dropHint")}</span>
           </div>
           <input
             ref={fileInputRef}
@@ -179,7 +173,7 @@ export function DescriptionEditor({ value, onChange, tall = false }: Description
           <textarea
             id="description"
             ref={textareaRef}
-            placeholder={DESCRIPTION_PLACEHOLDER}
+            placeholder={t("description.placeholder")}
             rows={12}
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -209,17 +203,15 @@ export function DescriptionEditor({ value, onChange, tall = false }: Description
           {value.trim() ? (
             <Markdown>{value}</Markdown>
           ) : (
-            <p className="text-gray-400">還沒有輸入活動描述</p>
+            <p className="text-gray-400">{t("description.empty")}</p>
           )}
         </div>
       )}
       {error && <p className="text-xs text-destructive">{error}</p>}
       <p className="text-xs text-gray-400">
-        支援 Markdown：<code className="font-mono">## 小標題</code>、
-        <code className="font-mono">**粗體**</code>、
-        <code className="font-mono">- 項目</code>、
-        <code className="font-mono">[文字](網址)</code>、
-        <code className="font-mono">![](圖片網址)</code>；直接換行也會保留。
+        {t.rich("description.markdownHelp", {
+          code: (chunks) => <code className="font-mono">{chunks}</code>,
+        })}
       </p>
     </div>
   );

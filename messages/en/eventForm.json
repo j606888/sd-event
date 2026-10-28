@@ -1,1 +1,121 @@
-{}
+{
+  "newEvent": {
+    "title": "Create event",
+    "chooseType": "Choose an event type and we'll prefill matching price tiers and tickets for you (you can change all of it later).",
+    "submit": "Create event"
+  },
+  "typeDescriptions": {
+    "Party": "A single entry ticket with early-bird price tiers.",
+    "Workshop": "Full Pass or single classes, with an optional Party add-on and early-bird / door prices.",
+    "Festival": "The full package: passes, single classes and parties, with several early-bird tiers."
+  },
+  "templates": {
+    "superEarlyBird": "Super early bird",
+    "earlyBird": "Early bird",
+    "regularOrDoor": "Regular / Door",
+    "regular": "Regular",
+    "door": "Door",
+    "classOptions": "Class options",
+    "addOns": "Add-ons",
+    "passOptions": "Pass options",
+    "singleClass": "Single class",
+    "partyEntry": "Party entry",
+    "partyGroup": "Parties",
+    "fullPassWithParty": "Full Pass (incl. Party)",
+    "fullPassWithoutParty": "Full Pass (no Party)",
+    "addOnParty": "Party add-on",
+    "dayPass": "Day Pass",
+    "fridayParty": "Friday Party",
+    "saturdayParty": "Saturday Party"
+  },
+  "defaults": {
+    "newTier": "New tier",
+    "newGroup": "New group"
+  },
+  "sections": {
+    "basic": "Basic info",
+    "items": "Tickets"
+  },
+  "editTabs": {
+    "readOnlyTitle": "Read-only while viewing as another user",
+    "readOnly": "Read-only while viewing as another user — changes can't be saved",
+    "unsaved": "You have unsaved changes",
+    "saveHint": "Changes on this page take effect when you click “Save changes”"
+  },
+  "drawers": {
+    "addLocation": "Add venue",
+    "editTicket": "Edit ticket",
+    "addTicket": "Add ticket",
+    "addNotice": "Add notice",
+    "addOrganizer": "Add organizer",
+    "addLinePayee": "Add LINE Pay payee",
+    "addBankInfo": "Add bank account"
+  },
+  "basic": {
+    "contentLabel": "Event content",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Enter a title",
+    "typeLabel": "Event type",
+    "switchTypeConfirm": "Switching the type replaces your current price tiers, ticket groups and tickets with the new template. Switch anyway?",
+    "timeAndPlace": "Time & venue",
+    "start": "Start",
+    "end": "End",
+    "organizerAndPayment": "Organizer & payment"
+  },
+  "cover": {
+    "heading": "Cover image",
+    "zoom": "Enlarge cover image",
+    "change": "Change image",
+    "choose": "Click to choose an image",
+    "hint": "16:9 recommended · max 4MB",
+    "preview": "Cover image preview",
+    "closePreview": "Close preview"
+  },
+  "description": {
+    "label": "Event description",
+    "modeLabel": "Event description editing mode",
+    "write": "Edit",
+    "preview": "Preview",
+    "placeholder": "Describe your event. Markdown is supported\n\n## Schedule\n- 14:00 Workshop, class 1\n- 16:00 Workshop, class 2\n\n**Notices**: Please arrive 10 minutes early",
+    "insertImage": "Insert image",
+    "uploading": "Uploading…",
+    "dropHint": "You can also paste or drag and drop images",
+    "empty": "No event description yet",
+    "markdownHelp": "Markdown supported: <code>## Heading</code>, <code>**bold**</code>, <code>- item</code>, <code>[text](url)</code>, <code>![](image url)</code>. Line breaks are kept as-is.",
+    "uploadFailed": "Couldn't upload the image. Please try again."
+  },
+  "notice": {
+    "contentLabel": "Content",
+    "contentPlaceholder": "Enter content",
+    "addFailed": "Couldn't add the notice"
+  },
+  "validation": {
+    "titleRequired": "Please enter a title",
+    "locationRequired": "Please choose a venue",
+    "organizerRequired": "Please choose an organizer",
+    "bankInfoRequired": "Please choose a bank account"
+  },
+  "errors": {
+    "notAnImage": "Please choose an image file",
+    "imageTooLarge": "Images must be 4MB or smaller",
+    "coverUploadFailed": "Couldn't upload the cover image. Please try again.",
+    "uploadFailed": "Upload failed",
+    "uploadUrlMissing": "Couldn't get the uploaded image URL",
+    "deleteItemFailed": "Couldn't delete the ticket",
+    "updateItemFailed": "Couldn't update the ticket",
+    "updatePurchaseRulesFailed": "Couldn't update the purchase rules",
+    "updateAttendeeFlagFailed": "Couldn't update the attendee checkbox",
+    "reorderTiersFailed": "Couldn't reorder the price tiers",
+    "addTierFailed": "Couldn't add the price tier",
+    "updateTierFailed": "Couldn't update the price tier",
+    "deleteTierFailed": "Couldn't delete the price tier",
+    "addGroupFailed": "Couldn't add the ticket group",
+    "updateGroupFailed": "Couldn't update the ticket group",
+    "deleteGroupFailed": "Couldn't delete the ticket group",
+    "updateExclusionsFailed": "Couldn't update the exclusion rules",
+    "saveCouponFailed": "Couldn't save the coupon code",
+    "deleteCouponFailed": "Couldn't delete the coupon code",
+    "updateFailed": "Update failed",
+    "saveFailed": "Save failed"
+  }
+}

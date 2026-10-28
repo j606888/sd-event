@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { SegmentedToggle } from "@/components/ui/segmented";
@@ -23,10 +24,10 @@ type RefundDrawerProps = {
   onConfirm: (input: RefundInput) => Promise<void>;
 };
 
-const METHOD_OPTIONS: { value: RefundMethod; label: string }[] = [
-  { value: "Bank Transfer", label: "銀行轉帳" },
-  { value: "Line Pay", label: "LINE Pay" },
-  { value: "Cash", label: "現金" },
+const METHOD_OPTIONS: { value: RefundMethod; labelKey: "bankTransfer" | "linePay" | "cash" }[] = [
+  { value: "Bank Transfer", labelKey: "bankTransfer" },
+  { value: "Line Pay", labelKey: "linePay" },
+  { value: "Cash", labelKey: "cash" },
 ];
 
 /**
@@ -42,6 +43,8 @@ export function RefundDrawer({
   totalAmount,
   onConfirm,
 }: RefundDrawerProps) {
+  const t = useTranslations("registration");
+  const tCommon = useTranslations("common");
   const [method, setMethod] = useState<RefundMethod>("Bank Transfer");
   const [note, setNote] = useState("");
   const [notify, setNotify] = useState(true);
@@ -64,49 +67,53 @@ export function RefundDrawer({
       await onConfirm({ method, note, notify: notify && !!contactEmail });
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失敗，請稍後再試");
+      setError(e instanceof Error ? e.message : t("actionFailed"));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Drawer open={open} onClose={onClose} title={`把${contactName}標記為已退款？`}>
+    <Drawer open={open} onClose={onClose} title={t("refund.title", { name: contactName })}>
       <div className="space-y-5">
         <p className="text-sm leading-relaxed text-gray-600">
-          這只是記錄，系統不會幫你轉帳。請先把錢退給對方，再回來按確認。
+          {t("refund.intro")}
         </p>
 
         <div className="flex items-center justify-between gap-3 rounded-lg bg-field px-3 py-2.5 text-sm">
           <span className="text-gray-600">
-            全額退款 · {attendeeCount} 人
+            {t("refund.fullRefund", { count: attendeeCount })}
           </span>
           <span className="font-display text-lg font-bold tabular-nums text-ink">
-            NT${totalAmount.toLocaleString()}
+            {`NT$${totalAmount.toLocaleString()}`}
           </span>
         </div>
 
         <div className="space-y-2">
-          <span className="text-sm font-bold text-ink">退款方式</span>
+          <span className="text-sm font-bold text-ink">{t("refund.method")}</span>
           <SegmentedToggle
             value={method}
             onChange={setMethod}
-            options={METHOD_OPTIONS}
+            options={METHOD_OPTIONS.map((o) => ({
+              value: o.value,
+              label: t(`refundMethod.${o.labelKey}`),
+            }))}
             size="md"
             fullWidth
-            aria-label="退款方式"
+            aria-label={t("refund.method")}
           />
         </div>
 
         <label className="block space-y-2">
           <span className="text-sm font-bold text-ink">
-            備註 <span className="font-normal text-muted-ink">（選填，只有主辦看得到）</span>
+            <span>{t("refund.note")}</span>{" "}
+            <span className="font-normal text-muted-ink">{t("refund.noteHint")}</span>
           </span>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
-            placeholder="例如：臨時有事無法參加，全額退款"
+            placeholder={t("refund.notePlaceholder")}
             className="w-full min-w-0 resize-none rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-brand/30 md:text-sm"
           />
         </label>
@@ -119,14 +126,14 @@ export function RefundDrawer({
               onChange={(e) => setNotify(e.target.checked)}
               className="mt-0.5 size-4 accent-brand-strong"
             />
-            <span>寄退款通知 Email 給 {contactEmail}</span>
+            <span>{t("refund.notify", { email: contactEmail })}</span>
           </label>
         )}
 
         <ul className="space-y-1 border-t border-hairline pt-4 text-[13px] leading-relaxed text-muted-ink">
-          <li>· 不再計入報名人數、L/F 與已入帳金額</li>
-          <li>· QR 憑證失效，掃碼時會顯示「已退款」</li>
-          <li>· 之後可以從報名明細「撤銷退款」</li>
+          <li>{t("refund.effectNotCounted")}</li>
+          <li>{t("refund.effectQrVoid")}</li>
+          <li>{t("refund.effectUndo")}</li>
         </ul>
 
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -139,7 +146,7 @@ export function RefundDrawer({
             disabled={submitting}
             onClick={onClose}
           >
-            取消
+            {tCommon("cancel")}
           </Button>
           <Button
             type="button"
@@ -147,7 +154,9 @@ export function RefundDrawer({
             disabled={submitting}
             onClick={handleConfirm}
           >
-            {submitting ? "處理中…" : `確認已退款 NT$${totalAmount.toLocaleString()}`}
+            {submitting
+              ? tCommon("processing")
+              : t("refund.confirm", { amount: totalAmount.toLocaleString() })}
           </Button>
         </div>
       </div>

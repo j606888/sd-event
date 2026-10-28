@@ -33,22 +33,32 @@ export function requiredFlaggedCount(items: { minFlagged?: number | null }[]): n
   return items.reduce((max, item) => Math.max(max, minFlaggedOf(item)), 0);
 }
 
+export type FlaggedShortfall = { item: string; required: number; label: string };
+
 /**
- * 驗證勾選人數符合所選票券的要求。回傳錯誤訊息，或 null 表通過。
+ * 找出第一張勾選人數不足的票券；null 表通過。介面用這個自己組（翻譯過的）訊息。
  * 活動未設 label 時不驗證（報名表也不會顯示勾選框）。
  */
+export function findFlaggedShortfall(
+  items: { name: string; minFlagged?: number | null }[],
+  flaggedCount: number,
+  label: string | null | undefined
+): FlaggedShortfall | null {
+  const flagLabel = normalizeFlagLabel(label);
+  if (!flagLabel) return null;
+  for (const item of items) {
+    const required = minFlaggedOf(item);
+    if (flaggedCount < required) return { item: item.name, required, label: flagLabel };
+  }
+  return null;
+}
+
+/** 驗證勾選人數符合所選票券的要求。回傳中文錯誤訊息，或 null 表通過。 */
 export function validateFlaggedCount(
   items: { name: string; minFlagged?: number | null }[],
   flaggedCount: number,
   label: string | null | undefined
 ): string | null {
-  const flagLabel = normalizeFlagLabel(label);
-  if (!flagLabel) return null;
-  for (const item of items) {
-    const required = minFlaggedOf(item);
-    if (flaggedCount < required) {
-      return `「${item.name}」需至少 ${required} 位參加者勾選「${flagLabel}」`;
-    }
-  }
-  return null;
+  const s = findFlaggedShortfall(items, flaggedCount, label);
+  return s ? `「${s.item}」需至少 ${s.required} 位參加者勾選「${s.label}」` : null;
 }

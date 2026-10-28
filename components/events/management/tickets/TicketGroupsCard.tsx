@@ -11,6 +11,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -48,11 +49,14 @@ type RuleKey =
   | "multiple-required"
   | "multiple-optional";
 
-const RULE_OPTIONS: { value: RuleKey; label: string }[] = [
-  { value: "single-required", label: "必選 1 張（擇一）" },
-  { value: "single-optional", label: "可選 1 張，也可以不選" },
-  { value: "multiple-required", label: "至少 1 張，可多選" },
-  { value: "multiple-optional", label: "不限張數（可不選、可多選）" },
+const RULE_OPTIONS: {
+  value: RuleKey;
+  labelKey: "singleRequired" | "singleOptional" | "multipleRequired" | "multipleOptional";
+}[] = [
+  { value: "single-required", labelKey: "singleRequired" },
+  { value: "single-optional", labelKey: "singleOptional" },
+  { value: "multiple-required", labelKey: "multipleRequired" },
+  { value: "multiple-optional", labelKey: "multipleOptional" },
 ];
 
 const ruleKeyOf = (group: PurchaseItemGroupDraft): RuleKey =>
@@ -90,6 +94,9 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
     persistGroup,
     removeGroup,
   } = form;
+  const t = useTranslations("tickets");
+  const tRules = useTranslations("tickets.groups.rules");
+  const tCommon = useTranslations("common");
 
   const useGroups = groups.length > 0;
   const indexedItems = purchaseItems.map((item, index) => ({ item, index }));
@@ -111,7 +118,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
       .map(([a, b]) => (a === selfKey ? b : a));
     return groups
       .filter((g, gi) => partnerKeys.includes(groupKeyOf(g, gi)))
-      .map((g) => g.title || "（未命名區塊）");
+      .map((g) => g.title || t("untitledGroup"));
   };
 
   const renderItemRow = (
@@ -129,10 +136,10 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
           tier.id != null ? p.tierId === tier.id : p.tierDraftIndex === tierIndex
         );
         if (!price) return null;
-        const tierName = tier.name || `第 ${tierIndex + 1} 段`;
+        const tierName = tier.name || t("tierN", { n: tierIndex + 1 });
         return price.available === false
-          ? `${tierName} 不販售`
-          : `${tierName} $${price.amount.toLocaleString()}`;
+          ? t("item.tierNotSold", { tier: tierName })
+          : t("item.tierPrice", { tier: tierName, amount: price.amount.toLocaleString() });
       })
       .filter((label): label is string => label !== null)
       .join(" → ");
@@ -142,11 +149,11 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
         {item.name}
         {(item.seatCount ?? 1) > 1 && (
           <span className="ml-2 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand-strong">
-            {item.seatCount} 人套票
+            {t("item.bundle", { count: item.seatCount ?? 1 })}
           </span>
         )}
         {item.hidden ? (
-          <span className="ml-2 text-xs text-gray-400">（報名表隱藏）</span>
+          <span className="ml-2 text-xs text-gray-400">{t("item.hiddenOnForm")}</span>
         ) : null}
         <span className="block text-xs text-gray-500 sm:ml-2 sm:inline">
           {tierPriceLabel || `$${item.amount.toLocaleString()}`}
@@ -164,7 +171,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
           className={`group -mx-1 flex min-w-0 flex-1 items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-gray-100 ${
             item.hidden ? "text-gray-400" : "text-gray-700"
           }`}
-          aria-label={`編輯 ${item.name}`}
+          aria-label={t("item.editAria", { name: item.name })}
         >
           <span className="min-w-0">{itemBody}</span>
           <Pencil className="size-3.5 shrink-0 text-gray-300 group-hover:text-gray-500" />
@@ -177,12 +184,12 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
               onChange={(e) => {
                 if (e.target.value) assignItemGroup(i, e.target.value);
               }}
-              aria-label={`把 ${item.name} 移到區塊`}
+              aria-label={t("item.moveAria", { name: item.name })}
             >
-              <option value="">移到區塊…</option>
+              <option value="">{t("item.movePlaceholder")}</option>
               {groups.map((group, gi) => (
                 <option key={group.id ?? `draft-${gi}`} value={groupKeyOf(group, gi)}>
-                  {group.title || "（未命名區塊）"}
+                  {group.title || t("untitledGroup")}
                 </option>
               ))}
             </select>
@@ -190,25 +197,27 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
           <DropdownMenu>
             <DropdownMenuTrigger
               className="flex size-8 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 data-[state=open]:bg-gray-100 data-[state=open]:text-gray-600"
-              aria-label={`${item.name} 更多操作`}
+              aria-label={t("item.moreAria", { name: item.name })}
             >
               <Ellipsis className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => openPurchaseItemEditor(i)}>
                 <Pencil />
-                編輯
+                <span>{tCommon("edit")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={purchaseItemHiddenUpdatingIndex === i}
                 onSelect={() => setPurchaseItemHidden(i, !item.hidden)}
               >
                 {item.hidden ? <Eye /> : <EyeOff />}
-                {purchaseItemHiddenUpdatingIndex === i
-                  ? "更新中…"
-                  : item.hidden
-                    ? "在報名表顯示"
-                    : "從報名表隱藏"}
+                <span>
+                  {purchaseItemHiddenUpdatingIndex === i
+                    ? tCommon("updating")
+                    : item.hidden
+                      ? t("item.showOnForm")
+                      : t("item.hideFromForm")}
+                </span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
@@ -216,11 +225,13 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                 onSelect={() => deletePurchaseItem(i)}
               >
                 <Trash2 />
-                {purchaseItemDeletingIndex === i
-                  ? "刪除中…"
-                  : canDelete
-                    ? "刪除"
-                    : "刪除（已有報名）"}
+                <span>
+                  {purchaseItemDeletingIndex === i
+                    ? tCommon("deleting")
+                    : canDelete
+                      ? tCommon("delete")
+                      : t("item.deleteBlocked")}
+                </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -232,7 +243,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   const handleRemoveGroup = (index: number) => {
     const group = groups[index];
     const ok = window.confirm(
-      `刪除區塊「${group?.title || "（未命名區塊）"}」？\n其中的票券會變成「尚未指定區塊」，相關的互斥規則也會一併移除。`
+      t("groups.deleteConfirm", { title: group?.title || t("untitledGroup") })
     );
     if (!ok) return;
     removeGroup(index);
@@ -241,7 +252,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   return (
     <div className="flex flex-col gap-3 py-5 first:pt-0">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-sm font-bold text-ink">票券內容</h3>
+        <h3 className="font-display text-sm font-bold text-ink">{t("groups.title")}</h3>
         {!useGroups && (
           <Button
             type="button"
@@ -251,7 +262,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
             onClick={() => openPurchaseItemAdder()}
           >
             <Plus className="size-4" />
-            新增票券
+            <span>{t("groups.addTicket")}</span>
           </Button>
         )}
       </div>
@@ -263,15 +274,14 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
               {purchaseItems.map((item, i) => renderItemRow(item, i))}
             </ul>
           ) : (
-            <p className="text-xs text-gray-400">尚未新增票券。</p>
+            <p className="text-xs text-gray-400">{t("groups.noTickets")}</p>
           )}
           {/* 引導啟用票券區塊（原「群組」功能） */}
           <div className="flex flex-col gap-2 rounded-lg border border-dashed border-gray-300 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-2">
               <LayoutList className="mt-0.5 size-4 shrink-0 text-gray-400" />
               <p className="text-xs text-gray-500">
-                想把票券分成多個區塊嗎？例如「主票種」必選一張、「加購項目」可自由複選。
-                週末工作坊、Festival 常用這種設定。
+                {t("groups.enableHint")}
               </p>
             </div>
             <Button
@@ -281,7 +291,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
               className="shrink-0 self-start sm:self-auto"
               onClick={() => addGroup()}
             >
-              啟用票券區塊
+              {t("groups.enable")}
             </Button>
           </div>
         </>
@@ -301,7 +311,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                 <div className="flex items-center gap-2">
                   <Input
                     className="min-w-0 flex-1"
-                    placeholder="區塊名稱（如 主票種）"
+                    placeholder={t("groups.namePlaceholder")}
                     value={group.title}
                     onChange={(e) => updateGroup(gi, "title", e.target.value)}
                     onBlur={() => persistGroup(gi)}
@@ -310,7 +320,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                     type="button"
                     onClick={() => handleRemoveGroup(gi)}
                     className="flex size-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
-                    aria-label="刪除區塊"
+                    aria-label={t("groups.deleteAria")}
                   >
                     <X className="size-4" />
                   </button>
@@ -320,7 +330,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                     htmlFor={`group-rule-${gi}`}
                     className="text-sm text-gray-600"
                   >
-                    報名者要怎麼選？
+                    {t("groups.ruleLabel")}
                   </label>
                   <select
                     id={`group-rule-${gi}`}
@@ -335,7 +345,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                   >
                     {RULE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
-                        {option.label}
+                        {tRules(option.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -344,9 +354,9 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                   <p className="flex items-start gap-1.5 text-xs text-amber-700">
                     <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
                     <span>
-                      這個區塊設為必選，又和「{conflictingTitles(group, gi).join("、")}
-                      」互斥 —— 報名者一旦選了那邊就會被擋下來，等於那個區塊永遠選不到。
-                      改成「可以不選」，或移除互斥規則。
+                      {t("groups.requiredConflict", {
+                        titles: conflictingTitles(group, gi).join(t("groups.titleSeparator")),
+                      })}
                     </span>
                   </p>
                 )}
@@ -355,7 +365,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                     {groupItems.map(({ item, index }) => renderItemRow(item, index))}
                   </ul>
                 ) : (
-                  <p className="text-xs text-gray-400">此區塊還沒有票券。</p>
+                  <p className="text-xs text-gray-400">{t("groups.emptyGroup")}</p>
                 )}
                 <Button
                   type="button"
@@ -365,7 +375,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                   onClick={() => openPurchaseItemAdder(groupKeyOf(group, gi))}
                 >
                   <Plus className="size-4" />
-                  新增票券
+                  <span>{t("groups.addTicket")}</span>
                 </Button>
               </div>
             );
@@ -379,10 +389,10 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
             return (
               <div className="flex flex-col gap-1 border-l-2 border-amber-400 pl-3 sm:pl-4">
                 <p className="text-sm font-medium text-amber-700">
-                  尚未指定區塊的票券
+                  {t("groups.ungroupedTitle")}
                 </p>
                 <p className="text-xs text-amber-700/80">
-                  這些票券不會出現在報名表上，請先把它們移到一個區塊。
+                  {t("groups.ungroupedHint")}
                 </p>
                 <ul className="flex flex-col divide-y divide-hairline">
                   {ungrouped.map(({ item, index }) =>
@@ -401,7 +411,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
             onClick={() => addGroup()}
           >
             <Plus className="size-4" />
-            新增票券區塊
+            <span>{t("groups.addGroup")}</span>
           </Button>
         </div>
       )}

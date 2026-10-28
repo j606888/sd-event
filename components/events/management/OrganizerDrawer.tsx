@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,8 @@ export function OrganizerDrawer({
   onSuccess,
   onCancel,
 }: OrganizerDrawerProps) {
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const [name, setName] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [instagram, setInstagram] = useState("");
@@ -28,7 +31,7 @@ export function OrganizerDrawer({
     setError(null);
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("請輸入名稱");
+      setError(t("nameRequired"));
       return;
     }
     setSubmitting(true);
@@ -46,7 +49,7 @@ export function OrganizerDrawer({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "新增失敗");
+        setError(data.error || t("addFailed"));
         setSubmitting(false);
         return;
       }
@@ -59,7 +62,7 @@ export function OrganizerDrawer({
       setFacebook("");
       onCancel();
     } catch {
-      setError("新增失敗");
+      setError(t("addFailed"));
     }
     setSubmitting(false);
   };
@@ -68,19 +71,19 @@ export function OrganizerDrawer({
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       {error && <p className="text-sm text-red-500">{error}</p>}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="org-photo">主辦方照片網址（選填）</Label>
+        <Label htmlFor="org-photo">{t("organizer.photoUrlLabel")}</Label>
         <Input
           id="org-photo"
-          placeholder="圖片網址"
+          placeholder={t("organizer.photoUrlPlaceholder")}
           value={photoUrl}
           onChange={(e) => setPhotoUrl(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="org-name">名稱 *</Label>
+        <Label htmlFor="org-name">{t("nameLabel")}</Label>
         <Input
           id="org-name"
-          placeholder="輸入名稱"
+          placeholder={t("namePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -89,7 +92,7 @@ export function OrganizerDrawer({
         <Label htmlFor="org-ig">Instagram</Label>
         <Input
           id="org-ig"
-          placeholder="輸入 Instagram"
+          placeholder={t("organizer.instagramPlaceholder")}
           value={instagram}
           onChange={(e) => setInstagram(e.target.value)}
         />
@@ -98,21 +101,21 @@ export function OrganizerDrawer({
         <Label htmlFor="org-fb">Facebook</Label>
         <Input
           id="org-fb"
-          placeholder="輸入 Facebook"
+          placeholder={t("organizer.facebookPlaceholder")}
           value={facebook}
           onChange={(e) => setFacebook(e.target.value)}
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          取消
+          {tCommon("cancel")}
         </Button>
         <Button
           type="submit"
           className="bg-primary text-ink hover:bg-brand-hover"
           disabled={submitting}
         >
-          {submitting ? "新增中…" : "新增"}
+          {submitting ? tCommon("adding") : tCommon("add")}
         </Button>
       </div>
     </form>

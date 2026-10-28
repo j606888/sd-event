@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import type {
   PaymentAmountTotals,
   PaymentCounts,
@@ -31,13 +32,14 @@ export type EventStatsData = {
 
 /** 統計分頁與報名者頁的數字列共用同一份查詢，入場／收款後一起更新。 */
 export function useEventStats(eventId: string) {
+  const t = useTranslations("events.errors");
   return useQuery({
     queryKey: ["eventStats", eventId],
     queryFn: async () => {
       const res = await fetch(`/api/events/${eventId}/stats`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("無法載入統計");
+      if (!res.ok) throw new Error(t("loadStats"));
       return res.json() as Promise<EventStatsData>;
     },
     enabled: !!eventId,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { siLine } from "simple-icons";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -9,7 +10,7 @@ import { SimpleIcon } from "@/components/ui/simple-icon";
 import { LinePayeeFields } from "@/components/events/management/LinePayeeFields";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
-import { validateLineIdInput } from "@/lib/line";
+import { lineIdInputError } from "@/lib/line";
 
 type LinePayee = {
   id: number;
@@ -23,6 +24,8 @@ type LinePayee = {
 export default function EventLinePayeesPage() {
   // 驗票人員看不到團隊/常用資訊設定，導回活動列表
   const { ready: isTeamAdminReady } = useRequireTeamAdmin();
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [linePayees, setLinePayees] = useState<LinePayee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,12 +79,12 @@ export default function EventLinePayeesPage() {
     setSubmitError(null);
     const label = formLabel.trim();
     if (!label) {
-      setSubmitError("請輸入名稱／備註");
+      setSubmitError(t("linePayee.labelRequired"));
       return;
     }
-    const lineIdError = validateLineIdInput(formLineId);
+    const lineIdError = lineIdInputError(formLineId);
     if (lineIdError) {
-      setSubmitError(lineIdError);
+      setSubmitError(t(`linePayee.lineIdErrors.${lineIdError}`));
       return;
     }
 
@@ -100,13 +103,13 @@ export default function EventLinePayeesPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || (isEditing ? "更新失敗" : "新增失敗"));
+        setSubmitError(data.error || (isEditing ? t("updateFailed") : t("addFailed")));
         return;
       }
       setDrawerOpen(false);
       fetchLinePayees();
     } catch {
-      setSubmitError(isEditing ? "更新失敗" : "新增失敗");
+      setSubmitError(isEditing ? t("updateFailed") : t("addFailed"));
     }
   };
 
@@ -114,7 +117,7 @@ export default function EventLinePayeesPage() {
   if (!isTeamAdminReady) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -122,7 +125,7 @@ export default function EventLinePayeesPage() {
   if (teamLoading || (teamId == null && !teamError)) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -130,7 +133,7 @@ export default function EventLinePayeesPage() {
   if (teamError || teamId == null) {
     return (
       <div className="p-6">
-        <p className="text-red-500">{teamError || "請先建立或加入團隊"}</p>
+        <p className="text-red-500">{teamError || t("noTeam")}</p>
       </div>
     );
   }
@@ -138,21 +141,21 @@ export default function EventLinePayeesPage() {
   return (
     <div className="w-full max-w-3xl px-4 py-5 md:px-8 md:py-8">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-ink">LINE 付款好友</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">{t("linePayee.title")}</h1>
         <Button onClick={openDrawer} className="gap-2">
           <Plus className="size-4" />
-          新增
+          <span>{tCommon("add")}</span>
         </Button>
       </div>
       <p className="mb-6 text-sm text-gray-500">
-        參加者選擇 Line Pay 付款時要加的 LINE 好友。每個活動可以在「主辦與收款」指定不同的人。
+        {t("linePayee.intro")}
       </p>
 
       {loading ? (
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       ) : linePayees.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
-          尚無 LINE 付款好友，點擊「新增」建立
+          {t("linePayee.empty")}
         </div>
       ) : (
         <ul className="surface-card overflow-hidden divide-y divide-hairline">
@@ -176,7 +179,7 @@ export default function EventLinePayeesPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         subtitle={editingId ? "Edit LINE Payee" : "New LINE Payee"}
-        title={editingId ? "編輯 LINE 付款好友" : "新增 LINE 付款好友"}
+        title={editingId ? t("linePayee.editTitle") : t("linePayee.newTitle")}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {submitError && (
@@ -190,10 +193,10 @@ export default function EventLinePayeesPage() {
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
-              取消
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
-              {editingId ? "更新" : "新增"}
+              {editingId ? t("update") : tCommon("add")}
             </Button>
           </div>
         </form>

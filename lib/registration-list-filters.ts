@@ -11,33 +11,34 @@ export type CouponFilter = "all" | "used" | "not_used";
 /** 報名項目篩選："all" 或 purchaseItem id */
 export type PurchaseItemFilter = "all" | number;
 
-export const PAYMENT_OPTIONS: { value: PaymentFilter; label: string }[] = [
-  { value: "all", label: "全部" },
-  { value: "confirmed", label: "已完成付款" },
-  { value: "pending", label: "待付款" },
-  { value: "reported", label: "待確認" },
-  { value: "rejected", label: "已拒絕" },
-  { value: "refunded", label: "已退款" },
-];
+// 篩選選項只帶代碼與翻譯 key（events.registrations.filters.*），顯示文字由元件翻譯
+export const PAYMENT_OPTIONS = [
+  { value: "all", labelKey: "all" },
+  { value: "confirmed", labelKey: "confirmed" },
+  { value: "pending", labelKey: "pending" },
+  { value: "reported", labelKey: "reported" },
+  { value: "rejected", labelKey: "rejected" },
+  { value: "refunded", labelKey: "refunded" },
+] as const satisfies readonly { value: PaymentFilter; labelKey: string }[];
 
-export const CHECK_IN_OPTIONS: { value: CheckInFilter; label: string }[] = [
-  { value: "all", label: "全部" },
-  { value: "none", label: "未入場" },
-  { value: "partial", label: "部分入場" },
-  { value: "all_entered", label: "已全部入場" },
-];
+export const CHECK_IN_OPTIONS = [
+  { value: "all", labelKey: "all" },
+  { value: "none", labelKey: "none" },
+  { value: "partial", labelKey: "partial" },
+  { value: "all_entered", labelKey: "allEntered" },
+] as const satisfies readonly { value: CheckInFilter; labelKey: string }[];
 
-export const HIDDEN_OPTIONS: { value: HiddenFilter; label: string }[] = [
-  { value: "non_hidden", label: "未隱藏" },
-  { value: "all", label: "全部" },
-  { value: "hidden", label: "已隱藏" },
-];
+export const HIDDEN_OPTIONS = [
+  { value: "non_hidden", labelKey: "nonHidden" },
+  { value: "all", labelKey: "all" },
+  { value: "hidden", labelKey: "hidden" },
+] as const satisfies readonly { value: HiddenFilter; labelKey: string }[];
 
-export const COUPON_OPTIONS: { value: CouponFilter; label: string }[] = [
-  { value: "all", label: "全部" },
-  { value: "used", label: "有用折扣碼" },
-  { value: "not_used", label: "未用折扣碼" },
-];
+export const COUPON_OPTIONS = [
+  { value: "all", labelKey: "all" },
+  { value: "used", labelKey: "used" },
+  { value: "not_used", labelKey: "notUsed" },
+] as const satisfies readonly { value: CouponFilter; labelKey: string }[];
 
 export function matchesPaymentFilter(
   status: "pending" | "reported" | "confirmed" | "rejected" | "refunded",

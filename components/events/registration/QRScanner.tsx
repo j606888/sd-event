@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { useTranslations } from "next-intl";
 import { X, AlertCircle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScannedRegistrationDetail } from "./ScannedRegistrationDetail";
@@ -24,6 +25,8 @@ export function QRScanner({
   onClose,
   onWalkIn,
 }: QRScannerProps) {
+  const t = useTranslations("registration.scan");
+  const tCommon = useTranslations("common");
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +55,7 @@ export function QRScanner({
       });
 
       if (!res.ok) {
-        throw new Error("無法載入報名資料");
+        throw new Error(t("loadFailed"));
       }
 
       const data = await res.json().catch(() => ({}));
@@ -60,7 +63,7 @@ export function QRScanner({
       if (data?.registration && data?.attendees && data?.event) {
         // Verify this registration belongs to the current event
         if (data.registration.eventId !== eventId) {
-          setError("此 QR code 不屬於當前活動");
+          setError(t("wrongEvent"));
           setTimeout(() => setError(null), 3000);
           return;
         }
@@ -100,11 +103,11 @@ export function QRScanner({
           })),
         });
       } else {
-        throw new Error("無效的報名資料");
+        throw new Error(t("invalidData"));
       }
     } catch (err) {
       console.error("Failed to fetch registration:", err);
-      setError("無法載入報名資料");
+      setError(t("loadFailed"));
       setRetryKey(registrationKey);
     }
   };
@@ -119,7 +122,7 @@ export function QRScanner({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "檢查入場失敗");
+        throw new Error(data.error || t("checkInFailed"));
       }
 
       // Get updated attendee data
@@ -128,7 +131,7 @@ export function QRScanner({
       });
       const attendeeData = await attendeeRes.json().catch(() => ({}));
 
-      const attendeeName = attendeeData.attendee?.name || "參加者";
+      const attendeeName = attendeeData.attendee?.name || t("attendeeFallback");
 
       // Update local registration data
       if (scannedRegistration) {
@@ -179,7 +182,7 @@ export function QRScanner({
           if (registrationKey) {
             fetchRegistrationData(registrationKey);
           } else {
-            setError("無效的 QR code");
+            setError(t("invalidQr"));
             setTimeout(() => setError(null), 2000);
           }
         },
@@ -190,7 +193,7 @@ export function QRScanner({
       setScanning(true);
     } catch (err) {
       console.error("Failed to start scanner:", err);
-      setError("無法啟動相機，請確認已授予相機權限");
+      setError(t("cameraFailed"));
     }
   };
 
@@ -235,7 +238,7 @@ export function QRScanner({
         <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white">
-            <h2 className="text-lg font-semibold text-gray-900">掃描 QR Code</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t("title")}</h2>
             <button
               onClick={onClose}
               className="p-1 text-gray-400 hover:text-gray-600"
@@ -263,7 +266,7 @@ export function QRScanner({
       <div className="bg-white rounded-lg w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">掃描 QR Code</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("title")}</h2>
           <button
             onClick={onClose}
             className="p-1 text-gray-400 hover:text-gray-600"
@@ -298,7 +301,7 @@ export function QRScanner({
                     fetchRegistrationData(key);
                   }}
                 >
-                  重試
+                  {t("retry")}
                 </Button>
               )}
             </div>
@@ -306,7 +309,7 @@ export function QRScanner({
 
           {scanning && !error && (
             <p className="mt-4 text-center text-sm text-gray-500">
-              請將 QR code 對準相機
+              {t("aimHint")}
             </p>
           )}
         </div>
@@ -319,7 +322,7 @@ export function QRScanner({
               className="w-full gap-1.5 bg-brand text-ink hover:bg-brand-hover"
             >
               <UserPlus className="w-4 h-4" />
-              現場報名
+              <span>{t("walkIn")}</span>
             </Button>
           )}
           <Button
@@ -327,7 +330,7 @@ export function QRScanner({
             variant="outline"
             className="w-full"
           >
-            關閉
+            {tCommon("close")}
           </Button>
         </div>
       </div>

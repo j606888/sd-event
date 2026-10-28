@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { EventEditTabs } from "@/components/events/management/EventEditTabs";
 import { EventTabBar } from "@/components/events/management/EventTabBar";
 import { EventStats } from "@/components/events/management/EventStats";
@@ -65,6 +66,9 @@ const ALL_TAB_IDS = EVENT_TABS.map((t) => t.id);
 function EventDetailPageInner() {
   const params = useParams();
   const eventId = params?.eventId as string;
+  const t = useTranslations("events.detail");
+  const tEvents = useTranslations("events");
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const readOnly = useReadOnly();
   // 驗票人員只看得到驗票與報名名單，且名單上不顯示任何金額
@@ -183,11 +187,11 @@ function EventDetailPageInner() {
         credentials: "include",
         body: JSON.stringify({ status: "published" }),
       });
-      if (!res.ok) throw new Error("發布失敗，請稍後再試");
+      if (!res.ok) throw new Error(t("publishFailed"));
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
     } catch (err) {
-      setPublishError(err instanceof Error ? err.message : "發布失敗，請稍後再試");
+      setPublishError(err instanceof Error ? err.message : t("publishFailed"));
     } finally {
       setPublishing(false);
     }
@@ -236,10 +240,10 @@ function EventDetailPageInner() {
         <p className="text-red-500">
           {eventQuery.error instanceof Error
             ? eventQuery.error.message
-            : "找不到活動"}
+            : t("notFound")}
         </p>
         <Link href="/events" className="mt-2 inline-block text-brand-strong underline">
-          返回活動列表
+          {t("backToList")}
         </Link>
       </div>
     );
@@ -256,7 +260,7 @@ function EventDetailPageInner() {
           className="group mb-1.5 inline-flex items-center gap-1 text-xs font-medium text-muted-ink transition-colors hover:text-ink"
         >
           <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
-          所有活動
+          <span>{t("allEvents")}</span>
         </Link>
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <div className="min-w-0 flex-1 basis-64">
@@ -267,21 +271,21 @@ function EventDetailPageInner() {
               {event.status === "draft" ? (
                 <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-butter-soft px-2.5 py-0.5 text-xs font-bold text-butter-ink">
                   <span className="size-1.5 rounded-full bg-butter" aria-hidden />
-                  草稿
+                  <span>{tEvents("status.draft")}</span>
                 </span>
               ) : new Date(event.endAt) < new Date() ? (
                 <span className="inline-flex shrink-0 items-center rounded-full bg-field px-2.5 py-0.5 text-xs font-bold text-muted-ink">
-                  已結束
+                  {tEvents("status.ended")}
                 </span>
               ) : (
                 <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand-strong">
                   <span className="size-1.5 rounded-full bg-brand" aria-hidden />
-                  售票中
+                  <span>{tEvents("status.active")}</span>
                 </span>
               )}
             </div>
             <p className="mt-0.5 text-sm text-muted-ink">
-              {getEventDateLabel(event.startAt, event.endAt)}
+              {getEventDateLabel(event.startAt, event.endAt, locale)}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -302,17 +306,17 @@ function EventDetailPageInner() {
               )}
             >
               {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
-              <span>{shareCopied ? "已複製連結" : "分享表單"}</span>
+              <span>{shareCopied ? t("linkCopied") : t("shareForm")}</span>
             </button>
             {event.status === "draft" && isAdmin ? (
               <button
                 type="button"
                 onClick={handlePublish}
                 disabled={publishing || readOnly}
-                title={readOnly ? "模擬檢視為唯讀模式" : undefined}
+                title={readOnly ? tEvents("readOnly") : undefined}
                 className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-butter px-4 text-sm font-bold text-ink transition-colors hover:bg-butter-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {publishing ? "發布中…" : "發布"}
+                {publishing ? t("publishing") : t("publish")}
               </button>
             ) : (
               /* 手機的現場報名在底部導覽列，這顆只給 sm 以上 */
@@ -320,11 +324,11 @@ function EventDetailPageInner() {
                 type="button"
                 onClick={() => setWalkInOpen(true)}
                 disabled={readOnly}
-                title={readOnly ? "模擬檢視為唯讀模式" : undefined}
+                title={readOnly ? tEvents("readOnly") : undefined}
                 className="hidden h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-bold text-ink transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex"
               >
                 <UserPlus className="size-4" />
-                現場報名
+                <span>{t("walkIn")}</span>
               </button>
             )}
           </div>
@@ -333,13 +337,13 @@ function EventDetailPageInner() {
       {publishError && (
         <p className="flex items-center gap-1.5 px-4 pb-2 text-sm text-red-600 md:px-8">
           <span className="size-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
-          {publishError}
+          <span>{publishError}</span>
         </p>
       )}
       {event.status === "draft" && (
         <p className="flex items-center gap-1.5 px-4 pb-2 text-xs text-butter-ink md:px-8">
           <span className="size-1.5 shrink-0 rounded-full bg-butter" aria-hidden />
-          活動尚未發布：報名連結僅團隊成員能預覽，按「發布」後才對外開放報名。
+          <span>{t("draftNotice")}</span>
         </p>
       )}
       {/* 分頁導覽：sm 以上為上方分頁，手機為固定底部導覽列 */}
@@ -429,15 +433,16 @@ function EventDetailPageInner() {
                         disabled={page === 1}
                         onClick={() => setPage((p) => p - 1)}
                       >
-                        上一頁
+                        {t("prevPage")}
                       </Button>
                       <span>
-                        第 {page} /{" "}
-                        {Math.ceil(
-                          registrationsData.pagination.total /
-                            registrationsData.pagination.pageSize
-                        )}{" "}
-                        頁
+                        {t("pageOf", {
+                          page,
+                          total: Math.ceil(
+                            registrationsData.pagination.total /
+                              registrationsData.pagination.pageSize
+                          ),
+                        })}
                       </span>
                       <Button
                         variant="outline"
@@ -451,7 +456,7 @@ function EventDetailPageInner() {
                         }
                         onClick={() => setPage((p) => p + 1)}
                       >
-                        下一頁
+                        {t("nextPage")}
                       </Button>
                     </div>
                   )}

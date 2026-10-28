@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,8 @@ export function BankInfoDrawer({
   onSuccess,
   onCancel,
 }: BankInfoDrawerProps) {
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const [label, setLabel] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankCode, setBankCode] = useState("");
@@ -29,7 +32,7 @@ export function BankInfoDrawer({
     const trimmedBankName = bankName.trim();
     const trimmedBankCode = bankCode.trim();
     if (!trimmedBankName || !trimmedBankCode) {
-      setError("請輸入銀行名稱與銀行代碼");
+      setError(t("bank.required"));
       return;
     }
     setSubmitting(true);
@@ -47,7 +50,7 @@ export function BankInfoDrawer({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "新增失敗");
+        setError(data.error || t("addFailed"));
         setSubmitting(false);
         return;
       }
@@ -60,7 +63,7 @@ export function BankInfoDrawer({
       setAccount("");
       onCancel();
     } catch {
-      setError("新增失敗");
+      setError(t("addFailed"));
     }
     setSubmitting(false);
   };
@@ -69,52 +72,52 @@ export function BankInfoDrawer({
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       {error && <p className="text-sm text-red-500">{error}</p>}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="bank-label">名稱／備註</Label>
+        <Label htmlFor="bank-label">{t("bank.labelLabel")}</Label>
         <Input
           id="bank-label"
-          placeholder="例如：小明的帳戶、工作室公帳"
+          placeholder={t("bank.labelPlaceholder")}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
         />
-        <p className="text-xs text-gray-500">只有主辦方看得到，用來區分多組帳戶</p>
+        <p className="text-xs text-gray-500">{t("bank.labelHint")}</p>
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="bank-name">銀行名稱 *</Label>
+        <Label htmlFor="bank-name">{t("bank.bankNameLabel")}</Label>
         <Input
           id="bank-name"
-          placeholder="輸入銀行名稱"
+          placeholder={t("bank.bankNamePlaceholder")}
           value={bankName}
           onChange={(e) => setBankName(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="bank-code">銀行代碼 *</Label>
+        <Label htmlFor="bank-code">{t("bank.bankCodeLabel")}</Label>
         <Input
           id="bank-code"
-          placeholder="輸入銀行代碼"
+          placeholder={t("bank.bankCodePlaceholder")}
           value={bankCode}
           onChange={(e) => setBankCode(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="bank-account">銀行帳戶</Label>
+        <Label htmlFor="bank-account">{t("bank.accountLabel")}</Label>
         <Input
           id="bank-account"
-          placeholder="輸入銀行帳戶"
+          placeholder={t("bank.accountPlaceholder")}
           value={account}
           onChange={(e) => setAccount(e.target.value)}
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          取消
+          {tCommon("cancel")}
         </Button>
         <Button
           type="submit"
           className="bg-primary text-ink hover:bg-brand-hover"
           disabled={submitting}
         >
-          {submitting ? "新增中…" : "新增"}
+          {submitting ? tCommon("adding") : tCommon("add")}
         </Button>
       </div>
     </form>

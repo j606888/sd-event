@@ -32,6 +32,8 @@ React 更新時會當機或顯示舊字（見 `instrumentation-client.ts`）。�
 - `t()` 的輸出旁邊如果還有圖示、其他文字或條件渲染，就包一層 `<span>`，讓它成為該元素唯一的字串子節點。
 - 會切換的文字（`saving ? t("saving") : t("save")`）旁邊有圖示時，文字放進自己的 `<span>`。
 - 原則：一個元素裡要嘛只有一個字串運算式，要嘛全是元素。
+- `t.rich` 的 chunks 是陣列，會變動的數字要寫成 `(chunks) => <span>{richText(chunks)}</span>`（`lib/rich-text.ts`），
+  否則被翻譯後數字會停住。
 
 ## 用詞對照
 

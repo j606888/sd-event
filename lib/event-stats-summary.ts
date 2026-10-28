@@ -20,12 +20,6 @@ export type PaymentAmountTotals = {
 /** 各付款狀態的「報名筆數」（付款掛在 registration 上，所以是筆不是人）。 */
 export type PaymentCounts = PaymentAmountTotals;
 
-const ROLE_LABELS: Record<keyof RoleCounts, string> = {
-  Leader: "Leader",
-  Follower: "Follower",
-  "Not sure": "尚未確定",
-};
-
 // 角色配色沿用品牌 token：Leader 石板藍／Follower 灰玫瑰／尚未確定中性灰
 const ROLE_COLORS: Record<keyof RoleCounts, string> = {
   Leader: "var(--leader)",
@@ -35,9 +29,9 @@ const ROLE_COLORS: Record<keyof RoleCounts, string> = {
 
 const ROLE_ORDER: (keyof RoleCounts)[] = ["Leader", "Follower", "Not sure"];
 
+/** 顯示名稱由元件依 key 翻譯（events.stats.role.*） */
 export type RoleRow = {
   key: keyof RoleCounts;
-  label: string;
   color: string;
   count: number;
   pct: number;
@@ -58,7 +52,6 @@ export function roleDistribution(roleCounts: RoleCounts): {
     total,
     rows: ROLE_ORDER.map((key) => ({
       key,
-      label: ROLE_LABELS[key],
       color: ROLE_COLORS[key],
       count: roleCounts[key],
       pct: percent(roleCounts[key], total),
@@ -78,9 +71,9 @@ export function checkInSummary(totalAttendees: number, checkedInCount: number) {
 
 export type PaymentRowKey = "confirmed" | "reported" | "pending";
 
+/** 顯示名稱由元件依 key 翻譯（events.stats.paymentRow.*） */
 export type PaymentRow = {
   key: PaymentRowKey;
-  label: string;
   color: string;
   amount: number;
   count: number;
@@ -88,10 +81,10 @@ export type PaymentRow = {
   pct: number;
 };
 
-const PAYMENT_ROW_META: Record<PaymentRowKey, { label: string; color: string }> = {
-  confirmed: { label: "已確認入帳", color: "var(--brand-strong)" },
-  reported: { label: "已回報・待確認", color: "var(--butter)" },
-  pending: { label: "尚未付款", color: "#c5ced6" },
+const PAYMENT_ROW_COLORS: Record<PaymentRowKey, string> = {
+  confirmed: "var(--brand-strong)",
+  reported: "var(--butter)",
+  pending: "#c5ced6",
 };
 
 /**
@@ -110,8 +103,7 @@ export function paymentSummary(
     ["confirmed", "reported", "pending"] as PaymentRowKey[]
   ).map((key) => ({
     key,
-    label: PAYMENT_ROW_META[key].label,
-    color: PAYMENT_ROW_META[key].color,
+    color: PAYMENT_ROW_COLORS[key],
     amount: amounts[key],
     count: counts[key],
     pct: percent(amounts[key], expectedTotal),

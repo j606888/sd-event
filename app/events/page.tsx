@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   EventListRow,
   getEventStatus,
@@ -35,9 +36,13 @@ type EventItem = {
 
 export default function EventsPage() {
   const router = useRouter();
+  const t = useTranslations("events.list");
+  const tCommon = useTranslations("common");
+  const tEvents = useTranslations("events");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // 只記「載入失敗」這件事，訊息在畫面上依語系翻譯
+  const [error, setError] = useState(false);
   const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const readOnly = useReadOnly();
   // 驗票人員不能建立活動
@@ -53,14 +58,14 @@ export default function EventsPage() {
       return;
     }
     setLoading(true);
-    setError(null);
+    setError(false);
     fetch("/api/events", { credentials: "include" })
       .then((res) => {
-        if (!res.ok) throw new Error("無法載入");
+        if (!res.ok) throw new Error(`Failed to load events (${res.status})`);
         return res.json();
       })
       .then((data) => setEvents(data.events ?? []))
-      .catch(() => setError("無法載入活動"))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [teamId, teamLoading]);
 
@@ -73,7 +78,7 @@ export default function EventsPage() {
   if ((loading || teamLoading) && events.length === 0 && !teamError) {
     return (
       <div className="min-h-screen p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -81,12 +86,12 @@ export default function EventsPage() {
   if (error || teamError) {
     return (
       <div className="min-h-screen p-6">
-        <p className="text-red-500">{error ?? teamError}</p>
+        <p className="text-red-500">{error ? t("loadFailed") : teamError}</p>
         <Link
           href="/login?next=%2Fevents"
           className="mt-2 inline-block text-brand-strong underline"
         >
-          前往登入
+          {t("goToLogin")}
         </Link>
       </div>
     );
@@ -95,15 +100,15 @@ export default function EventsPage() {
   if (!teamLoading && teamId == null) {
     return (
       <div className="min-h-screen p-6">
-        <p className="text-gray-500">正在導向建立團隊…</p>
+        <p className="text-gray-500">{t("redirectingToSetup")}</p>
       </div>
     );
   }
 
   const GROUP_ORDER: { status: EventStatus; title: string }[] = [
-    { status: "active", title: "售票中" },
-    { status: "draft", title: "草稿" },
-    { status: "ended", title: "已結束" },
+    { status: "active", title: tEvents("status.active") },
+    { status: "draft", title: tEvents("status.draft") },
+    { status: "ended", title: tEvents("status.ended") },
   ];
 
   const groups = GROUP_ORDER.map(({ status, title }) => {
@@ -123,38 +128,38 @@ export default function EventsPage() {
       {/* Header with title and create button */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
-          所有活動
+          {t("title")}
         </h1>
         {!isAdmin ? null : readOnly ? (
           <span
             className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-400"
-            title="模擬檢視為唯讀模式"
+            title={tEvents("readOnly")}
           >
             <Plus className="size-4" />
-            <span>建立活動</span>
+            <span>{t("create")}</span>
           </span>
         ) : (
           <Link
             href="/events/new"
             className="flex h-10 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-bold text-ink transition-colors hover:bg-brand-hover"
-            aria-label="建立新活動"
+            aria-label={t("createAria")}
           >
             <Plus className="size-4" />
-            <span>建立活動</span>
+            <span>{t("create")}</span>
           </Link>
         )}
       </div>
 
       {events.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 py-16 md:py-20 text-center text-gray-500">
-          {isAdmin ? "尚無活動，點擊「建立活動」開始" : "此團隊尚無活動"}
+          {isAdmin ? t("emptyAdmin") : t("emptyStaff")}
         </div>
       ) : (
         <div className="space-y-10">
           {groups.map((group) => (
             <section key={group.status}>
               <h2 className="flex items-baseline gap-2 text-xs font-bold tracking-[0.15em] text-muted-ink">
-                {group.title}
+                <span>{group.title}</span>
                 <span className="font-display text-gray-400">{group.items.length}</span>
               </h2>
               <ul className="mt-3 space-y-2">
@@ -179,7 +184,7 @@ export default function EventsPage() {
         <Link
           href="/events/new"
           className="fixed bottom-6 right-6 flex md:hidden size-14 items-center justify-center rounded-full bg-brand text-ink shadow-lg hover:opacity-90 z-10"
-          aria-label="建立新活動"
+          aria-label={t("createAria")}
         >
           <Plus className="size-8" />
         </Link>

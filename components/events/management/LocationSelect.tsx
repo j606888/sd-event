@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -27,6 +28,7 @@ export function LocationSelect({
   onValueChange,
   onAddClick,
 }: LocationSelectProps) {
+  const t = useTranslations("savedInfo.location");
   const safeValue = value ?? ""
 
   const onValueChange2 = (val: string) => {
@@ -41,13 +43,13 @@ export function LocationSelect({
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="location">活動地點 *</Label>
+      <Label htmlFor="location">{t("selectLabel")}</Label>
       <Select
         value={safeValue}
         onValueChange={onValueChange2}
       >
         <SelectTrigger id="location" className="w-full min-w-0">
-          <SelectValue placeholder="選擇活動地點" />
+          <SelectValue placeholder={t("selectPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {locations.map((loc) => (
@@ -61,7 +63,7 @@ export function LocationSelect({
           >
             <span className="flex items-center gap-1.5">
               <Plus className="size-4" />
-              新增活動地點
+              <span>{t("selectAdd")}</span>
             </span>
           </SelectItem>
         </SelectContent>

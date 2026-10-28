@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 
@@ -35,6 +36,8 @@ export function ConfirmActionDrawer({
   destructive = false,
   onConfirm,
 }: ConfirmActionDrawerProps) {
+  const t = useTranslations("registration");
+  const tCommon = useTranslations("common");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +53,7 @@ export function ConfirmActionDrawer({
       await onConfirm();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失敗，請稍後再試");
+      setError(e instanceof Error ? e.message : t("actionFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +78,7 @@ export function ConfirmActionDrawer({
             disabled={submitting}
             onClick={onClose}
           >
-            取消
+            {tCommon("cancel")}
           </Button>
           <Button
             type="button"

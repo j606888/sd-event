@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,8 @@ export function PurchaseItemDrawer({
   onCancel,
 }: PurchaseItemDrawerProps) {
   const isEditing = editingItem != null;
+  const t = useTranslations("tickets");
+  const tCommon = useTranslations("common");
 
   const tierKeyForPrice = (price: {
     tierId?: number;
@@ -133,7 +136,7 @@ export function PurchaseItemDrawer({
   const baseTierKey = onSaleTierKeys.at(-1) ?? null;
   const baseTierName = (() => {
     const index = priceTiers.findIndex((tier, i) => tierKey(tier, i) === baseTierKey);
-    return index >= 0 ? priceTiers[index].name || `第 ${index + 1} 段` : null;
+    return index >= 0 ? priceTiers[index].name || t("tierN", { n: index + 1 }) : null;
   })();
   const lastTierOnSale =
     useTiers && isOnSale(tierKey(priceTiers[priceTiers.length - 1], priceTiers.length - 1));
@@ -149,7 +152,7 @@ export function PurchaseItemDrawer({
     for (const [index, tier] of priceTiers.entries()) {
       const key = tierKey(tier, index);
       if (isOnSale(key) && parseTierAmount(tierAmounts[key]) == null) {
-        return tier.name || `第 ${index + 1} 段`;
+        return tier.name || t("tierN", { n: index + 1 });
       }
     }
     return null;
@@ -200,11 +203,11 @@ export function PurchaseItemDrawer({
     setError(null);
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("請輸入名稱");
+      setError(t("drawer.nameRequired"));
       return;
     }
     if (useGroups && !groupKey) {
-      setError("請選擇所屬區塊");
+      setError(t("drawer.groupRequired"));
       return;
     }
 
@@ -213,30 +216,30 @@ export function PurchaseItemDrawer({
     let amountNum: number;
     if (useTiers) {
       if (baseTierKey == null) {
-        setError("至少要有一個時段販售這張票");
+        setError(t("drawer.noTierOnSale"));
         return;
       }
       const unpriced = firstUnpricedTier();
       if (unpriced) {
-        setError(`請填寫「${unpriced}」的價格`);
+        setError(t("drawer.tierPriceRequired", { tier: unpriced }));
         return;
       }
       amountNum = parseTierAmount(tierAmounts[baseTierKey])!;
     } else {
       amountNum = Math.floor(Number(amount));
       if (!Number.isInteger(amountNum) || amountNum < 0) {
-        setError("請輸入有效金額（非負整數）");
+        setError(t("drawer.invalidAmount"));
         return;
       }
     }
     if (!Number.isInteger(seatCountNum) || seatCountNum < 1 || seatCountNum > 10) {
-      setError("每張票人數需為 1–10 的整數");
+      setError(t("drawer.invalidSeatCount"));
       return;
     }
     const trimmedDescription = description.trim() || null;
     const minFlaggedNum = minFlagged.trim() === "" ? 0 : Number(minFlagged);
     if (!Number.isInteger(minFlaggedNum) || minFlaggedNum < 0 || minFlaggedNum > MAX_MIN_FLAGGED) {
-      setError(`至少勾選人數需為 0–${MAX_MIN_FLAGGED} 的整數`);
+      setError(t("drawer.invalidMinFlagged", { max: MAX_MIN_FLAGGED }));
       return;
     }
     const prices = buildPrices();
@@ -285,13 +288,13 @@ export function PurchaseItemDrawer({
           );
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            setError(data.error || "更新失敗");
+            setError(data.error || t("drawer.updateFailed"));
             setSubmitting(false);
             return;
           }
           onUpdated?.(idx, nextDraft);
         } catch {
-          setError("更新失敗");
+          setError(t("drawer.updateFailed"));
         }
         setSubmitting(false);
         return;
@@ -325,7 +328,7 @@ export function PurchaseItemDrawer({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(data.error || "新增失敗");
+          setError(data.error || t("drawer.createFailed"));
           setSubmitting(false);
           return;
         }
@@ -349,7 +352,7 @@ export function PurchaseItemDrawer({
         setDescription("");
         onCancel();
       } catch {
-        setError("新增失敗");
+        setError(t("drawer.createFailed"));
       }
       setSubmitting(false);
     } else {
@@ -379,34 +382,34 @@ export function PurchaseItemDrawer({
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       {error && <p className="text-sm text-red-500">{error}</p>}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="item-name">名稱 *</Label>
+        <Label htmlFor="item-name">{t("drawer.nameLabel")}</Label>
         <Input
           id="item-name"
-          placeholder="輸入名稱"
+          placeholder={t("drawer.namePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
       </div>
       {useGroups && (
         <div className="flex flex-col gap-2">
-          <Label htmlFor="item-group">所屬區塊 *</Label>
+          <Label htmlFor="item-group">{t("drawer.groupLabel")}</Label>
           <select
             id="item-group"
             className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
             value={groupKey}
             onChange={(e) => setGroupKey(e.target.value)}
           >
-            <option value="">請選擇區塊</option>
+            <option value="">{t("drawer.groupPlaceholder")}</option>
             {groups.map((group, index) => (
               <option key={group.id ?? `draft-${index}`} value={groupKeyOf(group, index)}>
-                {group.title || "（未命名區塊）"}
+                {group.title || t("untitledGroup")}
               </option>
             ))}
           </select>
         </div>
       )}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="item-seat-count">每張票人數</Label>
+        <Label htmlFor="item-seat-count">{t("drawer.seatCountLabel")}</Label>
         <Input
           id="item-seat-count"
           type="number"
@@ -419,32 +422,32 @@ export function PurchaseItemDrawer({
         />
         <p className="text-xs text-gray-500">
           {seatCountLocked
-            ? "已有人報名這張票，無法修改人數。需要不同人數請隱藏後另開新票券。"
+            ? t("drawer.seatCountLocked")
             : isBundle
-              ? `套票：下方票價是 ${seatCountNum} 人的整組價，不會再乘人數；報名時必須剛好填 ${seatCountNum} 位參加者。`
-              : "一般票填 1（票價 × 參加者人數）。雙人票等套票填 2 以上，票價即為整組價。"}
+              ? t("drawer.seatCountBundle", { count: seatCountNum })
+              : t("drawer.seatCountHint")}
         </p>
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="item-description">票券說明（選填）</Label>
+        <Label htmlFor="item-description">{t("drawer.descriptionLabel")}</Label>
         <textarea
           id="item-description"
           rows={2}
           placeholder={
             isBundle
-              ? "例如：限 2 人同行，其中 1 人須參加伸展台比賽"
-              : "例如：含 Workshop 全部 4 堂課"
+              ? t("drawer.descriptionPlaceholderBundle")
+              : t("drawer.descriptionPlaceholder")
           }
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full min-w-0 resize-none rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-brand/30 md:text-sm"
         />
-        <p className="text-xs text-gray-500">會顯示在報名表的票券名稱下方。</p>
+        <p className="text-xs text-gray-500">{t("drawer.descriptionHint")}</p>
       </div>
       {showMinFlagged && (
         <div className="flex flex-col gap-2">
           <Label htmlFor="item-min-flagged">
-            至少幾位參加者勾選「{flagLabel || "參加者勾選項目"}」
+            {t("drawer.minFlaggedLabel", { label: flagLabel || t("drawer.flagFallback") })}
           </Label>
           <Input
             id="item-min-flagged"
@@ -457,32 +460,35 @@ export function PurchaseItemDrawer({
           />
           <p className="text-xs text-gray-500">
             {flagLabel
-              ? "0＝不要求。例如 1+1 套票其中一人須參賽就填 1，報名時沒勾到就無法送出。"
-              : "活動目前沒有設定參加者勾選項目，此要求不會生效；可改為 0。"}
+              ? t("drawer.minFlaggedHint")
+              : t("drawer.minFlaggedInactive")}
           </p>
         </div>
       )}
       {useTiers ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <Label>{isBundle ? `票價（${seatCountNum} 人整組價）*` : "票價 *"}</Label>
+            <Label>
+              {isBundle
+                ? t("drawer.priceLabelBundle", { count: seatCountNum })
+                : t("drawer.priceLabel")}
+            </Label>
             {hasAnyTierFilled && hasEmptyTier && (
               <button
                 type="button"
                 onClick={fillEmptyTiersFromFirst}
                 className="rounded text-xs font-medium text-brand-strong underline-offset-2 hover:underline"
               >
-                其餘時段帶入同價
+                {t("drawer.fillRest")}
               </button>
             )}
           </div>
           <p className="-mt-1 text-xs text-gray-500">
-            這場活動有 {priceTiers.length} 個票價時段。只在部分時段賣的票（如早鳥限定），
-            把其他時段的「販售」取消勾選，報名頁會顯示「已截止」。
+            {t("drawer.tiersHint", { count: priceTiers.length })}
           </p>
           {priceTiers.map((tier, index) => {
             const key = tierKey(tier, index);
-            const tierLabel = tier.name || `第 ${index + 1} 段`;
+            const tierLabel = tier.name || t("tierN", { n: index + 1 });
             const onSale = isOnSale(key);
             return (
               <div key={key} className="flex items-center gap-2">
@@ -491,18 +497,18 @@ export function PurchaseItemDrawer({
                     onSale ? "text-gray-600" : "text-gray-400"
                   }`}
                 >
-                  {tier.name || "（未命名）"}
+                  {tier.name || t("untitled")}
                 </span>
                 <Input
                   type="number"
                   min={0}
-                  placeholder={onSale ? "價格" : "不販售"}
+                  placeholder={onSale ? t("drawer.pricePlaceholder") : t("drawer.notOnSale")}
                   value={onSale ? tierAmounts[key] ?? "" : ""}
                   disabled={!onSale}
                   onChange={(e) =>
                     setTierAmounts((prev) => ({ ...prev, [key]: e.target.value }))
                   }
-                  aria-label={`${tierLabel}的價格`}
+                  aria-label={t("drawer.priceAria", { tier: tierLabel })}
                 />
                 <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-sm text-gray-600">
                   <input
@@ -512,29 +518,31 @@ export function PurchaseItemDrawer({
                       setOffSaleTiers((prev) => ({ ...prev, [key]: !e.target.checked }))
                     }
                     className="h-4 w-4 rounded border-gray-300 accent-brand"
-                    aria-label={`${tierLabel}販售這張票`}
+                    aria-label={t("drawer.onSaleAria", { tier: tierLabel })}
                   />
-                  販售
+                  <span>{t("drawer.onSale")}</span>
                 </label>
               </div>
             );
           })}
           <p className="text-xs text-gray-500">
             {baseTierName == null
-              ? "至少要有一個時段販售這張票。"
+              ? t("drawer.noTierOnSaleHint")
               : lastTierOnSale
-                ? `「${baseTierName}」是最後一段，會作為這張票的基準價。`
-                : `「${baseTierName}」是最後一個販售時段，會作為這張票的基準價；之後的時段報名頁會顯示「已截止」，也不會顯示「省多少」。`}
+                ? t("drawer.baseLast", { tier: baseTierName })
+                : t("drawer.baseEarly", { tier: baseTierName })}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           <Label htmlFor="item-amount">
-            {isBundle ? `金額（${seatCountNum} 人整組價）*` : "金額 *"}
+            {isBundle
+              ? t("drawer.amountLabelBundle", { count: seatCountNum })
+              : t("drawer.amountLabel")}
           </Label>
           <Input
             id="item-amount"
-            placeholder="輸入金額"
+            placeholder={t("drawer.amountPlaceholder")}
             type="number"
             min={0}
             value={amount}
@@ -544,7 +552,7 @@ export function PurchaseItemDrawer({
       )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          取消
+          {tCommon("cancel")}
         </Button>
         <Button
           type="submit"
@@ -553,11 +561,11 @@ export function PurchaseItemDrawer({
         >
           {isEditing
             ? submitting
-              ? "儲存中…"
-              : "儲存"
+              ? tCommon("saving")
+              : tCommon("save")
             : submitting
-              ? "新增中…"
-              : "新增"}
+              ? tCommon("adding")
+              : tCommon("add")}
         </Button>
       </div>
     </form>

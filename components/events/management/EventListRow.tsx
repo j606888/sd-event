@@ -1,11 +1,14 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { getEventDateLabel } from "@/lib/format-event-date";
 import { cn, isRenderableImageSrc } from "@/lib/utils";
 import type { EventCardItem } from "./EventCard";
+import { richText } from "@/lib/rich-text";
 
 export type EventStatus = "draft" | "active" | "ended";
 
@@ -19,11 +22,18 @@ export function getEventStatus(event: {
   return "active";
 }
 
-const STATUS_BADGE: Record<EventStatus, { text: string; dot: string | null; className: string }> = {
-  draft: { text: "草稿", dot: "bg-butter", className: "bg-butter-soft text-butter-ink" },
-  active: { text: "售票中", dot: "bg-brand", className: "bg-brand-soft text-brand-strong" },
-  ended: { text: "已結束", dot: null, className: "bg-field text-muted-ink" },
+/** 文字依狀態翻譯（events.status.*） */
+const STATUS_BADGE: Record<EventStatus, { dot: string | null; className: string }> = {
+  draft: { dot: "bg-butter", className: "bg-butter-soft text-butter-ink" },
+  active: { dot: "bg-brand", className: "bg-brand-soft text-brand-strong" },
+  ended: { dot: null, className: "bg-field text-muted-ink" },
 };
+
+// 數字與單位各自一個元素（events.units.*），被瀏覽器翻譯後數字仍會更新
+const statNumber = (chunks: ReactNode) => <span>{richText(chunks)}</span>;
+const statUnit = (chunks: ReactNode) => (
+  <span className="text-[13px] font-medium text-muted-ink">{richText(chunks)}</span>
+);
 
 type EventListRowProps = {
   event: EventCardItem;
@@ -37,12 +47,11 @@ type EventListRowProps = {
 function Stat({
   label,
   value,
-  unit,
   tone = "text-ink",
 }: {
   label: string;
-  value: number;
-  unit: string;
+  /** 數字＋單位，來自 events.units.* 的 t.rich */
+  value: ReactNode;
   tone?: string;
 }) {
   return (
@@ -50,7 +59,6 @@ function Stat({
       <span className="text-xs text-muted-ink">{label}</span>
       <span className={cn("font-display text-xl font-bold leading-tight tabular-nums", tone)}>
         {value}
-        <span className="text-[13px] font-medium text-muted-ink"> {unit}</span>
       </span>
     </span>
   );
@@ -62,6 +70,9 @@ export function EventListRow({
   checkedInCount = 0,
   awaitingConfirmationCount,
 }: EventListRowProps) {
+  const t = useTranslations("events");
+  const tPayment = useTranslations("enums.paymentStatus");
+  const locale = useLocale();
   const status = getEventStatus(event);
   const badge = STATUS_BADGE[status];
 
@@ -101,28 +112,43 @@ export function EventListRow({
             )}
           >
             {badge.dot && <span className={cn("size-1.5 rounded-full", badge.dot)} aria-hidden />}
-            {badge.text}
+            <span>{t(`status.${status}`)}</span>
           </span>
         </p>
         <p className="mt-0.5 truncate text-sm text-muted-ink">
-          {getEventDateLabel(event.startAt, event.endAt)}
-          {event.location?.name ? ` ・ ${event.location.name}` : ""}
+          {[getEventDateLabel(event.startAt, event.endAt, locale), event.location?.name]
+            .filter(Boolean)
+            .join(" ・ ")}
         </p>
       </div>
 
       {/* 數字：一眼看出哪一場有事要處理 */}
       {status !== "draft" && (
         <div className="flex shrink-0 gap-6 sm:gap-7">
-          <Stat label="報名" value={attendeeCount} unit="人" />
+          <Stat
+            label={t("listRow.registered")}
+            value={t.rich("units.people", { count: attendeeCount, num: statNumber, unit: statUnit })}
+          />
           {awaitingConfirmationCount !== undefined && (
             <Stat
-              label="待確認收款"
-              value={awaitingConfirmationCount}
-              unit="筆"
+              label={tPayment("reported")}
+              value={t.rich("units.registrations", {
+                count: awaitingConfirmationCount,
+                num: statNumber,
+                unit: statUnit,
+              })}
               tone={awaitingConfirmationCount > 0 ? "text-butter-ink" : "text-muted-ink"}
             />
           )}
-          <Stat label="已入場" value={checkedInCount} unit={`/ ${attendeeCount}`} />
+          <Stat
+            label={t("listRow.checkedIn")}
+            value={t.rich("units.ofTotal", {
+              count: checkedInCount,
+              total: attendeeCount,
+              num: statNumber,
+              unit: statUnit,
+            })}
+          />
         </div>
       )}
       <ChevronRight className="hidden size-[18px] shrink-0 text-gray-400 sm:block" />

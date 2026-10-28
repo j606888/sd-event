@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, MapPin } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,8 @@ type Location = {
 export default function EventLocationsPage() {
   // 驗票人員看不到團隊/常用資訊設定，導回活動列表
   const { ready: isTeamAdminReady } = useRequireTeamAdmin();
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +85,7 @@ export default function EventLocationsPage() {
     setSubmitError(null);
     const name = formName.trim();
     if (!name) {
-      setSubmitError("請輸入名稱");
+      setSubmitError(t("nameRequired"));
       return;
     }
 
@@ -106,13 +109,13 @@ export default function EventLocationsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || (isEditing ? "更新失敗" : "新增失敗"));
+        setSubmitError(data.error || (isEditing ? t("updateFailed") : t("addFailed")));
         return;
       }
       setDrawerOpen(false);
       fetchLocations();
     } catch {
-      setSubmitError(isEditing ? "更新失敗" : "新增失敗");
+      setSubmitError(isEditing ? t("updateFailed") : t("addFailed"));
     }
   };
 
@@ -120,7 +123,7 @@ export default function EventLocationsPage() {
   if (!isTeamAdminReady) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -128,7 +131,7 @@ export default function EventLocationsPage() {
   if (teamLoading || (teamId == null && !teamError)) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -136,7 +139,7 @@ export default function EventLocationsPage() {
   if (teamError || teamId == null) {
     return (
       <div className="p-6">
-        <p className="text-red-500">{teamError || "請先建立或加入團隊"}</p>
+        <p className="text-red-500">{teamError || t("noTeam")}</p>
       </div>
     );
   }
@@ -144,18 +147,18 @@ export default function EventLocationsPage() {
   return (
     <div className="w-full max-w-3xl px-4 py-5 md:px-8 md:py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink">活動地點</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">{t("location.title")}</h1>
         <Button onClick={openDrawer} className="gap-2">
           <Plus className="size-4" />
-          新增地點
+          <span>{t("location.add")}</span>
         </Button>
       </div>
 
       {loading ? (
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       ) : locations.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
-          尚無活動地點，點擊「新增地點」建立
+          {t("location.empty")}
         </div>
       ) : (
         <ul className="surface-card overflow-hidden divide-y divide-hairline">
@@ -181,19 +184,19 @@ export default function EventLocationsPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         subtitle={editingLocationId ? "Edit Location" : "New Location"}
-        title={editingLocationId ? "編輯活動地點" : "新增活動地點"}
+        title={editingLocationId ? t("location.editTitle") : t("location.newTitle")}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {submitError && (
             <p className="text-sm text-red-500">{submitError}</p>
           )}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="loc-name">名稱 *</Label>
+            <Label htmlFor="loc-name">{t("nameLabel")}</Label>
             <Input
               id="loc-name"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              placeholder="輸入名稱"
+              placeholder={t("namePlaceholder")}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -202,33 +205,33 @@ export default function EventLocationsPage() {
               id="loc-map"
               value={formGoogleMap}
               onChange={(e) => setFormGoogleMap(e.target.value)}
-              placeholder="輸入 Google Map"
+              placeholder={t("location.googleMapPlaceholder")}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="loc-address">地址 *</Label>
+            <Label htmlFor="loc-address">{t("location.addressLabelRequired")}</Label>
             <Input
               id="loc-address"
               value={formAddress}
               onChange={(e) => setFormAddress(e.target.value)}
-              placeholder="輸入地址"
+              placeholder={t("location.addressPlaceholder")}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="loc-remark">備註</Label>
+            <Label htmlFor="loc-remark">{t("location.remarkLabel")}</Label>
             <Input
               id="loc-remark"
               value={formRemark}
               onChange={(e) => setFormRemark(e.target.value)}
-              placeholder="輸入備註"
+              placeholder={t("location.remarkPlaceholder")}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
-              取消
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
-              {editingLocationId ? "更新" : "新增"}
+              {editingLocationId ? t("update") : tCommon("add")}
             </Button>
           </div>
         </form>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { loginPath } from "@/lib/safe-next-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { Logo } from "@/components/brand/Logo";
 
 export default function SetupTeamPage() {
   const router = useRouter();
+  const t = useTranslations("auth.setupTeam");
+  const tCommon = useTranslations("common");
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState<{ id: number; name: string }[]>([]);
   const [name, setName] = useState("");
@@ -58,7 +61,7 @@ export default function SetupTeamPage() {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      setSubmitError("請輸入團隊名稱");
+      setSubmitError(t("nameRequired"));
       return;
     }
     setSubmitError(null);
@@ -72,14 +75,14 @@ export default function SetupTeamPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || "建立失敗");
+        setSubmitError(data.error || t("failed"));
         setSubmitting(false);
         return;
       }
       router.push("/events");
       router.refresh();
     } catch {
-      setSubmitError("建立失敗");
+      setSubmitError(t("failed"));
       setSubmitting(false);
     }
   };
@@ -87,7 +90,7 @@ export default function SetupTeamPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -95,7 +98,7 @@ export default function SetupTeamPage() {
   if (teams.length > 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <p className="text-gray-500">正在導向…</p>
+        <p className="text-gray-500">{t("redirecting")}</p>
       </div>
     );
   }
@@ -106,19 +109,19 @@ export default function SetupTeamPage() {
         <h1 className="mb-2 self-start">
           <Logo />
         </h1>
-        <p className="text-gray-600 mb-8">請先建立一個團隊，才能開始使用活動功能。</p>
+        <p className="text-gray-600 mb-8">{t("intro")}</p>
 
         <form
           onSubmit={handleSubmit}
           className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
         >
           <div className="flex flex-col gap-2 mb-6">
-            <Label htmlFor="team-name">團隊名稱</Label>
+            <Label htmlFor="team-name">{t("nameLabel")}</Label>
             <Input
               id="team-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="輸入團隊名稱"
+              placeholder={t("namePlaceholder")}
               disabled={submitting}
             />
           </div>
@@ -130,7 +133,7 @@ export default function SetupTeamPage() {
             className="w-full bg-brand hover:bg-brand-hover text-ink"
             disabled={submitting}
           >
-            {submitting ? "建立中…" : "建立團隊"}
+            {submitting ? tCommon("creating") : t("submit")}
           </Button>
         </form>
       </main>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +16,9 @@ import {
   isBundleItem,
   requiredAttendeeCount,
   seatCountOf,
-  validateSeatCount,
+  findSeatCountMismatch,
 } from "@/lib/seat-count";
-import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
+import { findFlaggedShortfall, normalizeFlagLabel } from "@/lib/attendee-flag";
 import { isItemOnSale } from "@/lib/pricing";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
@@ -44,6 +45,8 @@ export function WalkInDrawer({
   onClose,
   onSuccess,
 }: WalkInDrawerProps) {
+  const t = useTranslations("registration");
+  const tCommon = useTranslations("common");
   const eventQuery = useEvent(String(eventId));
   const publicKey = eventQuery.data?.publicKey;
   const publicEventQuery = usePublicEvent(publicKey);
@@ -180,7 +183,7 @@ export function WalkInDrawer({
 
     const ids = selectedItemIds();
     if (ids.length === 0) {
-      setError("請選擇報名項目");
+      setError(t("walkIn.selectItem"));
       return;
     }
     const validParticipants = participants
@@ -191,21 +194,21 @@ export function WalkInDrawer({
       }))
       .filter((p) => p.name && ROLES.includes(p.role as (typeof ROLES)[number]));
     if (validParticipants.length === 0) {
-      setError("請至少填寫一位參加者的姓名與角色");
+      setError(t("form.atLeastOneAttendee"));
       return;
     }
-    const seatError = validateSeatCount(selectedItems, validParticipants.length);
-    if (seatError) {
-      setError(seatError);
+    const seatMismatch = findSeatCountMismatch(selectedItems, validParticipants.length);
+    if (seatMismatch) {
+      setError(t("form.seatCountMismatch", seatMismatch));
       return;
     }
-    const flagError = validateFlaggedCount(
+    const flagShortfall = findFlaggedShortfall(
       selectedItems,
       validParticipants.filter((p) => p.flagged).length,
       flagLabel
     );
-    if (flagError) {
-      setError(flagError);
+    if (flagShortfall) {
+      setError(t("form.flaggedShortfall", flagShortfall));
       return;
     }
     const name = contactName.trim() || validParticipants[0].name;
@@ -223,7 +226,7 @@ export function WalkInDrawer({
       onSuccess?.();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "現場報名失敗");
+      setError(e instanceof Error ? e.message : t("walkIn.failed"));
     }
   };
 
@@ -233,20 +236,20 @@ export function WalkInDrawer({
     <Drawer
       open={open}
       onClose={onClose}
-      title="現場報名"
-      subtitle="現金付款・即時報到"
+      title={t("walkIn.title")}
+      subtitle={t("walkIn.subtitle")}
     >
       {isLoading || !event ? (
-        <p className="py-8 text-center text-sm text-gray-500">載入中…</p>
+        <p className="py-8 text-center text-sm text-gray-500">{tCommon("loading")}</p>
       ) : (
         <div className="space-y-6">
           {/* 報名項目 */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              報名項目
+              <span>{t("itemsHeading")}</span>
               {event.activeTier ? (
                 <span className="ml-2 text-xs font-normal text-gray-400">
-                  （{event.activeTier.name}）
+                  {t("tierSuffix", { tier: event.activeTier.name })}
                 </span>
               ) : null}
             </h3>
@@ -263,7 +266,7 @@ export function WalkInDrawer({
                       {group.required && <span className="ml-1 text-red-500">*</span>}
                       {locked && (
                         <span className="ml-2 text-gray-400">
-                          （已包含於「{lockingGroup!.title}」）
+                          {t("walkIn.lockedBy", { group: lockingGroup!.title })}
                         </span>
                       )}
                     </p>
@@ -296,8 +299,12 @@ export function WalkInDrawer({
                           />
                           <WalkInItemName item={item} />
                           <span className="text-sm text-gray-600">
-                            ${item.amount}
-                            {seatCountOf(item) > 1 && ` / ${seatCountOf(item)} 人`}
+                            {seatCountOf(item) > 1
+                              ? t("walkIn.priceForSeats", {
+                                  amount: String(item.amount),
+                                  seats: seatCountOf(item),
+                                })
+                              : `$${item.amount}`}
                           </span>
                         </label>
                       );
@@ -315,7 +322,9 @@ export function WalkInDrawer({
                           onChange={() => setGroupSelection(group, [])}
                           className="h-4 w-4 text-brand-strong"
                         />
-                        <span className="flex-1 text-sm text-gray-900">不需要</span>
+                        <span className="flex-1 text-sm text-gray-900">
+                          {t("walkIn.noneOption")}
+                        </span>
                       </label>
                     )}
                   </div>
@@ -352,8 +361,12 @@ export function WalkInDrawer({
                     />
                     <WalkInItemName item={item} />
                     <span className="text-sm text-gray-600">
-                      ${item.amount}
-                      {seatCountOf(item) > 1 && ` / ${seatCountOf(item)} 人`}
+                      {seatCountOf(item) > 1
+                        ? t("walkIn.priceForSeats", {
+                            amount: String(item.amount),
+                            seats: seatCountOf(item),
+                          })
+                        : `$${item.amount}`}
                     </span>
                   </label>
                 );
@@ -363,10 +376,15 @@ export function WalkInDrawer({
 
           {/* 參加者 */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900">參加者</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("form.attendeesHeading")}</h3>
             {bundleItem && requiredParticipants != null && (
               <p className="rounded-lg bg-brand/5 p-2.5 text-xs text-gray-700">
-                「{bundleItem.name}」需填剛好 {requiredParticipants} 位參加者。
+                <span>
+                  {t("walkIn.bundleHint", {
+                    name: bundleItem.name,
+                    count: requiredParticipants,
+                  })}
+                </span>
                 {bundleItem.description && (
                   <span className="mt-1 block whitespace-pre-line text-gray-600">
                     {bundleItem.description}
@@ -377,20 +395,22 @@ export function WalkInDrawer({
             {participants.map((p, index) => (
               <div key={p.id} className="space-y-2 rounded-lg border border-gray-200 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-500">參加者 {index + 1}</span>
+                  <span className="text-xs font-medium text-gray-500">
+                    {t("form.attendeeN", { n: index + 1 })}
+                  </span>
                   {participants.length > 1 && requiredParticipants == null && (
                     <button
                       type="button"
                       onClick={() => removeParticipant(p.id)}
                       className="text-gray-400 hover:text-red-500"
-                      aria-label="移除參加者"
+                      aria-label={t("form.removeAttendee")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                 </div>
                 <Input
-                  placeholder="姓名"
+                  placeholder={t("form.namePlaceholder")}
                   value={p.name}
                   onChange={(e) => updateParticipant(p.id, "name", e.target.value)}
                 />
@@ -429,17 +449,17 @@ export function WalkInDrawer({
                 className="w-full gap-1.5 border-brand text-brand-strong hover:bg-brand/10"
               >
                 <Plus className="h-4 w-4" />
-                增加參加者
+                <span>{t("form.addAttendee")}</span>
               </Button>
             )}
           </div>
 
           {/* 聯絡人（選填） */}
           <div className="space-y-2">
-            <Label htmlFor="walkin-contact">聯絡人姓名（選填，預設用第一位參加者）</Label>
+            <Label htmlFor="walkin-contact">{t("walkIn.contactLabel")}</Label>
             <Input
               id="walkin-contact"
-              placeholder="聯絡人姓名"
+              placeholder={t("walkIn.contactPlaceholder")}
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
             />
@@ -448,13 +468,15 @@ export function WalkInDrawer({
           {/* 金額 */}
           <div className="space-y-2">
             <Label htmlFor="walkin-amount">
-              {canOverrideAmount ? "收取金額（自動帶入，可修改）" : "應收金額"}
+              {canOverrideAmount
+                ? t("walkIn.amountLabelEditable")
+                : t("walkIn.amountLabelReadOnly")}
             </Label>
             <Input
               id="walkin-amount"
               type="number"
               min={0}
-              placeholder="金額"
+              placeholder={t("form.amountPlaceholder")}
               value={amountInput}
               readOnly={!canOverrideAmount}
               aria-readonly={!canOverrideAmount}
@@ -475,14 +497,14 @@ export function WalkInDrawer({
               onChange={(e) => setAutoCheckIn(e.target.checked)}
               className="h-4 w-4 text-brand-strong"
             />
-            建立後立即報到（標記為已入場）
+            <span>{t("walkIn.autoCheckIn")}</span>
           </label>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>
-              取消
+              {tCommon("cancel")}
             </Button>
             <Button
               type="button"
@@ -490,7 +512,7 @@ export function WalkInDrawer({
               disabled={createWalkIn.isPending}
               className="bg-brand text-ink hover:bg-brand-hover"
             >
-              {createWalkIn.isPending ? "建立中…" : "確認報名（現金）"}
+              {createWalkIn.isPending ? tCommon("creating") : t("walkIn.submit")}
             </Button>
           </div>
         </div>
@@ -501,13 +523,14 @@ export function WalkInDrawer({
 
 /** 項目名稱 + 套票人數 / 說明（現場報名用的精簡版） */
 function WalkInItemName({ item }: { item: EventPurchaseItem }) {
+  const t = useTranslations("registration.walkIn");
   const seats = seatCountOf(item);
   return (
     <span className="flex-1 text-sm text-gray-900">
       {item.name}
       {seats > 1 && (
         <span className="ml-1.5 rounded bg-brand/10 px-1 py-0.5 text-xs font-medium text-brand-strong">
-          {seats} 人套票
+          {t("bundleBadge", { seats })}
         </span>
       )}
       {item.description && (

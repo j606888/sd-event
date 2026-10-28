@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { formatClockTime } from "@/lib/format-event-date";
 import { cn } from "@/lib/utils";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
@@ -60,10 +61,12 @@ export function RegistrationRow({
   onSelect,
   onAction,
 }: RegistrationRowProps) {
+  const t = useTranslations("events.registrationRow");
+  const tCommon = useTranslations("common");
   const action = getRowAction(reg, canManage);
   const partiallyEntered =
     action.kind !== "entered" && (reg.checkedInCount ?? 0) > 0
-      ? `${reg.checkedInCount}/${reg.attendeeCount} 已入場`
+      ? t("partiallyCheckedIn", { checked: reg.checkedInCount ?? 0, total: reg.attendeeCount })
       : null;
   // 單人報名且參加者就是聯絡人時，名字不用再寫一次，只留角色
   const sameAsContact =
@@ -79,7 +82,7 @@ export function RegistrationRow({
       <button
         type="button"
         onClick={onSelect}
-        aria-label={`查看 ${reg.contactName} 的報名明細`}
+        aria-label={t("viewDetailAria", { name: reg.contactName })}
         className="flex min-h-[52px] min-w-0 flex-1 cursor-pointer flex-col items-start justify-center gap-1 py-1 text-left @2xl:flex-row @2xl:items-center @2xl:gap-4"
       >
         <span className="flex min-w-0 flex-col gap-1 @2xl:flex-1">
@@ -88,13 +91,13 @@ export function RegistrationRow({
             {sameAsContact && <RoleBadge role={reg.attendees[0].role} compact />}
             {reg.source === "walk_in" && (
               <span className="rounded-md bg-brand-soft px-1.5 py-px text-[11px] font-bold text-brand-strong">
-                現場
+                {t("walkIn")}
               </span>
             )}
             {reg.hidden && (
               <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-1.5 py-px text-[11px] font-bold text-amber-800">
                 <EyeOff className="size-3" />
-                已隱藏
+                <span>{t("hidden")}</span>
               </span>
             )}
           </span>
@@ -140,7 +143,7 @@ export function RegistrationRow({
           onClick={() => onAction(action)}
           className={cn(ACTION_BASE, "bg-butter font-bold text-ink hover:bg-butter-hover")}
         >
-          {busy ? "處理中…" : "確認收款"}
+          {busy ? tCommon("processing") : t("confirmPayment")}
         </button>
       )}
       {action.kind === "check_in" && (
@@ -150,7 +153,11 @@ export function RegistrationRow({
           onClick={() => onAction(action)}
           className={cn(ACTION_BASE, "bg-brand text-base font-bold text-ink hover:bg-brand-hover")}
         >
-          {busy ? "處理中…" : action.count > 1 ? `入場 ${action.count}` : "入場"}
+          {busy
+            ? tCommon("processing")
+            : action.count > 1
+              ? t("checkInCount", { count: action.count })
+              : t("checkIn")}
         </button>
       )}
       {action.kind === "check_in_unpaid" && (
@@ -163,7 +170,11 @@ export function RegistrationRow({
             "border border-gray-300 bg-white font-medium text-ink hover:border-ink"
           )}
         >
-          {busy ? "處理中…" : action.count > 1 ? `入場 ${action.count}` : "入場"}
+          {busy
+            ? tCommon("processing")
+            : action.count > 1
+              ? t("checkInCount", { count: action.count })
+              : t("checkIn")}
         </button>
       )}
       {action.kind === "entered" && (
@@ -174,7 +185,7 @@ export function RegistrationRow({
           )}
         >
           <Check className="size-3.5" strokeWidth={3} />
-          已入場
+          <span>{t("checkedIn")}</span>
           {action.at && (
             <span className="font-display tabular-nums">{formatClockTime(action.at)}</span>
           )}
@@ -187,7 +198,7 @@ export function RegistrationRow({
             "cursor-default border border-dashed border-card-border text-[13px] text-muted-ink"
           )}
         >
-          不需入場
+          {t("noCheckInNeeded")}
         </span>
       )}
       {action.kind === "none" && <span className="w-[104px] shrink-0 @2xl:w-[112px]" />}

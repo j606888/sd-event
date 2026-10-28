@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Drawer } from "@/components/ui/drawer";
 import { LocationDrawer } from "./LocationDrawer";
 import { OrganizerDrawer } from "./OrganizerDrawer";
@@ -18,6 +19,7 @@ type EventFormDrawersProps = {
 
 /** 表單相關抽屜（地點／票券／須知／主辦／銀行／LINE 付款好友），create 與 edit 共用 */
 export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawersProps) {
+  const t = useTranslations("eventForm.drawers");
   const {
     drawer,
     closeDrawer,
@@ -52,18 +54,18 @@ export function EventFormDrawers({ mode, teamId, eventId, form }: EventFormDrawe
       }
       title={
         drawer === "location"
-          ? "新增活動地點"
+          ? t("addLocation")
           : drawer === "purchaseItem"
             ? editingItemIndex != null
-              ? "編輯票券"
-              : "新增票券"
+              ? t("editTicket")
+              : t("addTicket")
             : drawer === "notice"
-              ? "新增須知項目"
+              ? t("addNotice")
               : drawer === "organizer"
-                ? "新增主辦單位"
+                ? t("addOrganizer")
                 : drawer === "linePayee"
-                  ? "新增 LINE 付款好友"
-                  : "新增銀行資訊"
+                  ? t("addLinePayee")
+                  : t("addBankInfo")
       }
     >
       {drawer === "location" && (

@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { useEventStats } from "@/hooks/use-event-stats";
 import {
   checkInSummary,
@@ -12,12 +14,20 @@ import type {
   PaymentFilter,
 } from "@/lib/registration-list-filters";
 import { cn } from "@/lib/utils";
+import { richText } from "@/lib/rich-text";
 
 /** 角色數字卡的底色／字色，與 RoleBadge 同一套 */
 const ROLE_TILE: Record<keyof RoleCounts, string> = {
   Leader: "bg-leader text-white",
   Follower: "bg-follower-soft text-follower",
   "Not sure": "bg-field text-muted-ink",
+};
+
+/** 角色顯示名稱的翻譯 key（events.stats.role.*） */
+const ROLE_LABEL_KEY: Record<keyof RoleCounts, "Leader" | "Follower" | "notSure"> = {
+  Leader: "Leader",
+  Follower: "Follower",
+  "Not sure": "notSure",
 };
 
 const CARD = "surface-card p-5 sm:p-6";
@@ -43,17 +53,26 @@ type EventStatsProps = {
 
 const money = (n: number) => `NT$ ${n.toLocaleString()}`;
 
+// 總人數：數字與單位各自一個元素（events.units.people）
+const totalNumber = (chunks: ReactNode) => <span>{richText(chunks)}</span>;
+const totalUnit = (chunks: ReactNode) => (
+  <span className="text-sm font-medium text-muted-ink">{richText(chunks)}</span>
+);
+
 export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) {
   const { data, isLoading, error } = useEventStats(eventId);
+  const t = useTranslations("events.stats");
+  const tEvents = useTranslations("events");
+  const tCommon = useTranslations("common");
 
   if (isLoading) {
-    return <p className="py-12 text-sm text-gray-500">載入統計中…</p>;
+    return <p className="py-12 text-sm text-gray-500">{t("loading")}</p>;
   }
 
   if (error) {
     return (
       <p className="py-8 text-sm text-red-600">
-        {error instanceof Error ? error.message : "載入失敗"}
+        {error instanceof Error ? error.message : t("loadFailed")}
       </p>
     );
   }
@@ -81,16 +100,15 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
       {/* 報名人數：只給數字，Leader / Follower 差多少一眼看得出來 */}
       <section className={CARD}>
         <div className="mb-4 flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-base font-bold text-ink">報名人數</h3>
+          <h3 className="font-display text-base font-bold text-ink">{t("headcount")}</h3>
           <div className="font-display text-4xl font-bold leading-none text-ink tabular-nums">
-            {roles.total}
-            <span className="text-sm font-medium text-muted-ink"> 人</span>
+            {tEvents.rich("units.people", { count: roles.total, num: totalNumber, unit: totalUnit })}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2.5">
           {roles.rows.map((row) => (
             <div key={row.key} className={cn("rounded-xl px-3.5 py-3", ROLE_TILE[row.key])}>
-              <div className="text-[13px] font-bold">{row.label}</div>
+              <div className="text-[13px] font-bold">{t(`role.${ROLE_LABEL_KEY[row.key]}`)}</div>
               <div className="font-display text-[32px] font-bold leading-tight tabular-nums">
                 {row.count}
               </div>
@@ -98,15 +116,15 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-muted-ink">僅包含「未隱藏」的報名資料。</p>
+        <p className="mt-3 text-xs text-muted-ink">{t("hiddenNote")}</p>
       </section>
 
       {/* 入場 */}
       <section className={CARD}>
         <div className="mb-4 flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-base font-bold text-ink">入場</h3>
+          <h3 className="font-display text-base font-bold text-ink">{t("checkIn")}</h3>
           <div className="text-xs text-muted-ink">
-            入場率{" "}
+            <span>{t("checkInRate")}</span>{" "}
             <span className="font-display text-sm font-semibold text-ink tabular-nums">
               {checkIn.pct}%
             </span>
@@ -114,13 +132,13 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <StatTile
-            label="已入場"
+            label={t("checkedIn")}
             value={checkIn.entered}
             className="bg-brand text-ink"
             onClick={drillDown({ checkIn: "all_entered" })}
           />
           <StatTile
-            label="未入場"
+            label={t("notCheckedIn")}
             value={checkIn.notEntered}
             className="bg-field text-ink"
             onClick={drillDown({ checkIn: "not_all" })}
@@ -131,9 +149,9 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
       {/* 款項：入帳、在路上、全部收齊的上限 */}
       <section className={CARD}>
         <div className="mb-2 flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-base font-bold text-ink">款項</h3>
+          <h3 className="font-display text-base font-bold text-ink">{t("payments")}</h3>
           <div className="text-xs text-muted-ink">
-            收款進度{" "}
+            <span>{t("collectProgress")}</span>{" "}
             <span className="font-display text-sm font-semibold text-ink tabular-nums">
               {payments.collectedPct}%
             </span>
@@ -150,8 +168,12 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
                   style={{ backgroundColor: row.color }}
                   aria-hidden
                 />
-                <span className="flex-1 text-left font-medium text-ink">{row.label}</span>
-                <span className="text-muted-ink tabular-nums">{row.count} 筆</span>
+                <span className="flex-1 text-left font-medium text-ink">
+                  {t(`paymentRow.${row.key}`)}
+                </span>
+                <span className="text-muted-ink tabular-nums">
+                  {tCommon("registrations", { count: row.count })}
+                </span>
                 <span className="min-w-[112px] text-right font-display text-lg font-bold text-ink tabular-nums">
                   {money(row.amount)}
                 </span>
@@ -176,8 +198,10 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
           })}
 
           <div className="flex min-h-12 items-center gap-2.5 text-sm">
-            <span className="flex-1 font-bold text-ink">全部付款可收</span>
-            <span className="text-muted-ink tabular-nums">{payments.totalCount} 筆</span>
+            <span className="flex-1 font-bold text-ink">{t("expectedTotal")}</span>
+            <span className="text-muted-ink tabular-nums">
+              {tCommon("registrations", { count: payments.totalCount })}
+            </span>
             <span className="min-w-[112px] text-right font-display text-lg font-bold text-ink tabular-nums">
               {money(payments.expectedTotal)}
             </span>
@@ -186,12 +210,10 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
       </section>
 
       <section className={CARD}>
-        <h3 className="mb-1 font-display text-base font-bold text-ink">報名項目</h3>
-        <p className="mb-3 text-xs text-gray-400">
-          金額為各筆報名成交價加總（含時段價，折扣碼折抵另列於下方）
-        </p>
+        <h3 className="mb-1 font-display text-base font-bold text-ink">{t("items")}</h3>
+        <p className="mb-3 text-xs text-gray-400">{t("itemsNote")}</p>
         {purchaseItemSummary.length === 0 ? (
-          <p className="text-sm text-gray-500">尚無報名項目資料</p>
+          <p className="text-sm text-gray-500">{t("itemsEmpty")}</p>
         ) : (
           <ul className="divide-y divide-hairline">
             {purchaseItemSummary.map((item) => {
@@ -202,7 +224,7 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
                   <span className="text-left text-gray-700">{item.name}</span>
                   <span className="shrink-0">
                     <span className="font-medium text-gray-900 tabular-nums">
-                      {item.attendeeCount} 人
+                      {tCommon("people", { count: item.attendeeCount })}
                     </span>
                     <span className="ml-3 text-gray-500 tabular-nums">
                       {money(item.revenue)}
@@ -235,17 +257,17 @@ export function EventStats({ eventId, onFilterRegistrations }: EventStatsProps) 
         {purchaseItemSummary.length > 0 && (
           <dl className="mt-3 space-y-1.5 border-t border-hairline pt-3 text-[13px]">
             <div className="flex items-baseline justify-between">
-              <dt className="text-gray-500">項目小計</dt>
+              <dt className="text-gray-500">{t("itemsSubtotal")}</dt>
               <dd className="tabular-nums text-gray-700">{money(itemsSubtotal)}</dd>
             </div>
             <div className="flex items-baseline justify-between">
-              <dt className="text-gray-500">折扣碼折抵</dt>
+              <dt className="text-gray-500">{t("couponDiscount")}</dt>
               <dd className="tabular-nums text-gray-700">
                 {discountTotal > 0 ? `− ${money(discountTotal)}` : money(0)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between pt-1">
-              <dt className="font-medium text-ink">折抵後應收</dt>
+              <dt className="font-medium text-ink">{t("netDue")}</dt>
               <dd className="font-display text-[15px] font-semibold text-ink tabular-nums">
                 {money(itemsSubtotal - discountTotal)}
               </dd>
@@ -266,11 +288,12 @@ type StatTileProps = {
 
 /** 入場的兩個大數字；帶 onClick 時整格可點，跳到報名者分頁。 */
 function StatTile({ label, value, className, onClick }: StatTileProps) {
+  const t = useTranslations("events.stats");
   const inner = (
     <>
       <div className="text-[13px] font-bold">{label}</div>
       <div className="font-display text-[32px] font-bold leading-tight tabular-nums">{value}</div>
-      {onClick && <div className="text-xs opacity-80">看名單 →</div>}
+      {onClick && <div className="text-xs opacity-80">{t("viewList")}</div>}
     </>
   );
   const base = cn("rounded-xl px-3.5 py-3 text-left", className);
