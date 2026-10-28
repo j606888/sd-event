@@ -4,6 +4,7 @@ import { teamMembers, users, teamInvitations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { isAssignableTeamRole } from "@/lib/team-roles";
+import { sendTeamJoinEmail } from "@/lib/team-invitation-email";
 import { eq, and, asc, isNull } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -115,7 +116,16 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "新增失敗" }, { status: 500 });
     }
 
+    const emailSent = await sendTeamJoinEmail({
+      to: user.email,
+      teamId,
+      inviterUserId: session.userId,
+      role,
+      hasAccount: true,
+    });
+
     return NextResponse.json({
+      emailSent,
       member: {
         userId: newMember.userId,
         role: newMember.role,
@@ -160,7 +170,16 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "建立邀請失敗" }, { status: 500 });
     }
 
+    const emailSent = await sendTeamJoinEmail({
+      to: email,
+      teamId,
+      inviterUserId: session.userId,
+      role,
+      hasAccount: false,
+    });
+
     return NextResponse.json({
+      emailSent,
       invitation: {
         id: invitation.id,
         email: invitation.email,
