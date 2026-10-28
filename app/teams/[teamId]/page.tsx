@@ -54,6 +54,10 @@ export default function TeamDetailPage() {
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
+  const [resendingId, setResendingId] = useState<number | null>(null);
+  // 邀請／重寄後的結果，主要是讓管理員知道信有沒有寄出去
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [formEmail, setFormEmail] = useState("");
   const [formRole, setFormRole] = useState<AssignableTeamRole>("member");
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -153,6 +157,7 @@ export default function TeamDetailPage() {
       setSubmitError("請輸入 email");
       return;
     }
+    setInviting(true);
     try {
       const res = await fetch(`/api/teams/${teamId}/members`, {
         method: "POST",
@@ -165,11 +170,47 @@ export default function TeamDetailPage() {
         setSubmitError(data.error || "邀請失敗");
         return;
       }
+      if (data.member) {
+        setNotice(
+          data.emailSent
+            ? { tone: "success", text: `已把 ${email} 加入團隊，並寄信通知對方` }
+            : { tone: "error", text: `已把 ${email} 加入團隊，但通知信沒寄出去` }
+        );
+      } else {
+        setNotice(
+          data.emailSent
+            ? { tone: "success", text: `已寄出邀請信給 ${email}，對方用這個信箱註冊後就會加入團隊` }
+            : { tone: "error", text: `已建立邀請，但邀請信沒寄出去，可以在下方「待處理邀請」重寄` }
+        );
+      }
       setDrawerOpen(false);
       setFormEmail("");
       fetchMembers();
     } catch {
       setSubmitError("邀請失敗");
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleResendInvitation = async (invitation: TeamInvitation) => {
+    if (!Number.isInteger(teamId)) return;
+    setResendingId(invitation.id);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/invitations/${invitation.id}/resend`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      setNotice(
+        res.ok
+          ? { tone: "success", text: `已重新寄出邀請信給 ${invitation.email}` }
+          : { tone: "error", text: data.error || "邀請信寄送失敗，請稍後再試" }
+      );
+    } catch {
+      setNotice({ tone: "error", text: "邀請信寄送失敗，請稍後再試" });
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -276,6 +317,17 @@ export default function TeamDetailPage() {
           </Button>
         )}
       </div>
+
+      {notice && (
+        <p
+          role="status"
+          className={`mb-6 rounded-lg px-4 py-3 text-sm ${
+            notice.tone === "success" ? "bg-brand-soft text-brand-strong" : "bg-red-50 text-red-600"
+          }`}
+        >
+          {notice.text}
+        </p>
+      )}
 
       <div className="space-y-2">
         <h2 className="text-xs font-bold tracking-[0.15em] text-muted-ink">團隊成員</h2>
@@ -396,6 +448,18 @@ export default function TeamDetailPage() {
                     邀請於 {new Date(invitation.createdAt).toLocaleDateString("zh-TW")} 送出
                   </p>
                 </div>
+                {isTeamAdmin(currentUserRole) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={resendingId === invitation.id}
+                    onClick={() => void handleResendInvitation(invitation)}
+                    className="shrink-0"
+                  >
+                    {resendingId === invitation.id ? "寄送中…" : "重寄邀請信"}
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -422,7 +486,7 @@ export default function TeamDetailPage() {
               placeholder="輸入成員 email"
             />
             <p className="text-xs text-gray-500">
-              已註冊的使用者會直接加入團隊；未註冊的會建立邀請，註冊後自動入隊
+              已註冊的使用者會直接加入團隊並收到通知信；未註冊的會收到邀請信，用這個信箱註冊後自動入隊
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -460,8 +524,8 @@ export default function TeamDetailPage() {
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
               取消
             </Button>
-            <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
-              邀請
+            <Button type="submit" disabled={inviting} className="bg-primary text-ink hover:bg-brand-hover">
+              {inviting ? "邀請中…" : "邀請"}
             </Button>
           </div>
         </form>

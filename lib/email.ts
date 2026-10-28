@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
+import { TEAM_ROLE_DESCRIPTION, TEAM_ROLE_LABEL, type AssignableTeamRole } from "@/lib/team-roles";
 
 const apiKey = process.env.RESEND_API_KEY;
 const from =
@@ -243,6 +244,86 @@ export async function sendRefundedEmail(
 
   if (error) {
     console.error("Resend sendRefundedEmail error:", error);
+    return { ok: false, error: String(error.message) };
+  }
+  return { ok: true };
+}
+
+export type TeamJoinEmail = {
+  teamName: string;
+  inviterName: string;
+  role: AssignableTeamRole;
+};
+
+function teamRoleHtml(role: AssignableTeamRole): string {
+  return `<p>權限：<strong>${TEAM_ROLE_LABEL[role]}</strong>（${TEAM_ROLE_DESCRIPTION[role]}）</p>`;
+}
+
+/**
+ * 邀請還沒有帳號的人加入團隊。對方用收信的這個信箱註冊後，就會自動加入。
+ */
+export async function sendTeamInvitationEmail(
+  to: string,
+  n: TeamJoinEmail
+): Promise<{ ok: boolean; error?: string }> {
+  if (!resend) {
+    console.warn("RESEND_API_KEY not set, skipping team invitation email");
+    return { ok: false, error: "Email not configured" };
+  }
+
+  const e = escapeHtml;
+  const subject = `[團隊邀請] ${n.inviterName} 邀請你加入「${n.teamName}」`;
+  const url = `${siteUrl}/register`;
+
+  const html = `
+    <p>您好，</p>
+    <p>${e(n.inviterName)} 邀請你加入 SD Event 上的團隊「<strong>${e(n.teamName)}</strong>」，一起管理活動報名與入場。</p>
+    ${teamRoleHtml(n.role)}
+    <p><a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: #1E2F3D; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">建立帳號並加入團隊</a></p>
+    <p>註冊時請使用這個信箱（${e(to)}），完成後會自動加入團隊。</p>
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+    <p style="color: #666; font-size: 12px;">— SD Event｜如果你不認識邀請人，忽略這封信即可。</p>
+  `;
+
+  const { error } = await resend.emails.send({ from, to: [to], subject, html });
+
+  if (error) {
+    console.error("Resend sendTeamInvitationEmail error:", error);
+    return { ok: false, error: String(error.message) };
+  }
+  return { ok: true };
+}
+
+/**
+ * 已經有帳號的人被直接加進團隊時，通知對方一聲。
+ */
+export async function sendTeamMemberAddedEmail(
+  to: string,
+  n: TeamJoinEmail
+): Promise<{ ok: boolean; error?: string }> {
+  if (!resend) {
+    console.warn("RESEND_API_KEY not set, skipping team member added email");
+    return { ok: false, error: "Email not configured" };
+  }
+
+  const e = escapeHtml;
+  const subject = `[團隊] ${n.inviterName} 把你加入了「${n.teamName}」`;
+  const url = `${siteUrl}/login`;
+
+  const html = `
+    <p>您好，</p>
+    <p>${e(n.inviterName)} 已把你加入 SD Event 上的團隊「<strong>${e(n.teamName)}</strong>」。</p>
+    ${teamRoleHtml(n.role)}
+    <p><a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: #1E2F3D; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">登入查看團隊活動</a></p>
+    <p>登入後可在左上角切換到這個團隊。</p>
+    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+    <p style="color: #666; font-size: 12px;">— SD Event</p>
+  `;
+
+  const { error } = await resend.emails.send({ from, to: [to], subject, html });
+
+  if (error) {
+    console.error("Resend sendTeamMemberAddedEmail error:", error);
     return { ok: false, error: String(error.message) };
   }
   return { ok: true };
