@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, Eye, Loader2, Settings2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { ArrowLeft, Check, ChevronDown, Eye, ListChecks, Loader2, Settings2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { TicketGroupsCard } from "./TicketGroupsCard";
@@ -11,8 +12,12 @@ import { ExclusionRulesCard } from "./ExclusionRulesCard";
 import { CouponsCard } from "./CouponsCard";
 import { AttendeeFlagCard } from "./AttendeeFlagCard";
 import { RegistrationPreview } from "./RegistrationPreview";
+import { TicketPlanOverview } from "./TicketPlanOverview";
+import { TicketPlanWizard } from "./wizard/TicketPlanWizard";
+import { buildDefaultPlan } from "./wizard/plan-view";
 import type { UseEventFormReturn } from "@/hooks/use-event-form";
 import { useReadOnly } from "@/hooks/use-session";
+import type { PlanStep, TicketPlan } from "@/lib/ticket-plan";
 
 type TicketSettingsProps = {
   mode: "create" | "edit";
@@ -64,26 +69,139 @@ function AutoSaveChip({ mode, form }: TicketSettingsProps) {
  * 右側報名頁即時預覽（桌機 sticky 欄；手機收進抽屜）。
  */
 export function TicketSettings({ mode, form }: TicketSettingsProps) {
-  const { groups, autoCalcAmount, setAutoCalcAmount, purchaseItems, priceTiers } = form;
+  const {
+    groups,
+    autoCalcAmount,
+    setAutoCalcAmount,
+    purchaseItems,
+    priceTiers,
+    ticketPlan,
+    ticketPlanInSync,
+    applyTicketPlan,
+    refreshTicketPlanSync,
+  } = form;
   const readOnly = useReadOnly();
   const t = useTranslations("tickets");
+  const tWizard = useTranslations("ticketWizard");
+  const tTemplates = useTranslations("eventForm.templates");
+  const locale = useLocale();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // 用精靈建立的票券預設顯示「售票方案」；進階模式是原本的區塊／互斥設定
+  const [view, setView] = useState<"plan" | "advanced">("plan");
+  const [wizard, setWizard] = useState<{ plan: TicketPlan; step: PlanStep } | null>(null);
 
   // 結構變動（區塊／票券／時段增減）時重置預覽的選取狀態，避免殘留失效選取
   const previewKey = `${groups.length}-${purchaseItems.length}-${priceTiers.length}`;
 
+  const planActive = ticketPlan != null && ticketPlanInSync;
+  const showOverview = planActive && view === "plan";
+
+  const openWizard = (step: PlanStep) =>
+    setWizard({
+      step,
+      plan:
+        ticketPlan ??
+        buildDefaultPlan({
+          eventType: form.type,
+          startAt: form.startAt,
+          endAt: form.endAt,
+          locale,
+          t: (key, values) => tWizard(key as never, values as never),
+          tTemplates: (key) => tTemplates(key as never),
+        }),
+    });
+
+  const finishWizard = async (plan: TicketPlan) => {
+    const error = await applyTicketPlan(plan);
+    if (!error) {
+      setWizard(null);
+      setView("plan");
+    }
+    return error;
+  };
+
+  const backToPlan = async () => {
+    await refreshTicketPlanSync();
+    setView("plan");
+  };
+
+  const statusChip = (
+    <div className="flex items-center justify-end">
+      {readOnly ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+          {t("settings.readOnly")}
+        </span>
+      ) : (
+        <AutoSaveChip mode={mode} form={form} />
+      )}
+    </div>
+  );
+
+  const wizardOverlay = wizard && (
+    <TicketPlanWizard
+      initialPlan={wizard.plan}
+      startStep={wizard.step}
+      eventStartDate={form.startAt.slice(0, 10)}
+      mode={mode}
+      onClose={() => setWizard(null)}
+      onFinish={finishWizard}
+    />
+  );
+
+  if (showOverview && ticketPlan) {
+    return (
+      <div className="flex flex-col gap-3">
+        {statusChip}
+        <div className={readOnly ? "pointer-events-none" : undefined} aria-disabled={readOnly || undefined}>
+          <TicketPlanOverview
+            plan={ticketPlan}
+            mode={mode}
+            purchaseItems={purchaseItems}
+            onEditStep={openWizard}
+            onRerun={() => openWizard("type")}
+            onAdvanced={() => setView("advanced")}
+          />
+        </div>
+        {wizardOverlay}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-end">
-        {readOnly ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-            {t("settings.readOnly")}
-          </span>
+      {statusChip}
+
+      {!readOnly &&
+        (planActive ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-paper px-4 py-3 ring-1 ring-inset ring-card-border">
+            <p className="min-w-0 flex-1 basis-64 text-sm text-gray-700">{tWizard("overview.advancedBar")}</p>
+            <Button type="button" variant="outline" onClick={backToPlan} className="h-10 gap-1.5 bg-white">
+              <ArrowLeft className="size-4" aria-hidden />
+              {tWizard("overview.backToPlan")}
+            </Button>
+          </div>
         ) : (
-          <AutoSaveChip mode={mode} form={form} />
-        )}
-      </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-brand-soft px-5 py-4">
+            <ListChecks className="size-6 shrink-0 text-brand-strong" aria-hidden />
+            <div className="min-w-0 flex-1 basis-72">
+              <p className="font-bold text-ink">{tWizard("start.title")}</p>
+              <p className="mt-0.5 text-sm text-gray-700">
+                {ticketPlan != null ? tWizard("start.outOfSync") : tWizard("start.description")}
+              </p>
+              {mode === "edit" && purchaseItems.length > 0 && (
+                <p className="mt-1 text-xs text-muted-ink">{tWizard("start.replaceWarning")}</p>
+              )}
+            </div>
+            <Button
+              type="button"
+              onClick={() => openWizard("type")}
+              className="h-11 bg-ink px-5 font-semibold text-white hover:bg-ink/90"
+            >
+              {ticketPlan != null ? tWizard("start.rerun") : tWizard("start.button")}
+            </Button>
+          </div>
+        ))}
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start lg:gap-8">
         {/* 左欄：整欄是一張白卡，各設定區塊在卡內以髮絲線分隔 */}
@@ -164,6 +282,7 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
           <RegistrationPreview key={previewKey} form={form} />
         </Drawer>
       )}
+      {wizardOverlay}
     </div>
   );
 }

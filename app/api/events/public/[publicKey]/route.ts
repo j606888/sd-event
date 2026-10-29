@@ -214,9 +214,14 @@ export async function GET(_request: Request, { params }: Params) {
     excludesGroupIds: Array.from(excludesByGroup.get(g.id) ?? []),
   }));
 
+  // 售票精靈的答案只給主辦方看（裡面有折扣碼），公開頁不帶
+  const publicEvent: Partial<typeof event> = { ...event };
+  delete publicEvent.ticketPlan;
+  delete publicEvent.ticketPlanFingerprint;
+
   return NextResponse.json({
     event: {
-      ...event,
+      ...publicEvent,
       location,
       organizer,
       bankInfo,

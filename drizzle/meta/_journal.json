@@ -134,6 +134,13 @@
       "when": 1793240428655,
       "tag": "0018_romantic_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793245656456,
+      "tag": "0019_steady_puck",
+      "breakpoints": true
     }
   ]
 }

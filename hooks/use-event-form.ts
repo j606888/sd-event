@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useUploadThing } from "@/lib/uploadthing";
 import {
@@ -8,6 +8,7 @@ import {
   type EventType,
   type TemplateTextKey,
 } from "@/lib/event-templates";
+import { compileTicketPlan, type TicketPlan } from "@/lib/ticket-plan";
 import {
   taipeiDateInput,
   taipeiDateTimeLocal,
@@ -132,6 +133,85 @@ function toDateTimeLocal(iso: string): string {
   return taipeiDateTimeLocal(iso);
 }
 
+type TicketDrafts = {
+  priceTiers: PriceTierDraft[];
+  groups: PurchaseItemGroupDraft[];
+  purchaseItems: PurchaseItemDraft[];
+  groupExclusions: Array<[string, string]>;
+  coupons: CouponDraft[];
+};
+
+/** 把精靈答案轉成 create 模式的草稿（時段／區塊以 draft index 互相參照，跟範本一樣） */
+function ticketPlanToDrafts(plan: TicketPlan): TicketDrafts {
+  const compiled = compileTicketPlan(plan);
+  const tierIndex = new Map(compiled.tiers.map((t, i) => [t.key, i]));
+  const groupIndex = new Map(compiled.groups.map((g, i) => [g.key, i]));
+  return {
+    priceTiers: compiled.tiers.map((t, i) => ({ name: t.name, endsAt: t.endsAt, sortOrder: i })),
+    groups: compiled.groups.map((g, i) => ({
+      title: g.title,
+      selectionMode: g.selectionMode,
+      required: g.required,
+      sortOrder: i,
+    })),
+    purchaseItems: compiled.items.map((it) => ({
+      name: it.name,
+      amount: it.amount,
+      hidden: false,
+      groupDraftIndex: groupIndex.get(it.groupKey),
+      seatCount: it.seatCount,
+      description: it.description,
+      minFlagged: 0,
+      prices: it.prices.map((p) => ({
+        tierDraftIndex: tierIndex.get(p.tierKey),
+        amount: p.amount,
+        available: p.available,
+      })),
+    })),
+    groupExclusions: compiled.exclusions.map(([a, b]): [string, string] => [
+      `draft-${groupIndex.get(a)}`,
+      `draft-${groupIndex.get(b)}`,
+    ]),
+    coupons: compiled.coupon
+      ? [
+          {
+            code: compiled.coupon.code,
+            discountType: "percent",
+            value: String(compiled.coupon.percentOff),
+            usageLimit:
+              compiled.coupon.usageLimit == null ? "" : String(compiled.coupon.usageLimit),
+          },
+        ]
+      : [],
+  };
+}
+
+/** create 模式比對草稿是否還是精靈產生的樣子（之後在進階模式改過就不算） */
+function ticketDraftsSignature(d: TicketDrafts): string {
+  return JSON.stringify({
+    tiers: d.priceTiers.map((t) => [t.name, t.endsAt]),
+    groups: d.groups.map((g) => [g.title, g.selectionMode, g.required]),
+    items: d.purchaseItems.map((i) => [
+      i.name,
+      i.amount,
+      i.hidden === true,
+      i.groupDraftIndex ?? i.groupId ?? null,
+      i.seatCount ?? 1,
+      i.description ?? null,
+      i.minFlagged ?? 0,
+      (i.prices ?? []).map((p) => [p.tierDraftIndex ?? p.tierId, p.amount, p.available !== false]),
+    ]),
+    exclusions: d.groupExclusions.map(([a, b]) => [a, b].sort()).sort(),
+    coupons: d.coupons.map((c) => [c.code.trim().toUpperCase(), c.discountType, c.value, c.usageLimit]),
+  });
+}
+
+const EVENT_TYPE_BY_PLAN_KIND: Record<TicketPlan["kind"], EventType> = {
+  workshop: "Workshop",
+  party: "Party",
+  festival: "Festival",
+};
+
 function datetimeLocalToISO(datetimeLocal: string): string {
   return fromTaipeiDateTimeLocal(datetimeLocal) ?? new Date().toISOString();
 }
@@ -215,6 +295,10 @@ export function useEventForm({
   );
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
   const [coupons, setCoupons] = useState<CouponDraft[]>([]);
+  // 售票精靈的答案；edit 模式從 API 載入，create 模式在精靈完成時設定
+  const [ticketPlan, setTicketPlan] = useState<TicketPlan | null>(null);
+  // edit 模式：伺服器比對指紋的結果（套用後沒被手動改過）
+  const [serverPlanInSync, setServerPlanInSync] = useState(false);
 
   const initializedEventIdRef = useRef<number | null>(null);
 
@@ -370,9 +454,10 @@ export function useEventForm({
     initializedEventIdRef.current = initialData.id;
   }, [mode, initialData]);
 
-  useEffect(() => {
+  // 載入票券設定（含精靈答案）；套用精靈後也用它重新整理
+  const loadTicketData = useCallback(async () => {
     if (mode !== "edit" || !eventId) return;
-    Promise.all([
+    await Promise.all([
       fetch(`/api/events/${eventId}/purchase-items`, {
         credentials: "include",
       }).then((r) => r.json()),
@@ -391,7 +476,10 @@ export function useEventForm({
       fetch(`/api/events/${eventId}/coupons`, {
         credentials: "include",
       }).then((r) => r.json()),
-    ]).then(([pData, nData, tData, gData, eData, cData]) => {
+      fetch(`/api/events/${eventId}/ticket-plan`, {
+        credentials: "include",
+      }).then((r) => (r.ok ? r.json() : null)),
+    ]).then(([pData, nData, tData, gData, eData, cData, planData]) => {
       const items = (pData?.purchaseItems ?? []).map(
         (i: {
           id: number;
@@ -479,7 +567,74 @@ export function useEventForm({
       setGroups(groupList);
       setGroupExclusions(exclusions);
       setCoupons(couponList);
+      setTicketPlan((planData?.plan as TicketPlan | null) ?? null);
+      setServerPlanInSync(planData?.inSync === true);
     });
+  }, [mode, eventId]);
+
+  useEffect(() => {
+    void loadTicketData();
+  }, [loadTicketData]);
+
+  // create 模式：草稿還是精靈產生的樣子才算同步（在進階模式改過就改以草稿為準）
+  const planDraftsSignature = useMemo(
+    () => (mode === "create" && ticketPlan ? ticketDraftsSignature(ticketPlanToDrafts(ticketPlan)) : null),
+    [mode, ticketPlan]
+  );
+  const ticketPlanInSync =
+    mode === "edit"
+      ? ticketPlan != null && serverPlanInSync
+      : planDraftsSignature != null &&
+        planDraftsSignature ===
+          ticketDraftsSignature({ priceTiers, groups, purchaseItems, groupExclusions, coupons });
+
+  const putTicketPlan = async (targetEventId: number, plan: TicketPlan) => {
+    const res = await fetch(`/api/events/${targetEventId}/ticket-plan`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ plan }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || t("errors.updateFailed"));
+    return data as { plan: TicketPlan; inSync: boolean };
+  };
+
+  /**
+   * 套用精靈的答案。create 模式只換掉草稿（建立活動時再一起送）；
+   * edit 模式直接寫入後重新載入票券。回傳錯誤訊息，成功回 null。
+   */
+  const applyTicketPlan = async (plan: TicketPlan): Promise<string | null> => {
+    if (mode === "create" || eventId == null) {
+      const drafts = ticketPlanToDrafts(plan);
+      setPriceTiers(drafts.priceTiers);
+      setGroups(drafts.groups);
+      setPurchaseItems(drafts.purchaseItems);
+      setGroupExclusions(drafts.groupExclusions);
+      setCoupons(drafts.coupons);
+      setAutoCalcAmount(true);
+      setType(EVENT_TYPE_BY_PLAN_KIND[plan.kind]);
+      setTicketPlan(plan);
+      return null;
+    }
+    try {
+      const saved = await trackAutoSave(putTicketPlan(eventId, plan));
+      setTicketPlan(saved.plan);
+      setServerPlanInSync(saved.inSync);
+      await loadTicketData();
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : t("errors.updateFailed");
+    }
+  };
+
+  /** edit 模式：從進階模式回到售票方案前，重新確認票券有沒有被手動改過 */
+  const refreshTicketPlanSync = useCallback(async () => {
+    if (mode !== "edit" || !eventId) return;
+    const res = await fetch(`/api/events/${eventId}/ticket-plan`, { credentials: "include" });
+    if (!res.ok) return;
+    const data = await res.json().catch(() => null);
+    setServerPlanInSync(data?.inSync === true);
   }, [mode, eventId]);
 
   const openDrawer = (type: DrawerType) => () => {
@@ -1360,10 +1515,25 @@ export function useEventForm({
         }
         const newEventId = data.event?.id;
         if (newEventId != null) {
+          // 用精靈建立（而且之後沒在進階模式改過）：票券整包交給伺服器依答案建立；
+          // 失敗才退回下面逐筆送草稿的舊流程
+          const appliedPlan =
+            ticketPlan != null && ticketPlanInSync
+              ? await putTicketPlan(newEventId, ticketPlan).then(
+                  () => true,
+                  () => false
+                )
+              : false;
+          const draftGroups = appliedPlan ? [] : groups;
+          const draftExclusions = appliedPlan ? [] : groupExclusions;
+          const draftTiers = appliedPlan ? [] : priceTiers;
+          const draftItems = appliedPlan ? [] : purchaseItems;
+          const draftCoupons = appliedPlan ? [] : coupons;
+
           // 先建立群組，取得 draftIndex → 真實 groupId 的對照
           const groupIdByDraftIndex = new Map<number, number>();
-          for (let i = 0; i < groups.length; i++) {
-            const group = groups[i];
+          for (let i = 0; i < draftGroups.length; i++) {
+            const group = draftGroups[i];
             const gRes = await fetch(
               `/api/events/${newEventId}/purchase-item-groups`,
               {
@@ -1391,7 +1561,7 @@ export function useEventForm({
               return groupIdByDraftIndex.get(Number(key.slice(6))) ?? null;
             return null;
           };
-          const exclusionPayload = groupExclusions
+          const exclusionPayload = draftExclusions
             .map(([a, b]) => {
               const ga = resolveExclusionKey(a);
               const gb = resolveExclusionKey(b);
@@ -1409,8 +1579,8 @@ export function useEventForm({
 
           // 再建立時段，取得 draftIndex → 真實 tierId 的對照
           const tierIdByDraftIndex = new Map<number, number>();
-          for (let i = 0; i < priceTiers.length; i++) {
-            const tier = priceTiers[i];
+          for (let i = 0; i < draftTiers.length; i++) {
+            const tier = draftTiers[i];
             const tRes = await fetch(`/api/events/${newEventId}/price-tiers`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -1427,8 +1597,8 @@ export function useEventForm({
             }
           }
 
-          for (let i = 0; i < purchaseItems.length; i++) {
-            const item = purchaseItems[i];
+          for (let i = 0; i < draftItems.length; i++) {
+            const item = draftItems[i];
             const prices = (item.prices ?? [])
               .map((p) => {
                 const tierId =
@@ -1477,7 +1647,7 @@ export function useEventForm({
               }),
             });
           }
-          for (const coupon of coupons) {
+          for (const coupon of draftCoupons) {
             if (!isCouponComplete(coupon)) continue;
             await fetch(`/api/events/${newEventId}/coupons`, {
               method: "POST",
@@ -1527,6 +1697,8 @@ export function useEventForm({
     groupExclusions,
     noticeItems,
     coupons,
+    ticketPlan,
+    ticketPlanInSync,
     saveError,
     saving,
     autoSaveStatus,
@@ -1580,6 +1752,9 @@ export function useEventForm({
     updateCoupon,
     persistCoupon: withAutoSave(persistCoupon),
     removeCoupon: withAutoSave(removeCoupon),
+    // 售票精靈
+    applyTicketPlan,
+    refreshTicketPlanSync,
     handleSubmit,
   };
 }
