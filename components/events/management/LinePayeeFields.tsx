@@ -5,7 +5,7 @@ import { ChevronDown, ExternalLink } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { lineAddFriendUrl, validateLineIdInput } from "@/lib/line";
+import { lineAddFriendUrl, lineIdInputError } from "@/lib/line";
 
 type LinePayeeFieldsProps = {
   label: string;
@@ -24,7 +24,7 @@ export function LinePayeeFields({
   const t = useTranslations("savedInfo.linePayee");
   const [helpOpen, setHelpOpen] = useState(false);
   const trimmed = lineId.trim();
-  const url = trimmed && !validateLineIdInput(trimmed) ? lineAddFriendUrl(trimmed) : null;
+  const url = trimmed && !lineIdInputError(trimmed) ? lineAddFriendUrl(trimmed) : null;
 
   return (
     <>

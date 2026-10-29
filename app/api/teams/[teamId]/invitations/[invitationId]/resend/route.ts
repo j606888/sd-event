@@ -5,6 +5,8 @@ import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { isAssignableTeamRole } from "@/lib/team-roles";
 import { sendTeamJoinEmail } from "@/lib/team-invitation-email";
+import { apiError } from "@/lib/api-error";
+import { getLocale } from "next-intl/server";
 import { eq, and, isNull } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string; invitationId: string }> };
@@ -15,13 +17,16 @@ export async function POST(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { teamId: teamIdParam, invitationId: invitationIdParam } = await params;
   const teamId = Number(teamIdParam);
   const invitationId = Number(invitationIdParam);
   if (!Number.isInteger(teamId) || !Number.isInteger(invitationId)) {
-    return NextResponse.json({ error: "無效的 teamId 或 invitationId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParamPair", 400, {
+      first: "teamId",
+      second: "invitationId",
+    });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -40,7 +45,7 @@ export async function POST(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!invitation) {
-    return NextResponse.json({ error: "找不到這筆待處理邀請" }, { status: 404 });
+    return apiError("apiErrors.invitations.notFound", 404);
   }
 
   const emailSent = await sendTeamJoinEmail({
@@ -49,10 +54,11 @@ export async function POST(_request: Request, { params }: Params) {
     inviterUserId: session.userId,
     role: isAssignableTeamRole(invitation.role) ? invitation.role : "member",
     hasAccount: false,
+    inviterLocale: await getLocale(),
   });
 
   if (!emailSent) {
-    return NextResponse.json({ error: "邀請信寄送失敗，請稍後再試" }, { status: 502 });
+    return apiError("apiErrors.invitations.resendFailed", 502);
   }
   return NextResponse.json({ emailSent });
 }

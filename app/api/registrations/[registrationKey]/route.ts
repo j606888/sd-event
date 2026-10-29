@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import { eq, asc, inArray } from "drizzle-orm";
 import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
+import { apiError } from "@/lib/api-error";
 
 type Params = { params: Promise<{ registrationKey: string }> };
 
@@ -26,7 +27,7 @@ export async function GET(_request: Request, { params }: Params) {
   try {
     const registrationKey = (await params).registrationKey?.trim();
     if (!registrationKey) {
-      return NextResponse.json({ error: "請提供註冊金鑰" }, { status: 400 });
+      return apiError("apiErrors.registration.keyRequired", 400);
     }
 
     // 取得報名記錄
@@ -37,7 +38,7 @@ export async function GET(_request: Request, { params }: Params) {
       .limit(1);
 
     if (!registration) {
-      return NextResponse.json({ error: "找不到報名記錄" }, { status: 404 });
+      return apiError("apiErrors.common.registrationNotFound", 404);
     }
 
     // 取得活動資料
@@ -48,7 +49,7 @@ export async function GET(_request: Request, { params }: Params) {
       .limit(1);
 
     if (!event) {
-      return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+      return apiError("apiErrors.common.eventNotFound", 404);
     }
 
     // 取得參加者
@@ -204,7 +205,7 @@ export async function GET(_request: Request, { params }: Params) {
     });
   } catch (e) {
     console.error("Get registration error:", e);
-    return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
+    return apiError("apiErrors.common.serverError", 500);
   }
 }
 
@@ -216,7 +217,7 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     const registrationKey = (await params).registrationKey?.trim();
     if (!registrationKey) {
-      return NextResponse.json({ error: "請提供註冊金鑰" }, { status: 400 });
+      return apiError("apiErrors.registration.keyRequired", 400);
     }
 
     // 取得報名記錄
@@ -227,7 +228,7 @@ export async function PATCH(request: Request, { params }: Params) {
       .limit(1);
 
     if (!registration) {
-      return NextResponse.json({ error: "找不到報名記錄" }, { status: 404 });
+      return apiError("apiErrors.common.registrationNotFound", 404);
     }
 
     const body = await request.json().catch(() => ({}));
@@ -284,6 +285,6 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ registration: updated });
   } catch (e) {
     console.error("Update registration error:", e);
-    return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
+    return apiError("apiErrors.common.serverError", 500);
   }
 }

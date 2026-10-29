@@ -249,7 +249,7 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
 
           {/* Language + Logout */}
           <div className="mt-auto flex flex-col gap-3 pt-4">
-            <LanguageSwitcher className="self-start" />
+            <LanguageSwitcher className="self-start" persist />
             <button
               type="button"
               onClick={() => { onClose(); handleLogout(); }}

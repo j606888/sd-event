@@ -5,6 +5,7 @@ import Image from "next/image";
 import QRCode from "qrcode";
 import { siLine } from "simple-icons";
 import { Copy, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { lineAddFriendUrl, lineIdForDisplay } from "@/lib/line";
@@ -21,6 +22,8 @@ type LinePayeeCardProps = {
  * 電腦版另顯示 QR code 讓參加者用手機掃，並附 LINE ID 方便手動搜尋。
  */
 export function LinePayeeCard({ linePayee, className = "" }: LinePayeeCardProps) {
+  const t = useTranslations("publicEvent.linePayee");
+  const tCommon = useTranslations("common");
   const url = lineAddFriendUrl(linePayee.lineId);
   const displayId = lineIdForDisplay(linePayee.lineId);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -48,10 +51,8 @@ export function LinePayeeCard({ linePayee, className = "" }: LinePayeeCardProps)
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <h3 className="font-semibold text-gray-900">LINE 付款</h3>
-      <p className="text-sm text-gray-600">
-        加入好友後，透過 LINE Pay / LINE 轉帳付款，並傳送付款截圖。
-      </p>
+      <h3 className="font-semibold text-gray-900">{t("heading")}</h3>
+      <p className="text-sm text-gray-600">{t("instructions")}</p>
       <div className="flex items-start gap-4">
         <div className="flex-1 space-y-2">
           <a
@@ -61,7 +62,7 @@ export function LinePayeeCard({ linePayee, className = "" }: LinePayeeCardProps)
             className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#06C755] px-4 text-sm font-medium text-white hover:bg-[#05b14c]"
           >
             <SimpleIcon icon={siLine} size={18} />
-            加 LINE 好友
+            <span>{t("addFriend")}</span>
           </a>
           {displayId && (
             <div className="flex items-center gap-2 text-sm">
@@ -69,7 +70,7 @@ export function LinePayeeCard({ linePayee, className = "" }: LinePayeeCardProps)
               <span className="font-mono text-gray-900">{displayId}</span>
               <Button variant="outline" size="sm" onClick={handleCopy} className="h-7 px-2">
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                <span>{copied ? "已複製" : "複製"}</span>
+                <span>{copied ? tCommon("copied") : tCommon("copy")}</span>
               </Button>
             </div>
           )}
@@ -78,13 +79,13 @@ export function LinePayeeCard({ linePayee, className = "" }: LinePayeeCardProps)
           <div className="hidden shrink-0 text-center sm:block">
             <Image
               src={qrUrl}
-              alt="LINE 加好友 QR code"
+              alt={t("qrAlt")}
               width={112}
               height={112}
               unoptimized
               className="rounded border border-gray-200 bg-white"
             />
-            <p className="mt-1 text-xs text-gray-500">用手機掃描</p>
+            <p className="mt-1 text-xs text-gray-500">{t("scanWithPhone")}</p>
           </div>
         )}
       </div>

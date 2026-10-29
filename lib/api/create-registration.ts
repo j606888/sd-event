@@ -28,6 +28,23 @@ export type CreateRegistrationResult = {
   };
 };
 
+/** 報名成功但回應沒有報名編號時的錯誤代碼（本檔自訂，介面另外翻譯） */
+export const MISSING_REGISTRATION_KEY = "MISSING_REGISTRATION_KEY";
+
+/**
+ * 報名失敗。message 為伺服器回傳的訊息（已依使用者語言翻譯）；沒有時為空字串，由介面顯示預設文案。
+ * code 為伺服器回傳的錯誤代碼（如 COUPON_EXHAUSTED），或本檔的 MISSING_REGISTRATION_KEY。
+ */
+export class CreateRegistrationError extends Error {
+  readonly code: string | null;
+
+  constructor(message: string, code: string | null = null) {
+    super(message);
+    this.name = "CreateRegistrationError";
+    this.code = code;
+  }
+}
+
 export async function createRegistration(
   eventId: number,
   body: CreateRegistrationBody
@@ -41,11 +58,14 @@ export async function createRegistration(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || "報名失敗，請稍後再試");
+    throw new CreateRegistrationError(
+      data.error || "",
+      typeof data.code === "string" ? data.code : null
+    );
   }
 
   if (!data.registration?.registrationKey) {
-    throw new Error("報名成功，但無法取得報名編號");
+    throw new CreateRegistrationError("", MISSING_REGISTRATION_KEY);
   }
 
   return data as CreateRegistrationResult;

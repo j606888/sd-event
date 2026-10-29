@@ -4,6 +4,7 @@ import { teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { isAssignableTeamRole, isTeamAdmin, type AssignableTeamRole } from "@/lib/team-roles";
+import { apiError } from "@/lib/api-error";
 import { and, count, eq, inArray } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string; userId: string }> };
@@ -14,13 +15,16 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   const userId = Number((await params).userId);
 
   if (!Number.isInteger(teamId) || !Number.isInteger(userId)) {
-    return NextResponse.json({ error: "無效的 teamId 或 userId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParamPair", 400, {
+      first: "teamId",
+      second: "userId",
+    });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -28,7 +32,7 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   // 不能移除自己
   if (userId === session.userId) {
-    return NextResponse.json({ error: "不能移除自己" }, { status: 400 });
+    return apiError("apiErrors.members.cannotRemoveSelf", 400);
   }
 
   // 檢查要移除的成員是否存在
@@ -39,12 +43,12 @@ export async function DELETE(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!member) {
-    return NextResponse.json({ error: "找不到該成員" }, { status: 404 });
+    return apiError("apiErrors.members.notFound", 404);
   }
 
   // 擁有者是團隊的最後一道鎖，其他管理員不能把他踢掉
   if (member.role === "owner") {
-    return NextResponse.json({ error: "不能移除團隊擁有者" }, { status: 403 });
+    return apiError("apiErrors.members.cannotRemoveOwner", 403);
   }
 
   // 移除成員
@@ -65,13 +69,16 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   const userId = Number((await params).userId);
 
   if (!Number.isInteger(teamId) || !Number.isInteger(userId)) {
-    return NextResponse.json({ error: "無效的 teamId 或 userId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParamPair", 400, {
+      first: "teamId",
+      second: "userId",
+    });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -80,16 +87,10 @@ export async function PATCH(request: Request, { params }: Params) {
   const body = await request.json().catch(() => ({}));
 
   if (body.role != null && !isAssignableTeamRole(body.role)) {
-    return NextResponse.json(
-      { error: "請提供有效的 role (member 或 staff)" },
-      { status: 400 }
-    );
+    return apiError("apiErrors.members.invalidRole", 400);
   }
   if (body.notifyOnRegistration != null && typeof body.notifyOnRegistration !== "boolean") {
-    return NextResponse.json(
-      { error: "notifyOnRegistration 必須是 true 或 false" },
-      { status: 400 }
-    );
+    return apiError("apiErrors.members.invalidNotifyFlag", 400);
   }
 
   // 只能在「管理員（member）」與「驗票人員（staff）」之間切換；owner 不可指派
@@ -98,10 +99,7 @@ export async function PATCH(request: Request, { params }: Params) {
     typeof body.notifyOnRegistration === "boolean" ? body.notifyOnRegistration : null;
 
   if (role === null && notifyOnRegistration === null) {
-    return NextResponse.json(
-      { error: "請提供 role 或 notifyOnRegistration" },
-      { status: 400 }
-    );
+    return apiError("apiErrors.members.roleOrNotifyRequired", 400);
   }
 
   // 檢查要更新的成員是否存在
@@ -112,7 +110,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .limit(1);
 
   if (!member) {
-    return NextResponse.json({ error: "找不到該成員" }, { status: 404 });
+    return apiError("apiErrors.members.notFound", 404);
   }
 
   const updates: { role?: AssignableTeamRole; notifyOnRegistration?: boolean } = {};
@@ -120,7 +118,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (role !== null && role !== member.role) {
     // 擁有者的角色不能被其他管理員改掉（通知開關則可以）
     if (member.role === "owner") {
-      return NextResponse.json({ error: "不能變更團隊擁有者的角色" }, { status: 403 });
+      return apiError("apiErrors.members.cannotChangeOwnerRole", 403);
     }
 
     // 不能把最後一位管理員降成驗票人員，否則團隊就沒人管得動了
@@ -135,10 +133,7 @@ export async function PATCH(request: Request, { params }: Params) {
           )
         );
       if (Number(admins) <= 1) {
-        return NextResponse.json(
-          { error: "團隊至少要保留一位管理員" },
-          { status: 400 }
-        );
+        return apiError("apiErrors.members.lastAdmin", 400);
       }
     }
 
@@ -148,10 +143,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const effectiveRole = updates.role ?? member.role;
 
   if (notifyOnRegistration === true && !isTeamAdmin(effectiveRole)) {
-    return NextResponse.json(
-      { error: "只有管理員可以接收報名通知信" },
-      { status: 400 }
-    );
+    return apiError("apiErrors.members.notifyAdminOnly", 400);
   }
   if (notifyOnRegistration !== null) {
     updates.notifyOnRegistration = notifyOnRegistration;
@@ -172,7 +164,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .returning();
 
   if (!updated) {
-    return NextResponse.json({ error: "更新失敗" }, { status: 500 });
+    return apiError("apiErrors.common.updateFailed", 500);
   }
 
   return NextResponse.json({ member: updated });

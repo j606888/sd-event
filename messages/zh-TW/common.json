@@ -31,5 +31,6 @@
   "notFound": "找不到資料",
   "people": "{count} 人",
   "registrations": "{count} 筆",
-  "amount": "NT$ {amount}"
+  "amount": "NT$ {amount}",
+  "loadTeamsFailed": "無法載入團隊"
 }

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { teamInvitations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { eq, and, isNull, asc } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -13,11 +14,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);

@@ -52,13 +52,3 @@ export function findFlaggedShortfall(
   }
   return null;
 }
-
-/** 驗證勾選人數符合所選票券的要求。回傳中文錯誤訊息，或 null 表通過。 */
-export function validateFlaggedCount(
-  items: { name: string; minFlagged?: number | null }[],
-  flaggedCount: number,
-  label: string | null | undefined
-): string | null {
-  const s = findFlaggedShortfall(items, flaggedCount, label);
-  return s ? `「${s.item}」需至少 ${s.required} 位參加者勾選「${s.label}」` : null;
-}

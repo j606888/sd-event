@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { events, eventRegistrations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import {
   loadConfirmationEmailContext,
   sendConfirmationEmail,
@@ -24,13 +25,13 @@ export async function POST(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: rawEventId, registrationId: rawRegistrationId } = await params;
   const eventId = Number(rawEventId);
   const registrationId = Number(rawRegistrationId);
   if (!Number.isInteger(eventId) || !Number.isInteger(registrationId)) {
-    return NextResponse.json({ error: "無效的參數" }, { status: 400 });
+    return apiError("eventApiErrors.invalidParams", 400);
   }
 
   const [event] = await db
@@ -40,7 +41,7 @@ export async function POST(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamAdmin(event.teamId, session.userId);
@@ -52,6 +53,7 @@ export async function POST(_request: Request, { params }: Params) {
       contactEmail: eventRegistrations.contactEmail,
       registrationKey: eventRegistrations.registrationKey,
       paymentStatus: eventRegistrations.paymentStatus,
+      locale: eventRegistrations.locale,
     })
     .from(eventRegistrations)
     .where(
@@ -63,21 +65,15 @@ export async function POST(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!registration) {
-    return NextResponse.json({ error: "找不到報名記錄" }, { status: 404 });
+    return apiError("eventApiErrors.registrationNotFound", 404);
   }
 
   if (registration.paymentStatus !== "confirmed") {
-    return NextResponse.json(
-      { error: "這筆報名尚未確認收款，沒有確認信可以重寄" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.resendConfirmation.notConfirmed", 400);
   }
 
   if (!registration.contactEmail) {
-    return NextResponse.json(
-      { error: "這筆報名沒有填 email，無法寄信" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.resendConfirmation.noEmail", 400);
   }
 
   // 這支是使用者按下去等結果的動作，所以要 await 並把失敗回報出去，
@@ -86,14 +82,14 @@ export async function POST(_request: Request, { params }: Params) {
   const result = await sendConfirmationEmail(
     ctx,
     registration.contactEmail,
-    registration.registrationKey
+    registration.registrationKey,
+    registration.locale
   );
 
   if (!result.ok) {
-    return NextResponse.json(
-      { error: result.error || "寄信失敗，請稍後再試" },
-      { status: 502 }
-    );
+    // 原始錯誤（來自 Resend）只記 log，回給前端的是翻譯過的通用訊息
+    console.error("Resend confirmation email error:", result.error);
+    return apiError("eventApiErrors.resendConfirmation.sendFailed", 502);
   }
 
   return NextResponse.json({ ok: true, sentTo: registration.contactEmail });

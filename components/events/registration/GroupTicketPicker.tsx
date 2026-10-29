@@ -1,10 +1,11 @@
 "use client";
 
 import { Users } from "lucide-react";
-import { TicketPriceLine } from "./TicketPriceLine";
+import { useTranslations } from "next-intl";
+import { TicketPriceLine, useSaleStatusLabel } from "./TicketPriceLine";
 import type { EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
 import { seatCountOf } from "@/lib/seat-count";
-import { isItemOnSale, saleStatusLabel } from "@/lib/pricing";
+import { isItemOnSale } from "@/lib/pricing";
 
 /** 票券名稱下方的資訊：套票人數提示、票券說明、目前時段 */
 function TicketItemInfo({
@@ -14,6 +15,7 @@ function TicketItemInfo({
   item: EventPurchaseItem;
   activeTierName: string | null;
 }) {
+  const t = useTranslations("publicEvent.ticketPicker");
   const seats = seatCountOf(item);
   return (
     <div className="min-w-0">
@@ -21,7 +23,7 @@ function TicketItemInfo({
       {seats > 1 && (
         <div className="mt-1 inline-flex items-center gap-1 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand-strong">
           <Users className="size-3" />
-          {seats} 人套票 · 需填 {seats} 位參加者
+          <span>{t("bundleBadge", { seats })}</span>
         </div>
       )}
       {item.description && (
@@ -71,6 +73,8 @@ export function GroupTicketPicker({
   onSelectedByGroupChange,
   onSelectedPlanChange,
 }: GroupTicketPickerProps) {
+  const t = useTranslations("publicEvent.ticketPicker");
+  const saleStatusLabel = useSaleStatusLabel();
   const groupById = new Map(groups.map((g) => [g.id, g]));
   // 若某互斥群組已有選取，回傳「鎖住本群組的那個群組」，否則 null
   const getLockingGroup = (group: EventPurchaseItemGroup) => {
@@ -108,17 +112,17 @@ export function GroupTicketPicker({
               className={`space-y-3 ${locked ? "opacity-50" : ""}`}
             >
               <h2 className="font-semibold text-gray-900">
-                {group.title}
+                <span>{group.title}</span>
                 {group.required ? (
                   <span className="ml-1 text-red-500">*</span>
                 ) : (
                   <span className="ml-2 text-xs font-normal text-gray-400">
-                    （選填）
+                    {t("optional")}
                   </span>
                 )}
                 {locked && (
                   <span className="ml-2 text-xs font-normal text-gray-400">
-                    （已包含於「{lockingGroup!.title}」）
+                    {t("lockedBy", { group: lockingGroup!.title })}
                   </span>
                 )}
               </h2>
@@ -191,7 +195,7 @@ export function GroupTicketPicker({
                       className="w-4 h-4 text-brand-strong border-gray-300 focus:ring-brand"
                     />
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">不需要</div>
+                      <div className="font-medium text-gray-900">{t("noneOption")}</div>
                     </div>
                   </label>
                 )}
@@ -205,7 +209,7 @@ export function GroupTicketPicker({
 
   return (
     <div className="space-y-3">
-      <h2 className="font-semibold text-gray-900">選擇方案</h2>
+      <h2 className="font-semibold text-gray-900">{t("chooseTicket")}</h2>
       <div className="space-y-2">
         {purchaseItems.map((item) => {
           const isSelected = allowMultiplePurchase

@@ -8,7 +8,10 @@ export type ValidateCouponResult =
       error: string;
     };
 
-/** 公開驗證折扣碼（報名表單預覽用）；實際折扣由報名 POST 權威重算 */
+/**
+ * 公開驗證折扣碼（報名表單預覽用）；實際折扣由報名 POST 權威重算。
+ * 失敗時 throw：有伺服器訊息（已依使用者語言翻譯）就用它，否則 message 為空，由介面顯示預設文案。
+ */
 export async function validateCoupon(
   eventId: number,
   code: string
@@ -22,7 +25,7 @@ export async function validateCoupon(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || "驗證折扣碼失敗，請稍後再試");
+    throw new Error(data.error || "");
   }
 
   return data as ValidateCouponResult;

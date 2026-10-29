@@ -24,8 +24,14 @@ describe("validateGroupSelection — 四種 selectionMode × required 組合", (
     const groups = [group(10, "課程方案", "single", true)];
     const only = items.filter((i) => i.groupId === 10);
     expect(validateGroupSelection(groups, only, [1], [])).toBeNull();
-    expect(validateGroupSelection(groups, only, [], [])).toBe("請於「課程方案」選擇一項");
-    expect(validateGroupSelection(groups, only, [1, 2], [])).toBe("「課程方案」僅能擇一");
+    expect(validateGroupSelection(groups, only, [], [])).toEqual({
+      code: "requiredSingle",
+      values: { group: "課程方案" },
+    });
+    expect(validateGroupSelection(groups, only, [1, 2], [])).toEqual({
+      code: "singleOnly",
+      values: { group: "課程方案" },
+    });
   });
 
   it("single + optional：可以不選，但最多一項", () => {
@@ -33,15 +39,19 @@ describe("validateGroupSelection — 四種 selectionMode × required 組合", (
     const only = items.filter((i) => i.groupId === 10);
     expect(validateGroupSelection(groups, only, [], [])).toBeNull();
     expect(validateGroupSelection(groups, only, [1], [])).toBeNull();
-    expect(validateGroupSelection(groups, only, [1, 2], [])).toBe("「加購」僅能擇一");
+    expect(validateGroupSelection(groups, only, [1, 2], [])).toEqual({
+      code: "singleOnly",
+      values: { group: "加購" },
+    });
   });
 
   it("multiple + required：至少一項，可多項", () => {
     const groups = [group(10, "單堂課", "multiple", true)];
     const only = items.filter((i) => i.groupId === 10);
-    expect(validateGroupSelection(groups, only, [], [])).toBe(
-      "請於「單堂課」至少選擇一項"
-    );
+    expect(validateGroupSelection(groups, only, [], [])).toEqual({
+      code: "requiredMultiple",
+      values: { group: "單堂課" },
+    });
     expect(validateGroupSelection(groups, only, [1], [])).toBeNull();
     expect(validateGroupSelection(groups, only, [1, 2], [])).toBeNull();
   });
@@ -55,13 +65,10 @@ describe("validateGroupSelection — 四種 selectionMode × required 組合", (
 
   it("選到不屬於任何群組的項目會被擋下", () => {
     const groups = [group(10, "課程方案", "single", true)];
-    expect(validateGroupSelection(groups, [item(1, null)], [1], [])).toBe(
-      "無效的購買項目"
-    );
-    expect(validateGroupSelection(groups, [item(1, 99)], [1], [])).toBe(
-      "無效的購買項目"
-    );
-    expect(validateGroupSelection(groups, [], [1], [])).toBe("無效的購買項目");
+    const invalid = { code: "invalidItem" };
+    expect(validateGroupSelection(groups, [item(1, null)], [1], [])).toEqual(invalid);
+    expect(validateGroupSelection(groups, [item(1, 99)], [1], [])).toEqual(invalid);
+    expect(validateGroupSelection(groups, [], [1], [])).toEqual(invalid);
   });
 });
 
@@ -79,7 +86,7 @@ describe("validateGroupSelection — 互斥", () => {
       .toBeNull();
     expect(
       validateGroupSelection(groups, items, [1, 3], [{ groupAId: 10, groupBId: 20 }])
-    ).toBe("「Full Pass」與「單堂課」不可同時選擇");
+    ).toEqual({ code: "exclusive", values: { groupA: "Full Pass", groupB: "單堂課" } });
   });
 
   /**
@@ -100,18 +107,16 @@ describe("validateGroupSelection — 互斥", () => {
     ];
     const exclusions = [{ groupAId: 10, groupBId: 20 }];
 
+    const requiredError = { code: "requiredMultiple", values: { group: "單堂課" } };
     // 只選 Full Pass → 單堂課的必選先擋下
-    expect(validateGroupSelection(conflicting, items, [1], exclusions)).toBe(
-      "請於「單堂課」至少選擇一項"
-    );
+    expect(validateGroupSelection(conflicting, items, [1], exclusions)).toEqual(requiredError);
     // 兩個都選 → 互斥擋下
-    expect(validateGroupSelection(conflicting, items, [1, 3], exclusions)).toBe(
-      "「Full Pass」與「單堂課」不可同時選擇"
-    );
+    expect(validateGroupSelection(conflicting, items, [1, 3], exclusions)).toEqual({
+      code: "exclusive",
+      values: { groupA: "Full Pass", groupB: "單堂課" },
+    });
     // 什麼都不選 → 一樣被必選擋下
-    expect(validateGroupSelection(conflicting, items, [], exclusions)).toBe(
-      "請於「單堂課」至少選擇一項"
-    );
+    expect(validateGroupSelection(conflicting, items, [], exclusions)).toEqual(requiredError);
     // 唯一過得了的選法：只選必選的那一組，Full Pass 形同不存在
     expect(validateGroupSelection(conflicting, items, [3], exclusions)).toBeNull();
   });
@@ -169,18 +174,18 @@ describe("resolveUnitPrices", () => {
     ];
 
     it("在販售時段可購買並用該段價格", () => {
-      const { unitPriceById, unavailableError } = resolveUnitPrices(
+      const { unitPriceById, unavailableItem } = resolveUnitPrices(
         [{ id: 300, name: "1+1 早鳥", amount: 600 }],
         tiers,
         earlyOnlyRows,
         new Date("2026-07-15T10:00+08:00")
       );
-      expect(unavailableError).toBeNull();
+      expect(unavailableItem).toBeNull();
       expect(unitPriceById.get(300)).toBe(600);
     });
 
     it("過了販售時段就擋下", () => {
-      const { unavailableError } = resolveUnitPrices(
+      const { unavailableItem } = resolveUnitPrices(
         [
           { id: 100, name: "Party", amount: 500 },
           { id: 300, name: "1+1 早鳥", amount: 600 },
@@ -189,7 +194,7 @@ describe("resolveUnitPrices", () => {
         [...priceRows, ...earlyOnlyRows],
         new Date("2026-09-02T10:00+08:00")
       );
-      expect(unavailableError).toContain("1+1 早鳥");
+      expect(unavailableItem).toEqual({ item: "1+1 早鳥", tier: "現場" });
     });
   });
 });

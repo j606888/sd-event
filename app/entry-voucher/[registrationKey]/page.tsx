@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, Clock, MapPin, Wallet, DollarSign, CheckCircle2 } from "lucide-react";
 import QRCode from "qrcode";
+import { useLocale, useTranslations } from "next-intl";
+import { PublicLanguageBar } from "@/components/layout/PublicLanguageBar";
 import { getRegistrationByKey } from "@/lib/api/registration";
 import { formatEventDateShort } from "@/lib/format-event-date";
 import type { EntryVoucherPageData } from "@/types/registration";
@@ -19,12 +21,27 @@ function getRoleBadge(role: string) {
   return styles[role] || styles["Not sure"];
 }
 
+/** DB 的舞蹈角色 → enums.role 的 key；不認得的角色直接顯示原值 */
+const ROLE_LABEL_KEY: Record<string, "Leader" | "Follower" | "notSure"> = {
+  Leader: "Leader",
+  Follower: "Follower",
+  "Not sure": "notSure",
+};
+
+/** 錯誤存代碼、render 時才翻，切換語言時訊息才會跟著換 */
+type LoadErrorCode = "notFound" | "refunded" | "qrFailed" | "loadFailed";
+
 export default function EntryVoucherPage() {
+  const t = useTranslations("myRegistration.voucher");
+  const tError = useTranslations("myRegistration.loadError");
+  const tRole = useTranslations("enums.role");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
   const params = useParams();
   const router = useRouter();
   const registrationKey = params?.registrationKey as string;
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LoadErrorCode | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [data, setData] = useState<EntryVoucherPageData | null>(null);
   const isInitialLoad = useRef(true);
@@ -77,7 +94,7 @@ export default function EntryVoucherPage() {
 
         if (!responseData) {
           if (!isPolling) {
-            setError("找不到報名資料");
+            setError("notFound");
             setLoading(false);
           }
           return;
@@ -85,7 +102,7 @@ export default function EntryVoucherPage() {
 
         // 已退款的報名憑證失效，不產生 QR code
         if (responseData.registration.paymentStatus === "refunded") {
-          setError("這筆報名已退款，入場憑證已失效");
+          setError("refunded");
           setLoading(false);
           return;
         }
@@ -93,7 +110,7 @@ export default function EntryVoucherPage() {
         const transformedData = transformApiData(responseData);
         if (!transformedData) {
           if (!isPolling) {
-            setError("找不到報名資料");
+            setError("notFound");
             setLoading(false);
           }
           return;
@@ -119,7 +136,7 @@ export default function EntryVoucherPage() {
           } catch (err) {
             console.error("QR code generation error:", err);
             if (!isPolling) {
-              setError("無法產生 QR code");
+              setError("qrFailed");
             }
           }
         }
@@ -134,7 +151,7 @@ export default function EntryVoucherPage() {
       } catch (err) {
         console.error("Failed to fetch registration:", err);
         if (!isPolling) {
-          setError("無法載入報名資料");
+          setError("loadFailed");
           setLoading(false);
         }
       }
@@ -155,7 +172,7 @@ export default function EntryVoucherPage() {
   if (loading && registrationKey) {
     return (
       <div className="min-h-screen bg-paper p-6 flex items-center justify-center">
-        <p className="text-muted-ink">載入中…</p>
+        <p className="text-muted-ink">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -165,9 +182,9 @@ export default function EntryVoucherPage() {
       <div className="min-h-screen bg-paper p-6 flex items-center justify-center">
         <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-8 shadow-xl text-center space-y-2">
           <p className="text-red-500">
-            {(!registrationKey ? "無效的報名編號" : error) ?? "找不到報名資料"}
+            {tError((!registrationKey ? "invalidKey" : error) ?? "notFound")}
           </p>
-          <p className="text-sm text-gray-500">連結可能已失效</p>
+          <p className="text-sm text-gray-500">{tError("linkExpired")}</p>
         </div>
       </div>
     );
@@ -175,6 +192,7 @@ export default function EntryVoucherPage() {
 
   return (
     <div className="min-h-screen bg-paper p-4 sm:py-10">
+      <PublicLanguageBar />
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
       {/* Header */}
       <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
@@ -184,7 +202,7 @@ export default function EntryVoucherPage() {
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <h1 className="flex-1 text-lg font-semibold text-gray-900">入場憑證</h1>
+        <h1 className="flex-1 text-lg font-semibold text-gray-900">{t("title")}</h1>
       </div>
 
       <div className="px-4 py-6 space-y-6">
@@ -193,7 +211,7 @@ export default function EntryVoucherPage() {
           <div className="relative w-64 h-64 bg-white p-4 rounded-lg border-2 border-gray-200">
             <Image
               src={qrCodeUrl}
-              alt="入場 QR Code"
+              alt={t("qrAlt")}
               fill
               className="object-contain"
             />
@@ -202,7 +220,7 @@ export default function EntryVoucherPage() {
 
         {/* Attendees with Check-in Status */}
         <div className="space-y-3">
-          <h2 className="font-semibold text-gray-900">參加者</h2>
+          <h2 className="font-semibold text-gray-900">{t("attendees")}</h2>
           <div className="space-y-2">
             {data.registration.attendees.map((attendee) => (
               <div
@@ -214,16 +232,16 @@ export default function EntryVoucherPage() {
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadge(attendee.role)}`}
                   >
-                    {attendee.role}
+                    {ROLE_LABEL_KEY[attendee.role] ? tRole(ROLE_LABEL_KEY[attendee.role]) : attendee.role}
                   </span>
                 </div>
                 {attendee.checkedIn ? (
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">
                     <CheckCircle2 className="w-3 h-3" />
-                    <span>入場成功</span>
+                    <span>{t("checkedIn")}</span>
                   </div>
                 ) : (
-                  <span className="text-sm text-gray-500">未入場</span>
+                  <span className="text-sm text-gray-500">{t("notCheckedIn")}</span>
                 )}
               </div>
             ))}
@@ -239,7 +257,7 @@ export default function EntryVoucherPage() {
             <div className="flex items-start gap-3">
               <Clock className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
               <span className="text-gray-900">
-                {formatEventDateShort(data.event.startAt, data.event.endAt)}
+                {formatEventDateShort(data.event.startAt, data.event.endAt, locale)}
               </span>
             </div>
 
@@ -261,7 +279,7 @@ export default function EntryVoucherPage() {
                       rel="noopener noreferrer"
                       className="text-brand-strong mt-1 inline-block text-xs"
                     >
-                      導航 &gt;
+                      {t("directions")}
                     </a>
                   )}
                 </div>
@@ -273,9 +291,9 @@ export default function EntryVoucherPage() {
               <div className="flex items-start gap-3">
                 <Wallet className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-gray-500 text-xs">選擇方案</div>
+                  <div className="text-gray-500 text-xs">{t("ticket")}</div>
                   <div className="text-gray-900">
-                    {data.registration.selectedPlan.name} ${data.registration.selectedPlan.amount}
+                    {`${data.registration.selectedPlan.name} $${data.registration.selectedPlan.amount}`}
                   </div>
                 </div>
               </div>
@@ -285,16 +303,17 @@ export default function EntryVoucherPage() {
             <div className="flex items-start gap-3">
               <DollarSign className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
               <div>
-                <div className="text-gray-500 text-xs">應付金額</div>
+                <div className="text-gray-500 text-xs">{t("amountDue")}</div>
                 <div className="text-gray-900 font-semibold">
                   {(data.registration.discountAmount ?? 0) > 0 && (
                     <span className="mr-2 font-normal text-gray-400 line-through">
-                      NT{" "}
-                      {Number(data.registration.totalAmount) +
-                        (data.registration.discountAmount ?? 0)}
+                      {`NT ${
+                        Number(data.registration.totalAmount) +
+                        (data.registration.discountAmount ?? 0)
+                      }`}
                     </span>
                   )}
-                  NT {data.registration.totalAmount}
+                  <span>{`NT ${data.registration.totalAmount}`}</span>
                   {data.registration.couponCode &&
                     (data.registration.discountAmount ?? 0) > 0 && (
                       <span className="ml-2 font-mono text-xs font-normal text-brand-strong">

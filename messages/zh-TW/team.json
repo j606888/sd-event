@@ -39,5 +39,6 @@
   "roleDescription": {
     "member": "可管理活動、報名者、款項與團隊成員",
     "staff": "只能掃碼報到與現場報名，看不到金額與營收"
-  }
+  },
+  "defaultName": "我的團隊"
 }

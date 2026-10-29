@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { events, eventLocations, organizers } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -48,12 +49,16 @@ async function getEventByPublicKey(publicKey: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { publicKey } = await params;
-  const event = await getEventByPublicKey(publicKey);
+  const [event, locale, t] = await Promise.all([
+    getEventByPublicKey(publicKey),
+    getLocale(),
+    getTranslations("publicEvent"),
+  ]);
 
   if (!event) {
     return {
-      title: "活動不存在",
-      description: "連結可能已失效或活動已刪除",
+      title: t("metadata.notFoundTitle"),
+      description: t("page.linkInvalid"),
     };
   }
 
@@ -68,7 +73,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${event.title}`;
 
   // Build description with event period and location
-  const period = `${getEventDateLabel(event.startAt.toISOString(), event.endAt.toISOString())} ${getEventTimeRange(event.startAt.toISOString(), event.endAt.toISOString())}`;
+  const period = `${getEventDateLabel(event.startAt.toISOString(), event.endAt.toISOString(), locale)} ${getEventTimeRange(event.startAt.toISOString(), event.endAt.toISOString())}`;
   const location = event.location ? `${event.location.name}` : "";
 
   const description = [period, location].filter(Boolean).join(" | ");
@@ -91,7 +96,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           alt: event.title,
         },
       ],
-      locale: "zh_TW",
+      locale: locale === "en" ? "en_US" : "zh_TW",
       type: "website",
     },
     twitter: {

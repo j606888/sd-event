@@ -15,6 +15,11 @@ export function isLocale(value: unknown): value is Locale {
   return (LOCALES as readonly string[]).includes(value as string);
 }
 
+/** DB 存的語系欄位（可能是 null 或舊值）轉成可用的語系，認不得就用預設的繁中 */
+export function asLocale(value: string | null | undefined): Locale {
+  return isLocale(value) ? value : DEFAULT_LOCALE;
+}
+
 /**
  * 依 Accept-Language 挑語系：照偏好順序，先遇到中文就用繁中、先遇到英文就用英文。
  * 兩種都沒有（例如只設日文、韓文）就用英文，對外國舞者來說比中文好懂。

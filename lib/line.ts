@@ -23,13 +23,6 @@ export function lineIdForDisplay(value: string | null | undefined): string | nul
 
 export type LineIdError = "empty" | "notLineHost" | "invalidUrl" | "hasWhitespace";
 
-const LINE_ID_ERROR_MESSAGE: Record<LineIdError, string> = {
-  empty: "請輸入 LINE ID 或加好友連結",
-  notLineHost: "連結需為 LINE 的加好友連結（line.me 或 lin.ee）",
-  invalidUrl: "連結格式不正確",
-  hasWhitespace: "LINE ID 不能包含空白",
-};
-
 /** 驗證 LINE ID 或加好友連結；回傳錯誤代碼，合法回 null。介面依代碼翻譯 */
 export function lineIdInputError(value: string): LineIdError | null {
   const v = value.trim();
@@ -45,10 +38,4 @@ export function lineIdInputError(value: string): LineIdError | null {
   }
   if (/\s/.test(v)) return "hasWhitespace";
   return null;
-}
-
-/** 同上，回傳中文錯誤訊息（API 用）；合法回 null */
-export function validateLineIdInput(value: string): string | null {
-  const error = lineIdInputError(value);
-  return error ? LINE_ID_ERROR_MESSAGE[error] : null;
 }

@@ -14,6 +14,11 @@ import tickets from "./tickets.json";
 import team from "./team.json";
 import savedInfo from "./savedInfo.json";
 import auth from "./auth.json";
+import publicEvent from "./publicEvent.json";
+import myRegistration from "./myRegistration.json";
+import apiErrors from "./apiErrors.json";
+import eventApiErrors from "./eventApiErrors.json";
+import emails from "./emails.json";
 
 const messages = {
   metadata,
@@ -31,6 +36,11 @@ const messages = {
   team,
   savedInfo,
   auth,
+  publicEvent,
+  myRegistration,
+  apiErrors,
+  eventApiErrors,
+  emails,
 };
 
 export default messages;

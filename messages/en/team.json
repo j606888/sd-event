@@ -39,5 +39,6 @@
   "roleDescription": {
     "member": "Can manage events, registrants, payments and team members",
     "staff": "Can only scan QR codes to check people in and take walk-ins; can't see amounts or revenue"
-  }
+  },
+  "defaultName": "My team"
 }

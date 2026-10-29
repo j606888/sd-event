@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { events, eventRegistrations, teams, users } from "@/db/schema";
 import { requireSuperAdmin } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 /** 全站活動清單，可用 ?userId= / ?teamId= 篩選 */
@@ -17,14 +18,14 @@ export async function GET(request: Request) {
   if (userIdParam) {
     const userId = Number(userIdParam);
     if (!Number.isInteger(userId)) {
-      return NextResponse.json({ error: "無效的 userId" }, { status: 400 });
+      return apiError("apiErrors.common.invalidParam", 400, { param: "userId" });
     }
     conditions.push(eq(events.userId, userId));
   }
   if (teamIdParam) {
     const teamId = Number(teamIdParam);
     if (!Number.isInteger(teamId)) {
-      return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+      return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
     }
     conditions.push(eq(events.teamId, teamId));
   }

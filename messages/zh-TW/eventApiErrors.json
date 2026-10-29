@@ -1,0 +1,128 @@
+{
+  "invalidEventId": "無效的 eventId",
+  "invalidTeamId": "無效的 teamId",
+  "invalidId": "無效的 id",
+  "invalidParams": "無效的參數",
+  "invalidRegistrationParams": "無效的 eventId 或 registrationId",
+  "createFailed": "新增失敗",
+  "invalidEmail": "請提供有效的 email",
+  "invalidPurchaseItem": "無效的購買項目",
+  "invalidAttendees": "請提供至少一位有效的參加者（姓名與角色）",
+  "totalAmountError": "總金額計算錯誤",
+  "registrationNotFound": "找不到報名記錄",
+  "events": {
+    "createInvalid": "請提供有效的 teamId 與 title",
+    "createFailed": "建立失敗",
+    "deleteForbidden": "只有活動建立者或團隊擁有者可以刪除活動",
+    "publicKeyRequired": "請提供公開金鑰"
+  },
+  "coupons": {
+    "codeRequired": "請提供折扣碼 code",
+    "codeEmpty": "折扣碼不可為空",
+    "codeTooLong": "折扣碼長度不可超過 50 字",
+    "duplicate": "折扣碼重複",
+    "notFound": "找不到折扣碼",
+    "usageLimitBelowUsed": "使用上限不可低於已使用次數",
+    "enterCode": "請輸入折扣碼",
+    "notSupported": "此活動不支援折扣碼",
+    "codeNotFound": "查無此折扣碼",
+    "invalid": "折扣碼無效",
+    "exhausted": "此折扣碼已額滿，無法使用",
+    "fields": {
+      "invalidDiscountType": "折扣類型必須為 fixed 或 percent",
+      "invalidValue": "折扣數值必須為正整數",
+      "invalidPercent": "折扣百分比必須介於 1–100",
+      "invalidUsageLimit": "使用上限必須為正整數或不限"
+    }
+  },
+  "priceTiers": {
+    "nameRequired": "請提供時段名稱 name",
+    "nameEmpty": "時段名稱不可為空",
+    "notFound": "找不到票價時段"
+  },
+  "purchaseItemGroups": {
+    "titleRequired": "請提供群組名稱 title",
+    "titleEmpty": "群組名稱不可為空",
+    "notFound": "找不到票種群組"
+  },
+  "purchaseItems": {
+    "nameAmountRequired": "請提供名稱 name 與金額 amount（非負整數）",
+    "nameEmpty": "名稱不可為空",
+    "amountInvalid": "金額需為非負整數",
+    "seatCountInvalid": "每張票人數需為 1–{max} 的整數",
+    "minFlaggedInvalid": "至少勾選人數需為 0–{max} 的整數",
+    "seatCountLocked": "已有人報名此票券，無法修改每張票人數（可隱藏後另開新票券）",
+    "deleteInUse": "已有人報名此項目，無法刪除（可改為隱藏）",
+    "notFound": "找不到購買項目"
+  },
+  "registration": {
+    "notOpen": "此活動尚未開放報名",
+    "missingFields": "請提供有效的聯絡人資訊（姓名、電話、信箱）、購買項目、總金額與至少一位參加者",
+    "walkInMissingFields": "請提供姓名、購買項目與至少一位參加者",
+    "itemRequired": "請至少選擇一個購買項目",
+    "itemUnavailable": "「{item}」目前（{tier}）不販售，請重新整理後改選其他票券",
+    "seatCountMismatch": "「{item}」需填寫剛好 {required} 位參加者（目前 {actual} 位）",
+    "flaggedShortfall": "「{item}」需至少 {required} 位參加者勾選「{label}」"
+  },
+  "groupSelection": {
+    "invalidItem": "無效的購買項目",
+    "singleOnly": "「{group}」僅能擇一",
+    "requiredSingle": "請於「{group}」選擇一項",
+    "requiredMultiple": "請於「{group}」至少選擇一項",
+    "exclusive": "「{groupA}」與「{groupB}」不可同時選擇"
+  },
+  "registrationList": {
+    "itemSeparator": "、"
+  },
+  "registrationEdit": {
+    "refundedLocked": "這筆報名已退款，請先撤銷退款再改付款狀態",
+    "invalidTotalAmount": "請提供有效的總金額"
+  },
+  "refund": {
+    "onlyConfirmed": "只有已收款的報名可以標記退款",
+    "methodRequired": "請選擇退款方式",
+    "noRecord": "這筆報名沒有退款紀錄"
+  },
+  "resendConfirmation": {
+    "notConfirmed": "這筆報名尚未確認收款，沒有確認信可以重寄",
+    "noEmail": "這筆報名沒有填 email，無法寄信",
+    "sendFailed": "寄信失敗，請稍後再試"
+  },
+  "export": {
+    "header": {
+      "registrationKey": "報名編號",
+      "contact": "聯絡人",
+      "phone": "電話",
+      "email": "Email",
+      "attendeeName": "參加者姓名",
+      "role": "角色",
+      "items": "報名項目",
+      "amount": "金額",
+      "couponCode": "折扣碼",
+      "discount": "折抵金額",
+      "paymentMethod": "付款方式",
+      "paymentStatus": "付款狀態",
+      "checkIn": "入場狀態",
+      "source": "來源",
+      "createdAt": "報名時間"
+    },
+    "role": {
+      "notSure": "尚未確定"
+    },
+    "paymentStatus": {
+      "pending": "待付款",
+      "reported": "待確認",
+      "confirmed": "已完成付款",
+      "rejected": "已拒絕",
+      "refunded": "已退款"
+    },
+    "source": {
+      "online": "線上",
+      "walkIn": "現場"
+    },
+    "cash": "現金",
+    "checkedIn": "已入場",
+    "notCheckedIn": "未入場",
+    "flagged": "是"
+  }
+}

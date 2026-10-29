@@ -164,7 +164,8 @@
     "autoCheckIn": "Check in right away (mark as checked in)",
     "submit": "Register (cash)",
     "selectItem": "Please select a ticket",
-    "failed": "Walk-in registration failed"
+    "failed": "Walk-in registration failed",
+    "missingRegistrationKey": "Registered, but couldn't get the registration number"
   },
   "edit": {
     "title": "Edit registration",

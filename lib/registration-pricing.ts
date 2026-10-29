@@ -31,7 +31,16 @@ export type ExclusionRow = {
 };
 
 /**
- * 依群組規則驗證選取項目。回傳錯誤訊息字串，或 null 表通過。
+ * validateGroupSelection 的錯誤：code 對應訊息 key（eventApiErrors.groupSelection.<code>），
+ * values 是訊息參數（群組名稱），由 route 依請求者語系翻譯。
+ */
+export type GroupSelectionError =
+  | { code: "invalidItem"; values?: undefined }
+  | { code: "singleOnly" | "requiredSingle" | "requiredMultiple"; values: { group: string } }
+  | { code: "exclusive"; values: { groupA: string; groupB: string } };
+
+/**
+ * 依群組規則驗證選取項目。回傳錯誤（代碼 + 參數），或 null 表通過。
  *   - 每個選取項目都必須屬於本活動的某個群組
  *   - selectionMode="single" → 該群組最多選一項
  *   - required → single 必須恰選一項、multiple 至少一項
@@ -42,14 +51,14 @@ export function validateGroupSelection(
   items: ItemRow[],
   selectedIds: number[],
   exclusions: ExclusionRow[]
-): string | null {
+): GroupSelectionError | null {
   const groupById = new Map(groups.map((g) => [g.id, g]));
   const itemById = new Map(items.map((it) => [it.id, it]));
 
   for (const id of selectedIds) {
     const it = itemById.get(id);
     if (!it || it.groupId == null || !groupById.has(it.groupId)) {
-      return "無效的購買項目";
+      return { code: "invalidItem" };
     }
   }
 
@@ -62,14 +71,14 @@ export function validateGroupSelection(
   for (const g of groups) {
     const c = countByGroup.get(g.id) ?? 0;
     if (g.selectionMode === "single" && c > 1) {
-      return `「${g.title}」僅能擇一`;
+      return { code: "singleOnly", values: { group: g.title } };
     }
     if (g.required) {
       if (g.selectionMode === "single" && c !== 1) {
-        return `請於「${g.title}」選擇一項`;
+        return { code: "requiredSingle", values: { group: g.title } };
       }
       if (g.selectionMode === "multiple" && c < 1) {
-        return `請於「${g.title}」至少選擇一項`;
+        return { code: "requiredMultiple", values: { group: g.title } };
       }
     }
   }
@@ -78,7 +87,10 @@ export function validateGroupSelection(
     if ((countByGroup.get(groupAId) ?? 0) > 0 && (countByGroup.get(groupBId) ?? 0) > 0) {
       const a = groupById.get(groupAId);
       const b = groupById.get(groupBId);
-      return `「${a?.title ?? ""}」與「${b?.title ?? ""}」不可同時選擇`;
+      return {
+        code: "exclusive",
+        values: { groupA: a?.title ?? "", groupB: b?.title ?? "" },
+      };
     }
   }
 
@@ -97,18 +109,21 @@ export function resolveUnitPrices(
 ): {
   activeTier: PriceTier | null;
   unitPriceById: Map<number, number>;
-  /** 選取項目中目前時段不販售者（如早鳥限定票已截止）的錯誤訊息；null = 全部可購買 */
-  unavailableError: string | null;
+  /**
+   * 選取項目中第一個目前時段不販售者（如早鳥限定票已截止）：項目名稱與當下時段名稱，
+   * 由 route 組成翻譯過的訊息；null = 全部可購買
+   */
+  unavailableItem: { item: string; tier: string } | null;
 } {
   const activeTier = resolveActiveTier(tiers, now);
   const pricesByItem = groupPriceRows(priceRows);
 
   const unitPriceById = new Map<number, number>();
-  let unavailableError: string | null = null;
+  let unavailableItem: { item: string; tier: string } | null = null;
   for (const item of selectedItems) {
     const prices = pricesByItem.get(item.id) ?? [];
-    if (unavailableError == null && !isItemSoldInTier(prices, activeTier?.id ?? null)) {
-      unavailableError = `「${item.name}」目前（${activeTier?.name ?? ""}）不販售，請重新整理後改選其他票券`;
+    if (unavailableItem == null && !isItemSoldInTier(prices, activeTier?.id ?? null)) {
+      unavailableItem = { item: item.name, tier: activeTier?.name ?? "" };
     }
     unitPriceById.set(
       item.id,
@@ -116,7 +131,7 @@ export function resolveUnitPrices(
     );
   }
 
-  return { activeTier, unitPriceById, unavailableError };
+  return { activeTier, unitPriceById, unavailableItem };
 }
 
 export type PriceRow = {

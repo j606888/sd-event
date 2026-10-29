@@ -21,6 +21,7 @@ import {
 } from "@/lib/registration-email";
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
+import { apiError } from "@/lib/api-error";
 
 type Params = {
   params: Promise<{ eventId: string; registrationId: string }>;
@@ -34,16 +35,13 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   const registrationId = Number((await params).registrationId);
 
   if (!Number.isInteger(eventId) || !Number.isInteger(registrationId)) {
-    return NextResponse.json(
-      { error: "無效的 eventId 或 registrationId" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.invalidRegistrationParams", 400);
   }
 
   // 檢查活動是否存在且使用者為團隊成員
@@ -54,7 +52,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);
@@ -73,7 +71,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!registration) {
-    return NextResponse.json({ error: "找不到報名記錄" }, { status: 404 });
+    return apiError("eventApiErrors.registrationNotFound", 404);
   }
 
   // 取得參加者
@@ -192,16 +190,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   const registrationId = Number((await params).registrationId);
 
   if (!Number.isInteger(eventId) || !Number.isInteger(registrationId)) {
-    return NextResponse.json(
-      { error: "無效的 eventId 或 registrationId" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.invalidRegistrationParams", 400);
   }
 
   // 檢查活動是否存在且使用者為團隊成員
@@ -212,7 +207,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamAdmin(event.teamId, session.userId);
@@ -231,7 +226,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .limit(1);
 
   if (!registration) {
-    return NextResponse.json({ error: "找不到報名記錄" }, { status: 404 });
+    return apiError("eventApiErrors.registrationNotFound", 404);
   }
 
   const body = await request.json().catch(() => ({}));
@@ -250,10 +245,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
   // 已退款的報名只能走 /refund 撤銷，否則退款紀錄會殘留在別的狀態上
   if (body.paymentStatus !== undefined && registration.paymentStatus === "refunded") {
-    return NextResponse.json(
-      { error: "這筆報名已退款，請先撤銷退款再改付款狀態" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.registrationEdit.refundedLocked", 400);
   }
 
   if (
@@ -279,7 +271,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (typeof body.contactEmail === "string") {
     const email = body.contactEmail.trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "請提供有效的 email" }, { status: 400 });
+      return apiError("eventApiErrors.invalidEmail", 400);
     }
     updates.contactEmail = email || null;
   }
@@ -287,7 +279,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body.totalAmount !== undefined) {
     const amount = Number(body.totalAmount);
     if (!Number.isInteger(amount) || amount <= 0) {
-      return NextResponse.json({ error: "請提供有效的總金額" }, { status: 400 });
+      return apiError("eventApiErrors.registrationEdit.invalidTotalAmount", 400);
     }
     updates.totalAmount = amount;
   }
@@ -310,10 +302,7 @@ export async function PATCH(request: Request, { params }: Params) {
           a.name && ["Leader", "Follower", "Not sure"].includes(a.role)
       );
     if (cleaned.length === 0) {
-      return NextResponse.json(
-        { error: "請提供至少一位有效的參加者（姓名與角色）" },
-        { status: 400 }
-      );
+      return apiError("eventApiErrors.invalidAttendees", 400);
     }
     attendeeEdits = cleaned;
   }
@@ -391,8 +380,9 @@ export async function PATCH(request: Request, { params }: Params) {
     ) {
       const contactEmail = updated.contactEmail;
       const registrationKey = updated.registrationKey;
+      const locale = updated.locale;
       loadConfirmationEmailContext(event)
-        .then((ctx) => sendConfirmationEmail(ctx, contactEmail, registrationKey))
+        .then((ctx) => sendConfirmationEmail(ctx, contactEmail, registrationKey, locale))
         .catch((err) => console.error("Payment confirmed email error:", err));
     }
 

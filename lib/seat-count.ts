@@ -68,12 +68,3 @@ export function findSeatCountMismatch(
   }
   return null;
 }
-
-/** 驗證參加者人數符合所選套票。回傳中文錯誤訊息，或 null 表通過。 */
-export function validateSeatCount(
-  items: SeatItem[],
-  attendeeCount: number
-): string | null {
-  const m = findSeatCountMismatch(items, attendeeCount);
-  return m ? `「${m.item}」需填寫剛好 ${m.required} 位參加者（目前 ${m.actual} 位）` : null;
-}

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   computeItemsTotal,
   requiredAttendeeCount,
+  findSeatCountMismatch,
   seatCountOf,
-  validateSeatCount,
 } from "./seat-count";
 
 describe("seatCountOf", () => {
@@ -38,23 +38,23 @@ describe("computeItemsTotal", () => {
   });
 });
 
-describe("validateSeatCount", () => {
+describe("findSeatCountMismatch", () => {
   const pair = { name: "雙人票", seatCount: 2 };
 
   it("passes regular tickets with any attendee count", () => {
-    expect(validateSeatCount([{ name: "單人票" }], 5)).toBeNull();
+    expect(findSeatCountMismatch([{ name: "單人票" }], 5)).toBeNull();
   });
 
   it("requires the exact attendee count for a bundle", () => {
-    expect(validateSeatCount([pair], 2)).toBeNull();
-    expect(validateSeatCount([pair], 1)).toContain("剛好 2 位");
-    expect(validateSeatCount([pair], 3)).toContain("剛好 2 位");
+    expect(findSeatCountMismatch([pair], 2)).toBeNull();
+    expect(findSeatCountMismatch([pair], 1)).toEqual({ item: "雙人票", required: 2, actual: 1 });
+    expect(findSeatCountMismatch([pair], 3)).toEqual({ item: "雙人票", required: 2, actual: 3 });
   });
 
   it("rejects bundles with conflicting seat counts", () => {
     expect(
-      validateSeatCount([pair, { name: "三人票", seatCount: 3 }], 2)
-    ).toContain("三人票");
+      findSeatCountMismatch([pair, { name: "三人票", seatCount: 3 }], 2)
+    ).toEqual({ item: "三人票", required: 3, actual: 2 });
   });
 });
 

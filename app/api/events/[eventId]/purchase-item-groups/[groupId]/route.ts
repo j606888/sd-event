@@ -4,6 +4,7 @@ import { eventPurchaseItemGroups } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
+import { apiError } from "@/lib/api-error";
 import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string; groupId: string }> };
@@ -15,13 +16,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, groupId: groupIdStr } = await params;
   const eventId = Number(eventIdStr);
   const groupId = Number(groupIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(groupId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -39,7 +40,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (typeof body.title === "string") {
     const trimmed = body.title.trim();
     if (!trimmed) {
-      return NextResponse.json({ error: "群組名稱不可為空" }, { status: 400 });
+      return apiError("eventApiErrors.purchaseItemGroups.titleEmpty", 400);
     }
     updates.title = trimmed;
   }
@@ -65,7 +66,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .returning();
 
   if (!updated) {
-    return NextResponse.json({ error: "找不到票種群組" }, { status: 404 });
+    return apiError("eventApiErrors.purchaseItemGroups.notFound", 404);
   }
 
   return NextResponse.json({ group: updated });
@@ -77,13 +78,13 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, groupId: groupIdStr } = await params;
   const eventId = Number(eventIdStr);
   const groupId = Number(groupIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(groupId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -100,7 +101,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     .returning();
 
   if (!deleted) {
-    return NextResponse.json({ error: "找不到票種群組" }, { status: 404 });
+    return apiError("eventApiErrors.purchaseItemGroups.notFound", 404);
   }
 
   return NextResponse.json({ ok: true });

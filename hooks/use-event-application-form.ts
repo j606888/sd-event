@@ -2,22 +2,27 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { PublicEventData, EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
 import type { FormData, Participant } from "@/components/events/registration/event-application-types";
 import { INITIAL_FORM_DATA } from "@/components/events/registration/event-application-types";
-import { createRegistration } from "@/lib/api/create-registration";
+import {
+  createRegistration,
+  CreateRegistrationError,
+  MISSING_REGISTRATION_KEY,
+} from "@/lib/api/create-registration";
 import { validateCoupon } from "@/lib/api/validate-coupon";
 import { computeCouponDiscount } from "@/lib/coupon";
 import {
   computeItemsTotal,
+  findSeatCountMismatch,
   isBundleItem,
   requiredAttendeeCount,
-  validateSeatCount,
 } from "@/lib/seat-count";
 import {
+  findFlaggedShortfall,
   normalizeFlagLabel,
   requiredFlaggedCount,
-  validateFlaggedCount,
 } from "@/lib/attendee-flag";
 
 export type EventApplicationFormState = {
@@ -31,6 +36,7 @@ export type EventApplicationFormState = {
 
 export function useEventApplicationForm(event: PublicEventData) {
   const router = useRouter();
+  const t = useTranslations("publicEvent.errors");
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -82,12 +88,13 @@ export function useEventApplicationForm(event: PublicEventData) {
   // 選了套票（如雙人票）→ 參加者人數固定為套票人數
   const requiredParticipants = requiredAttendeeCount(chosenItems);
   const bundleItem = chosenItems.find(isBundleItem) ?? null;
-  const seatError = validateSeatCount(chosenItems, formData.participants.length);
+  // 只回傳結構化資訊，錯誤文字由報名表元件翻譯（切換語言時會跟著變）
+  const seatMismatch = findSeatCountMismatch(chosenItems, formData.participants.length);
 
   // 參加者勾選項目（如參加伸展台比賽）；票券可要求至少勾幾位
   const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
   const requiredFlagged = flagLabel ? requiredFlaggedCount(chosenItems) : 0;
-  const flagError = validateFlaggedCount(
+  const flagShortfall = findFlaggedShortfall(
     chosenItems,
     formData.participants.filter((p) => p.flagged).length,
     flagLabel
@@ -226,14 +233,12 @@ export function useEventApplicationForm(event: PublicEventData) {
       setCouponError(result.error);
       return false;
     } catch (err) {
-      setCouponError(
-        err instanceof Error ? err.message : "驗證折扣碼失敗，請稍後再試"
-      );
+      setCouponError((err instanceof Error && err.message) || t("couponCheckFailed"));
       return false;
     } finally {
       setApplyingCoupon(false);
     }
-  }, [event.id, formData.couponCode]);
+  }, [event.id, formData.couponCode, t]);
 
   const removeCoupon = useCallback(() => {
     setCouponError(null);
@@ -267,8 +272,8 @@ export function useEventApplicationForm(event: PublicEventData) {
       : formData.selectedPlanId !== null;
   const canProceedToStep3 =
     hasSelectedPlan &&
-    seatError == null &&
-    flagError == null &&
+    seatMismatch == null &&
+    flagShortfall == null &&
     formData.contactName.trim() !== "" &&
     formData.contactPhone.trim() !== "" &&
     formData.contactEmail.trim() !== "" &&
@@ -316,16 +321,22 @@ export function useEventApplicationForm(event: PublicEventData) {
 
       router.push(`/registration-success/${result.registration.registrationKey}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "網路錯誤，請稍後再試";
-      // 折扣碼在送出瞬間被搶完：清除已套用狀態讓使用者以原價重試
-      if (message.includes("折扣碼")) {
+      const code = err instanceof CreateRegistrationError ? err.code : null;
+      const message =
+        err instanceof Error
+          ? err.message ||
+            (code === MISSING_REGISTRATION_KEY ? t("missingRegistrationKey") : t("submitFailed"))
+          : t("network");
+      // 折扣碼在送出瞬間被搶完（或失效）：清除已套用狀態讓使用者以原價重試。
+      // 伺服器訊息已翻譯成使用者的語言，改看錯誤代碼（COUPON_INVALID / COUPON_EXHAUSTED / COUPON_NOT_SUPPORTED）
+      if (code?.startsWith("COUPON_")) {
         setFormData((prev) => ({ ...prev, appliedCoupon: null }));
         setCouponError(message);
       }
       setSubmitError(message);
       setSubmitting(false);
     }
-  }, [event.id, event.allowMultiplePurchase, useGroups, formData, router, couponsSupported, finalAmount, flagLabel]);
+  }, [event.id, event.allowMultiplePurchase, useGroups, formData, router, couponsSupported, finalAmount, flagLabel, t]);
 
   return {
     step,
@@ -341,10 +352,10 @@ export function useEventApplicationForm(event: PublicEventData) {
     selectedPlans,
     requiredParticipants,
     bundleItem,
-    seatError,
+    seatMismatch,
     flagLabel,
     requiredFlagged,
-    flagError,
+    flagShortfall,
     handleCopy,
     addParticipant,
     removeParticipant,

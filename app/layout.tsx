@@ -6,7 +6,7 @@ import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -31,6 +31,9 @@ const displayLatin = Plus_Jakarta_Sans({
   weight: ["500", "600", "700"],
 });
 
+/** 只有伺服器用得到的文案（API 錯誤訊息、email），不必送到瀏覽器 */
+const SERVER_ONLY_NAMESPACES = new Set(["apiErrors", "eventApiErrors", "emails"]);
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
   return {
@@ -45,6 +48,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
+  const clientMessages = Object.fromEntries(
+    Object.entries(await getMessages()).filter(([namespace]) => !SERVER_ONLY_NAMESPACES.has(namespace))
+  );
 
   return (
     <html lang={locale}>
@@ -52,7 +58,7 @@ export default async function RootLayout({
         className={`${nunito.variable} ${inter.variable} ${notoSansTC.variable} ${displayLatin.variable} antialiased`}
       >
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={clientMessages}>
           <QueryProvider>{children}</QueryProvider>
         </NextIntlClientProvider>
         <Analytics />

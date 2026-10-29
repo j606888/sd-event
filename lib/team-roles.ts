@@ -18,14 +18,3 @@ export function isTeamAdmin(role: TeamRole | null | undefined): boolean {
 export function isAssignableTeamRole(value: unknown): value is AssignableTeamRole {
   return (ASSIGNABLE_TEAM_ROLES as readonly string[]).includes(value as string);
 }
-
-export const TEAM_ROLE_LABEL: Record<TeamRole, string> = {
-  owner: "管理員",
-  member: "管理員",
-  staff: "驗票人員",
-};
-
-export const TEAM_ROLE_DESCRIPTION: Record<AssignableTeamRole, string> = {
-  member: "可管理活動、報名者、款項與團隊成員",
-  staff: "只能掃碼報到與現場報名，看不到金額與營收",
-};

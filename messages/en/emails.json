@@ -1,0 +1,72 @@
+{
+  "greeting": "Hi,",
+  "signature": "— SD Event",
+  "registrationReceived": {
+    "subject": "[Pending] Registration received: {event}",
+    "subjectNoEvent": "[Pending] Registration received",
+    "thanks": "Thanks for registering for “{event}”!",
+    "thanksNoEvent": "Thanks for registering!",
+    "intro": "We've received your registration. Use the link below to check its status:",
+    "cta": "👉 View registration status and payment details",
+    "noticeTitle": "Please note:",
+    "noticePay": "If you haven't paid yet, please complete the bank transfer within 24 hours to keep your spot.",
+    "noticeReport": "If you've already transferred, report the last 5 digits of your account at the link above and we'll confirm it as soon as we can.",
+    "closing": "See you at the event!"
+  },
+  "paymentConfirmed": {
+    "subject": "[Confirmed] {event}: payment received, here's your entry pass",
+    "subjectNoEvent": "[Confirmed] Payment received, here's your entry pass",
+    "body": "Great news! We've received your payment and your registration is now confirmed.",
+    "voucherIntro": "On the day of the event, show the QR code at the link below to check in:",
+    "cta": "🎫 Open my entry pass / QR code",
+    "infoTitle": "Event details:",
+    "time": "Time: {time}",
+    "location": "Venue: {location}",
+    "contact": "If you have any questions, just reply to this email."
+  },
+  "refunded": {
+    "subject": "[Refunded] Your registration for {event} has been refunded",
+    "subjectNoEvent": "[Refunded] Your registration has been refunded",
+    "body": "The organizer has refunded your payment of <strong>NT$ {amount}</strong> for “{event}”.",
+    "bodyNoEvent": "The organizer has refunded your payment of <strong>NT$ {amount}</strong>.",
+    "cancelled": "This registration is now cancelled and its entry QR pass is no longer valid. If you haven't received the refund, please contact the organizer directly.",
+    "cta": "View registration status",
+    "closing": "Hope to see you at a future event!"
+  },
+  "newRegistration": {
+    "subject": "[New registration] {event} — {name}",
+    "eventFallback": "Event",
+    "intro": "New registration for “{event}”:",
+    "contact": "Contact: {value}",
+    "phone": "Phone: {value}",
+    "email": "Email: {value}",
+    "tickets": "Tickets: {items}",
+    "ticketsWithTier": "Tickets: {items} ({tier})",
+    "itemSeparator": ", ",
+    "amount": "Amount: {amount}",
+    "amountWithCoupon": "NT$ {amount} (coupon {code})",
+    "amountWithCouponDiscount": "NT$ {amount} (coupon {code}, NT$ {discount} off)",
+    "paymentMethod": "Payment method: {value}",
+    "attendeesTitle": "Attendees ({count}):",
+    "attendee": "{name} ({role})",
+    "cta": "View registrations",
+    "footer": "— SD Event | You're receiving this because new-registration emails are turned on in your team settings. A team admin can turn them off on the Team page."
+  },
+  "team": {
+    "roleLine": "Role: <strong>{role}</strong> ({description})",
+    "inviterFallback": "A team admin"
+  },
+  "teamInvitation": {
+    "subject": "[Team invite] {inviter} invited you to join “{team}”",
+    "body": "{inviter} invited you to join the team “<strong>{team}</strong>” on SD Event to manage event registrations and check-in together.",
+    "cta": "Create an account and join",
+    "useThisEmail": "Sign up with this email address ({email}) and you'll be added to the team automatically.",
+    "footer": "— SD Event | If you don't know the person who invited you, you can ignore this email."
+  },
+  "teamMemberAdded": {
+    "subject": "[Team] {inviter} added you to “{team}”",
+    "body": "{inviter} added you to the team “<strong>{team}</strong>” on SD Event.",
+    "cta": "Log in to see the team's events",
+    "switchTeam": "After logging in, switch to this team from the top-left corner."
+  }
+}

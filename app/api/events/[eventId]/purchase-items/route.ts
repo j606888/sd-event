@@ -10,6 +10,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
 import { MAX_MIN_FLAGGED, parseMinFlagged } from "@/lib/attendee-flag";
+import { apiError } from "@/lib/api-error";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 /** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
@@ -56,11 +57,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -156,11 +157,11 @@ export async function POST(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -170,7 +171,7 @@ export async function POST(request: Request, { params }: Params) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const amount = Number(body.amount);
   if (!name || !Number.isInteger(amount) || amount < 0) {
-    return NextResponse.json({ error: "請提供名稱 name 與金額 amount（非負整數）" }, { status: 400 });
+    return apiError("eventApiErrors.purchaseItems.nameAmountRequired", 400);
   }
 
   const sortOrder = Number.isInteger(body.sortOrder) ? body.sortOrder : 0;
@@ -182,18 +183,12 @@ export async function POST(request: Request, { params }: Params) {
   const prices = parsePrices(body.prices);
   const seatCount = body.seatCount === undefined ? 1 : parseSeatCount(body.seatCount);
   if (seatCount == null) {
-    return NextResponse.json(
-      { error: `每張票人數需為 1–${MAX_SEAT_COUNT} 的整數` },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.purchaseItems.seatCountInvalid", 400, { max: MAX_SEAT_COUNT });
   }
   const description = parseDescription(body.description);
   const minFlagged = body.minFlagged === undefined ? 0 : parseMinFlagged(body.minFlagged);
   if (minFlagged == null) {
-    return NextResponse.json(
-      { error: `至少勾選人數需為 0–${MAX_MIN_FLAGGED} 的整數` },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.purchaseItems.minFlaggedInvalid", 400, { max: MAX_MIN_FLAGGED });
   }
 
   const item = await db.transaction(async (tx) => {
@@ -216,7 +211,7 @@ export async function POST(request: Request, { params }: Params) {
   });
 
   if (!item) {
-    return NextResponse.json({ error: "新增失敗" }, { status: 500 });
+    return apiError("eventApiErrors.createFailed", 500);
   }
 
   return NextResponse.json({ purchaseItem: { ...item, prices } });

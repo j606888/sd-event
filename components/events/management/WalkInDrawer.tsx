@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useEvent } from "@/hooks/use-event-detail";
 import { usePublicEvent } from "@/hooks/use-public-event";
 import { useCreateWalkIn } from "@/hooks/use-registrations";
+import { WALK_IN_MISSING_REGISTRATION_KEY } from "@/lib/api/create-walk-in";
 import type { EventPurchaseItem, PublicEventData } from "@/types/event";
 import {
   computeItemsTotal,
@@ -226,7 +227,12 @@ export function WalkInDrawer({
       onSuccess?.();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("walkIn.failed"));
+      const message = e instanceof Error ? e.message : "";
+      setError(
+        message === WALK_IN_MISSING_REGISTRATION_KEY
+          ? t("walkIn.missingRegistrationKey")
+          : message || t("walkIn.failed")
+      );
     }
   };
 

@@ -7,6 +7,7 @@ import { getTeamRole, requireAuth, requireTeamAdmin, requireTeamMember } from "@
 import { isTeamAdmin } from "@/lib/team-roles";
 import { isEventType } from "@/lib/event-templates";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
+import { apiError } from "@/lib/api-error";
 import { eq, ne, inArray, desc, count, and, sql } from "drizzle-orm";
 
 function generatePublicKey(): string {
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   // Get user's active team
   const userRows = await db
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
   }
 
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidTeamId", 400);
   }
 
   // Verify user is a member of this team
@@ -153,17 +154,14 @@ export async function POST(request: Request) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const body = await request.json().catch(() => ({}));
   const teamId = Number(body.teamId);
   const title = typeof body.title === "string" ? body.title.trim() : "";
 
   if (!Number.isInteger(teamId) || !title) {
-    return NextResponse.json(
-      { error: "請提供有效的 teamId 與 title" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.events.createInvalid", 400);
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -219,7 +217,7 @@ export async function POST(request: Request) {
     });
 
   if (!event) {
-    return NextResponse.json({ error: "建立失敗" }, { status: 500 });
+    return apiError("eventApiErrors.events.createFailed", 500);
   }
 
   return NextResponse.json({ event });

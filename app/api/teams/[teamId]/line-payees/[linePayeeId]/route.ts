@@ -3,7 +3,8 @@ import { db } from "@/db";
 import { linePayees } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
-import { validateLineIdInput } from "@/lib/line";
+import { lineIdInputError } from "@/lib/line";
+import { apiError } from "@/lib/api-error";
 import { eq, and } from "drizzle-orm";
 
 type Params = {
@@ -16,14 +17,17 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { teamId: teamIdStr, linePayeeId: linePayeeIdStr } = await params;
   const teamId = Number(teamIdStr);
   const linePayeeId = Number(linePayeeIdStr);
 
   if (!Number.isInteger(teamId) || !Number.isInteger(linePayeeId)) {
-    return NextResponse.json({ error: "無效的 teamId 或 linePayeeId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParamPair", 400, {
+      first: "teamId",
+      second: "linePayeeId",
+    });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -37,7 +41,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .limit(1);
 
   if (!existing) {
-    return NextResponse.json({ error: "找不到 LINE 付款好友" }, { status: 404 });
+    return apiError("apiErrors.savedInfo.linePayeeNotFound", 404);
   }
 
   const body = await request.json().catch(() => ({}));
@@ -47,15 +51,15 @@ export async function PATCH(request: Request, { params }: Params) {
     updates.label = body.label.trim();
   }
   if (typeof body.lineId === "string") {
-    const lineIdError = validateLineIdInput(body.lineId);
+    const lineIdError = lineIdInputError(body.lineId);
     if (lineIdError) {
-      return NextResponse.json({ error: lineIdError }, { status: 400 });
+      return apiError(`savedInfo.linePayee.lineIdErrors.${lineIdError}`, 400);
     }
     updates.lineId = body.lineId.trim();
   }
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "沒有要更新的欄位" }, { status: 400 });
+    return apiError("apiErrors.common.noFieldsToUpdate", 400);
   }
 
   const [updated] = await db
@@ -65,7 +69,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .returning();
 
   if (!updated) {
-    return NextResponse.json({ error: "更新失敗" }, { status: 500 });
+    return apiError("apiErrors.common.updateFailed", 500);
   }
 
   return NextResponse.json({ linePayee: updated });

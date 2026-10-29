@@ -1,0 +1,77 @@
+{
+  "common": {
+    "notLoggedIn": "未登入",
+    "sessionExpired": "未登入或登入已過期",
+    "noTeamPermission": "無權限操作此團隊",
+    "adminOnly": "此功能僅限管理員",
+    "forbidden": "無權限",
+    "impersonationNoAdmin": "模擬檢視中無法使用總管理功能，請先結束模擬",
+    "impersonationReadOnly": "模擬檢視模式為唯讀，無法執行此操作",
+    "eventNotFound": "找不到活動",
+    "serverError": "伺服器錯誤",
+    "invalidParam": "無效的 {param}",
+    "invalidParamPair": "無效的 {first} 或 {second}",
+    "userNotFound": "找不到使用者",
+    "registrationNotFound": "找不到報名記錄",
+    "noFieldsToUpdate": "沒有要更新的欄位",
+    "createFailed": "建立失敗",
+    "addFailed": "新增失敗",
+    "updateFailed": "更新失敗"
+  },
+  "auth": {
+    "invalidLoginInput": "請提供有效的 email 與 password（至少 6 字）",
+    "emailNotRegistered": "此信箱尚未註冊",
+    "wrongPassword": "密碼錯誤",
+    "invalidRegisterInput": "請提供有效的 name、email（格式正確）與 password（至少 6 字）",
+    "emailTaken": "此信箱已被註冊",
+    "registerFailed": "註冊失敗"
+  },
+  "admin": {
+    "cannotImpersonateSelf": "無法模擬自己",
+    "cannotImpersonateAdmin": "無法模擬其他總管理員",
+    "notImpersonating": "目前不在模擬檢視中",
+    "deletedItem": "（已刪除）"
+  },
+  "teams": {
+    "nameRequired": "請提供團隊名稱 name",
+    "notFound": "找不到團隊"
+  },
+  "members": {
+    "emailRequired": "請提供 email",
+    "invalidRole": "請提供有效的 role (member 或 staff)",
+    "alreadyMember": "該使用者已經是團隊成員",
+    "invitationPending": "該 email 已有待處理的邀請",
+    "createInvitationFailed": "建立邀請失敗",
+    "cannotRemoveSelf": "不能移除自己",
+    "notFound": "找不到該成員",
+    "cannotRemoveOwner": "不能移除團隊擁有者",
+    "invalidNotifyFlag": "notifyOnRegistration 必須是 true 或 false",
+    "roleOrNotifyRequired": "請提供 role 或 notifyOnRegistration",
+    "cannotChangeOwnerRole": "不能變更團隊擁有者的角色",
+    "lastAdmin": "團隊至少要保留一位管理員",
+    "notifyAdminOnly": "只有管理員可以接收報名通知信"
+  },
+  "invitations": {
+    "notFound": "找不到這筆待處理邀請",
+    "resendFailed": "邀請信寄送失敗，請稍後再試"
+  },
+  "savedInfo": {
+    "nameRequired": "請提供名稱 name",
+    "locationNotFound": "找不到活動地點",
+    "organizerNotFound": "找不到主辦單位",
+    "bankInfoRequired": "請提供銀行名稱 bankName 與銀行代碼 bankCode",
+    "bankInfoNotFound": "找不到銀行資訊",
+    "linePayeeLabelRequired": "請提供名稱／備註 label",
+    "linePayeeNotFound": "找不到 LINE 付款好友"
+  },
+  "checkIn": {
+    "attendeeNotFound": "找不到參加者記錄",
+    "refunded": "這筆報名已退款，無法入場",
+    "alreadyCheckedIn": "已入場",
+    "checkedIn": "入場成功",
+    "undone": "已取消入場"
+  },
+  "registration": {
+    "keyRequired": "請提供註冊金鑰"
+  }
+}

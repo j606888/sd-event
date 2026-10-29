@@ -164,7 +164,8 @@
     "autoCheckIn": "建立後立即報到（標記為已入場）",
     "submit": "確認報名（現金）",
     "selectItem": "請選擇報名項目",
-    "failed": "現場報名失敗"
+    "failed": "現場報名失敗",
+    "missingRegistrationKey": "報名成功，但無法取得報名編號"
   },
   "edit": {
     "title": "編輯報名",

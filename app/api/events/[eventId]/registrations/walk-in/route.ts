@@ -16,8 +16,9 @@ import { getSession } from "@/lib/auth";
 import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
-import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
-import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
+import { computeItemsTotal, findSeatCountMismatch } from "@/lib/seat-count";
+import { normalizeFlagLabel, findFlaggedShortfall } from "@/lib/attendee-flag";
+import { apiError } from "@/lib/api-error";
 import { eq, and, inArray, asc } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -40,12 +41,12 @@ export async function POST(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   try {
     const eventId = Number((await params).eventId);
     if (!Number.isInteger(eventId)) {
-      return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+      return apiError("eventApiErrors.invalidEventId", 400);
     }
 
     const [event] = await db
@@ -55,7 +56,7 @@ export async function POST(request: Request, { params }: Params) {
       .limit(1);
 
     if (!event) {
-      return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+      return apiError("apiErrors.common.eventNotFound", 404);
     }
 
     const forbidden = await requireTeamMember(event.teamId, session.userId);
@@ -101,15 +102,12 @@ export async function POST(request: Request, { params }: Params) {
       : purchaseItemId != null;
 
     if (!contactName || attendees.length === 0 || !hasPurchaseItems) {
-      return NextResponse.json(
-        { error: "請提供姓名、購買項目與至少一位參加者" },
-        { status: 400 }
-      );
+      return apiError("eventApiErrors.registration.walkInMissingFields", 400);
     }
 
     // email 有填才驗證格式
     if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-      return NextResponse.json({ error: "請提供有效的 email" }, { status: 400 });
+      return apiError("eventApiErrors.invalidEmail", 400);
     }
 
     // 驗證購買項目存在（限本活動、未隱藏）
@@ -128,7 +126,7 @@ export async function POST(request: Request, { params }: Params) {
         (id: number) => !validItemIds.includes(id)
       );
       if (invalidIds.length > 0) {
-        return NextResponse.json({ error: "無效的購買項目" }, { status: 400 });
+        return apiError("eventApiErrors.invalidPurchaseItem", 400);
       }
 
       if (useGroups) {
@@ -146,7 +144,11 @@ export async function POST(request: Request, { params }: Params) {
           exclusions
         );
         if (groupError) {
-          return NextResponse.json({ error: groupError }, { status: 400 });
+          return apiError(
+            `eventApiErrors.groupSelection.${groupError.code}`,
+            400,
+            groupError.values
+          );
         }
       }
     } else if (purchaseItemId != null) {
@@ -156,7 +158,7 @@ export async function POST(request: Request, { params }: Params) {
         .where(eq(eventPurchaseItems.id, purchaseItemId))
         .limit(1);
       if (!item || item.eventId !== eventId || item.hidden) {
-        return NextResponse.json({ error: "無效的購買項目" }, { status: 400 });
+        return apiError("eventApiErrors.invalidPurchaseItem", 400);
       }
     }
 
@@ -169,10 +171,7 @@ export async function POST(request: Request, { params }: Params) {
         ["Leader", "Follower", "Not sure"].includes(a.role)
     );
     if (validAttendees.length === 0) {
-      return NextResponse.json(
-        { error: "請提供至少一位有效的參加者（姓名與角色）" },
-        { status: 400 }
-      );
+      return apiError("eventApiErrors.invalidAttendees", 400);
     }
 
     // 解析當下時段單價，算出預設總額
@@ -218,33 +217,33 @@ export async function POST(request: Request, { params }: Params) {
           ),
     ]);
 
-    const { activeTier, unitPriceById, unavailableError } = resolveUnitPrices(
+    const { activeTier, unitPriceById, unavailableItem } = resolveUnitPrices(
       selectedItems,
       tiers,
       priceRows,
       new Date()
     );
     // 時段限定票（如早鳥限定）過了販售時段：不論 client 顯示什麼，一律以伺服器時間擋下
-    if (unavailableError) {
-      return NextResponse.json({ error: unavailableError }, { status: 400 });
+    if (unavailableItem) {
+      return apiError("eventApiErrors.registration.itemUnavailable", 400, unavailableItem);
     }
 
     // 套票（如雙人票）要求參加者人數剛好等於票券人數
-    const seatError = validateSeatCount(selectedItems, validAttendees.length);
-    if (seatError) {
-      return NextResponse.json({ error: seatError }, { status: 400 });
+    const seatMismatch = findSeatCountMismatch(selectedItems, validAttendees.length);
+    if (seatMismatch) {
+      return apiError("eventApiErrors.registration.seatCountMismatch", 400, seatMismatch);
     }
 
     // 參加者勾選項目（如參加伸展台比賽）：活動未設 label 時一律存 false
     const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
     const flaggedOf = (a: { flagged?: unknown }) => flagLabel != null && a.flagged === true;
-    const flagError = validateFlaggedCount(
+    const flagShortfall = findFlaggedShortfall(
       selectedItems,
       validAttendees.filter(flaggedOf).length,
       flagLabel
     );
-    if (flagError) {
-      return NextResponse.json({ error: flagError }, { status: 400 });
+    if (flagShortfall) {
+      return apiError("eventApiErrors.registration.flaggedShortfall", 400, flagShortfall);
     }
 
     const computedTotal = computeItemsTotal(
@@ -264,7 +263,7 @@ export async function POST(request: Request, { params }: Params) {
         : computedTotal;
 
     if (!Number.isInteger(finalTotalAmount) || finalTotalAmount <= 0) {
-      return NextResponse.json({ error: "總金額計算錯誤" }, { status: 400 });
+      return apiError("eventApiErrors.totalAmountError", 400);
     }
 
     const registrationKey = generateRegistrationKey();
@@ -335,6 +334,6 @@ export async function POST(request: Request, { params }: Params) {
     });
   } catch (e) {
     console.error("Walk-in registration error:", e);
-    return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
+    return apiError("apiErrors.common.serverError", 500);
   }
 }

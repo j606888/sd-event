@@ -1,0 +1,89 @@
+{
+  "loadError": {
+    "invalidKey": "Invalid registration link",
+    "notFound": "Registration not found",
+    "loadFailed": "Couldn't load your registration",
+    "linkExpired": "This link may have expired",
+    "refunded": "This registration was refunded, so its entry QR pass is no longer valid",
+    "qrFailed": "Couldn't generate the QR code"
+  },
+  "headers": {
+    "pending": {
+      "title": "Registration submitted!",
+      "notPaid": "You haven't paid yet",
+      "payBeforeDeadline": "Please pay before the deadline to keep your spot",
+      "badge": "Unpaid"
+    },
+    "reported": {
+      "title": "Payment reported",
+      "received": "We've received your payment details",
+      "pleaseWait": "The organizer will confirm it as soon as possible",
+      "badge": "Awaiting confirmation"
+    },
+    "confirmed": {
+      "title": "Payment confirmed!",
+      "received": "The organizer has received your payment",
+      "showPass": "Show your entry QR pass at the door on the event day",
+      "badge": "You're registered"
+    },
+    "rejected": {
+      "title": "Payment not confirmed",
+      "couldNotVerify": "The organizer couldn't verify your payment",
+      "reportAgain": "Please report your payment again or contact the organizer"
+    },
+    "refunded": {
+      "title": "Refunded",
+      "refunded": "The organizer has refunded your payment for this registration",
+      "passVoid": "Your registration is cancelled and your entry QR pass is no longer valid"
+    }
+  },
+  "status": {
+    "directions": "Directions >",
+    "ticket": "Ticket",
+    "attendees": "Attendees",
+    "nameSeparator": ", ",
+    "discount": "Discount",
+    "openEntryPass": "Open entry QR pass",
+    "amountDue": "Amount due",
+    "reportedNotice": "Payment details sent. Waiting for the organizer to confirm.",
+    "totalDue": "Total due",
+    "reportAgain": "Report again",
+    "reportPayment": "Report payment",
+    "organizer": "Organizer"
+  },
+  "reportPayment": {
+    "title": "Report payment",
+    "bankHeading": "Bank account",
+    "bank": "Bank",
+    "account": "Account",
+    "copyAccount": "Copy",
+    "screenshot": "Transfer screenshot",
+    "removeScreenshot": "Remove screenshot",
+    "dropzone": "Tap to choose an image, or drag and drop it here",
+    "noteLabel": "Last 5 digits of your bank account, or a message",
+    "notePlaceholder": "Enter a message",
+    "uploading": "Uploading…",
+    "submitting": "Submitting…",
+    "submit": "Submit",
+    "errors": {
+      "uploadFailedRetry": "Upload failed. Please try again.",
+      "notImage": "Please choose an image file",
+      "tooLarge": "Image must be 4MB or smaller",
+      "proofRequired": "Please add a transfer screenshot or the last 5 digits of your bank account",
+      "uploadFailed": "Upload failed",
+      "noUploadUrl": "Couldn't get the uploaded image URL",
+      "submitFailed": "Couldn't submit. Please try again later.",
+      "network": "Network error. Please try again later."
+    }
+  },
+  "voucher": {
+    "title": "Entry QR pass",
+    "qrAlt": "Entry QR code",
+    "attendees": "Attendees",
+    "checkedIn": "Checked in",
+    "notCheckedIn": "Not checked in",
+    "directions": "Directions >",
+    "ticket": "Ticket",
+    "amountDue": "Amount due"
+  }
+}

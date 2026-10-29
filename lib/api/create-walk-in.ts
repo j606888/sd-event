@@ -27,6 +27,13 @@ export type CreateWalkInResult = {
   };
 };
 
+/** 報名成功但回應沒有報名編號時丟的 Error message（介面另外翻譯） */
+export const WALK_IN_MISSING_REGISTRATION_KEY = "MISSING_REGISTRATION_KEY";
+
+/**
+ * 失敗時丟出的 Error message 是伺服器回傳的訊息（已依使用者語言翻譯）；
+ * 沒有時為空字串，由介面顯示預設文案。
+ */
 export async function createWalkInRegistration(
   eventId: number,
   body: CreateWalkInBody
@@ -41,11 +48,11 @@ export async function createWalkInRegistration(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || "現場報名失敗，請稍後再試");
+    throw new Error(data.error || "");
   }
 
   if (!data.registration?.registrationKey) {
-    throw new Error("報名成功，但無法取得報名編號");
+    throw new Error(WALK_IN_MISSING_REGISTRATION_KEY);
   }
 
   return data as CreateWalkInResult;

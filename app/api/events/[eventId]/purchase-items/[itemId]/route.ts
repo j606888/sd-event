@@ -10,6 +10,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
 import { MAX_MIN_FLAGGED, parseMinFlagged } from "@/lib/attendee-flag";
+import { apiError } from "@/lib/api-error";
 import { and, eq, sql } from "drizzle-orm";
 
 /** 計算某購買項目目前綁定的「未隱藏」報名數（新模式 + 舊單選模式合計） */
@@ -87,13 +88,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, itemId: itemIdStr } = await params;
   const eventId = Number(eventIdStr);
   const itemId = Number(itemIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(itemId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -122,14 +123,14 @@ export async function PATCH(request: Request, { params }: Params) {
   if (typeof body.name === "string") {
     const trimmed = body.name.trim();
     if (!trimmed) {
-      return NextResponse.json({ error: "名稱不可為空" }, { status: 400 });
+      return apiError("eventApiErrors.purchaseItems.nameEmpty", 400);
     }
     updates.name = trimmed;
   }
   if (body.amount !== undefined) {
     const amount = Math.floor(Number(body.amount));
     if (!Number.isInteger(amount) || amount < 0) {
-      return NextResponse.json({ error: "金額需為非負整數" }, { status: 400 });
+      return apiError("eventApiErrors.purchaseItems.amountInvalid", 400);
     }
     updates.amount = amount;
   }
@@ -138,20 +139,14 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body.minFlagged !== undefined) {
     const minFlagged = parseMinFlagged(body.minFlagged);
     if (minFlagged == null) {
-      return NextResponse.json(
-        { error: `至少勾選人數需為 0–${MAX_MIN_FLAGGED} 的整數` },
-        { status: 400 }
-      );
+      return apiError("eventApiErrors.purchaseItems.minFlaggedInvalid", 400, { max: MAX_MIN_FLAGGED });
     }
     updates.minFlagged = minFlagged;
   }
   if (body.seatCount !== undefined) {
     const seatCount = parseSeatCount(body.seatCount);
     if (seatCount == null) {
-      return NextResponse.json(
-        { error: `每張票人數需為 1–${MAX_SEAT_COUNT} 的整數` },
-        { status: 400 }
-      );
+      return apiError("eventApiErrors.purchaseItems.seatCountInvalid", 400, { max: MAX_SEAT_COUNT });
     }
     // 已售出的票改人數會讓既有報名的收費與統計對不起來（統計以目前 seatCount 回推），故擋下
     const [current] = await db
@@ -163,10 +158,7 @@ export async function PATCH(request: Request, { params }: Params) {
       .limit(1);
     if (current && current.seatCount !== seatCount) {
       if ((await countActiveRegistrations(eventId, itemId)) > 0) {
-        return NextResponse.json(
-          { error: "已有人報名此票券，無法修改每張票人數（可隱藏後另開新票券）" },
-          { status: 409 }
-        );
+        return apiError("eventApiErrors.purchaseItems.seatCountLocked", 409);
       }
       updates.seatCount = seatCount;
     }
@@ -208,7 +200,7 @@ export async function PATCH(request: Request, { params }: Params) {
   });
 
   if (!updated) {
-    return NextResponse.json({ error: "找不到購買項目" }, { status: 404 });
+    return apiError("eventApiErrors.purchaseItems.notFound", 404);
   }
 
   return NextResponse.json({
@@ -222,13 +214,13 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, itemId: itemIdStr } = await params;
   const eventId = Number(eventIdStr);
   const itemId = Number(itemIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(itemId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -236,10 +228,7 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   const activeCount = await countActiveRegistrations(eventId, itemId);
   if (activeCount > 0) {
-    return NextResponse.json(
-      { error: "已有人報名此項目，無法刪除（可改為隱藏）" },
-      { status: 409 }
-    );
+    return apiError("eventApiErrors.purchaseItems.deleteInUse", 409);
   }
 
   // eventPurchaseItemPrices 透過 FK cascade 一併移除
@@ -254,7 +243,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     .returning();
 
   if (!deleted) {
-    return NextResponse.json({ error: "找不到購買項目" }, { status: 404 });
+    return apiError("eventApiErrors.purchaseItems.notFound", 404);
   }
 
   return NextResponse.json({ ok: true });

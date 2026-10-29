@@ -4,6 +4,8 @@ import { events, eventRegistrations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { sendRefundedEmail } from "@/lib/email";
+import { asLocale } from "@/lib/locale";
+import { apiError } from "@/lib/api-error";
 import { and, eq } from "drizzle-orm";
 
 type Params = {
@@ -19,14 +21,14 @@ async function loadRegistration(params: Params["params"]) {
 
   const session = await getSession();
   if (!session) {
-    return { error: NextResponse.json({ error: "未登入" }, { status: 401 }) };
+    return { error: await apiError("apiErrors.common.notLoggedIn", 401) };
   }
 
   const { eventId: rawEventId, registrationId: rawRegistrationId } = await params;
   const eventId = Number(rawEventId);
   const registrationId = Number(rawRegistrationId);
   if (!Number.isInteger(eventId) || !Number.isInteger(registrationId)) {
-    return { error: NextResponse.json({ error: "無效的參數" }, { status: 400 }) };
+    return { error: await apiError("eventApiErrors.invalidParams", 400) };
   }
 
   const [event] = await db
@@ -36,7 +38,7 @@ async function loadRegistration(params: Params["params"]) {
     .limit(1);
 
   if (!event) {
-    return { error: NextResponse.json({ error: "找不到活動" }, { status: 404 }) };
+    return { error: await apiError("apiErrors.common.eventNotFound", 404) };
   }
 
   const forbidden = await requireTeamAdmin(event.teamId, session.userId);
@@ -55,7 +57,7 @@ async function loadRegistration(params: Params["params"]) {
     .limit(1);
 
   if (!registration) {
-    return { error: NextResponse.json({ error: "找不到報名記錄" }, { status: 404 }) };
+    return { error: await apiError("eventApiErrors.registrationNotFound", 404) };
   }
 
   return { session, event, registration };
@@ -74,16 +76,13 @@ export async function POST(request: Request, { params }: Params) {
   const { session, event, registration } = loaded;
 
   if (registration.paymentStatus !== "confirmed") {
-    return NextResponse.json(
-      { error: "只有已收款的報名可以標記退款" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.refund.onlyConfirmed", 400);
   }
 
   const body = await request.json().catch(() => ({}));
   const method = REFUND_METHODS.includes(body.method) ? (body.method as string) : null;
   if (!method) {
-    return NextResponse.json({ error: "請選擇退款方式" }, { status: 400 });
+    return apiError("eventApiErrors.refund.methodRequired", 400);
   }
   const note = typeof body.note === "string" ? body.note.trim() || null : null;
   const notify = body.notify === true;
@@ -103,12 +102,13 @@ export async function POST(request: Request, { params }: Params) {
 
   // 現場現金報名可能沒有 email，此時略過寄信
   if (notify && updated.contactEmail) {
-    sendRefundedEmail(
-      updated.contactEmail,
-      updated.registrationKey,
-      updated.totalAmount,
-      event.title ?? undefined
-    ).catch((err) => console.error("Refunded email error:", err));
+    sendRefundedEmail({
+      to: updated.contactEmail,
+      registrationKey: updated.registrationKey,
+      amount: updated.totalAmount,
+      eventTitle: event.title ?? undefined,
+      locale: asLocale(updated.locale),
+    }).catch((err) => console.error("Refunded email error:", err));
   }
 
   return NextResponse.json({ registration: updated });
@@ -123,7 +123,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   const { registration } = loaded;
 
   if (registration.paymentStatus !== "refunded") {
-    return NextResponse.json({ error: "這筆報名沒有退款紀錄" }, { status: 400 });
+    return apiError("eventApiErrors.refund.noRecord", 400);
   }
 
   const [updated] = await db

@@ -1,0 +1,77 @@
+{
+  "common": {
+    "notLoggedIn": "Not logged in",
+    "sessionExpired": "You're not logged in, or your session has expired",
+    "noTeamPermission": "You don't have access to this team",
+    "adminOnly": "Only admins can do this",
+    "forbidden": "Permission denied",
+    "impersonationNoAdmin": "Super-admin tools are unavailable while viewing as another user. End the session first.",
+    "impersonationReadOnly": "Read-only while viewing as another user",
+    "eventNotFound": "Event not found",
+    "serverError": "Server error",
+    "invalidParam": "Invalid {param}",
+    "invalidParamPair": "Invalid {first} or {second}",
+    "userNotFound": "User not found",
+    "registrationNotFound": "Registration not found",
+    "noFieldsToUpdate": "Nothing to update",
+    "createFailed": "Couldn't create it",
+    "addFailed": "Couldn't add it",
+    "updateFailed": "Couldn't update it"
+  },
+  "auth": {
+    "invalidLoginInput": "Please provide a valid email and password (at least 6 characters)",
+    "emailNotRegistered": "No account uses this email",
+    "wrongPassword": "Incorrect password",
+    "invalidRegisterInput": "Please provide a valid name, email, and password (at least 6 characters)",
+    "emailTaken": "This email is already in use",
+    "registerFailed": "Couldn't sign up"
+  },
+  "admin": {
+    "cannotImpersonateSelf": "You can't view as yourself",
+    "cannotImpersonateAdmin": "You can't view as another super admin",
+    "notImpersonating": "You're not viewing as another user",
+    "deletedItem": "(deleted)"
+  },
+  "teams": {
+    "nameRequired": "Please provide a team name (name)",
+    "notFound": "Team not found"
+  },
+  "members": {
+    "emailRequired": "Please provide an email",
+    "invalidRole": "Please provide a valid role (member or staff)",
+    "alreadyMember": "This user is already a team member",
+    "invitationPending": "This email already has a pending invitation",
+    "createInvitationFailed": "Couldn't create the invitation",
+    "cannotRemoveSelf": "You can't remove yourself",
+    "notFound": "Member not found",
+    "cannotRemoveOwner": "You can't remove the team owner",
+    "invalidNotifyFlag": "notifyOnRegistration must be true or false",
+    "roleOrNotifyRequired": "Please provide role or notifyOnRegistration",
+    "cannotChangeOwnerRole": "You can't change the team owner's role",
+    "lastAdmin": "A team needs at least one admin",
+    "notifyAdminOnly": "Only admins can receive new-registration emails"
+  },
+  "invitations": {
+    "notFound": "Pending invitation not found",
+    "resendFailed": "Couldn't send the invitation email. Please try again later."
+  },
+  "savedInfo": {
+    "nameRequired": "Please provide a name (name)",
+    "locationNotFound": "Venue not found",
+    "organizerNotFound": "Organizer not found",
+    "bankInfoRequired": "Please provide a bank name (bankName) and bank code (bankCode)",
+    "bankInfoNotFound": "Bank account not found",
+    "linePayeeLabelRequired": "Please provide a name or note (label)",
+    "linePayeeNotFound": "LINE Pay payee not found"
+  },
+  "checkIn": {
+    "attendeeNotFound": "Attendee not found",
+    "refunded": "This registration was refunded and can't be checked in",
+    "alreadyCheckedIn": "Already checked in",
+    "checkedIn": "Checked in",
+    "undone": "Check-in undone"
+  },
+  "registration": {
+    "keyRequired": "Please provide a registration key"
+  }
+}

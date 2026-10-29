@@ -31,5 +31,6 @@
   "notFound": "Not found",
   "people": "{count, plural, one {# person} other {# people}}",
   "registrations": "{count, plural, one {# registration} other {# registrations}}",
-  "amount": "NT$ {amount}"
+  "amount": "NT$ {amount}",
+  "loadTeamsFailed": "Couldn't load your teams"
 }

@@ -4,6 +4,7 @@ import { eventPurchaseItemGroups } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
+import { apiError } from "@/lib/api-error";
 import { asc, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -15,11 +16,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -40,11 +41,11 @@ export async function POST(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -53,7 +54,7 @@ export async function POST(request: Request, { params }: Params) {
   const body = await request.json().catch(() => ({}));
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!title) {
-    return NextResponse.json({ error: "請提供群組名稱 title" }, { status: 400 });
+    return apiError("eventApiErrors.purchaseItemGroups.titleRequired", 400);
   }
   const selectionMode = body.selectionMode === "multiple" ? "multiple" : "single";
   const required = body.required !== false;
@@ -65,7 +66,7 @@ export async function POST(request: Request, { params }: Params) {
     .returning();
 
   if (!group) {
-    return NextResponse.json({ error: "新增失敗" }, { status: 500 });
+    return apiError("eventApiErrors.createFailed", 500);
   }
 
   return NextResponse.json({ group });

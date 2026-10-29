@@ -21,8 +21,26 @@
 - 日期一律用 `lib/format-event-date.ts`，把 `useLocale()` 傳進去；不要用 `toLocaleDateString`（會吃到執行環境的時區）。
 - `lib/` 的純函式回傳 key 或代碼，由元件翻譯；hook 裡可以直接 `useTranslations`。
 - placeholder、aria-label、title、`confirm()`、`alert()` 的字也要翻。
-- 伺服器回來的 `data.error` 目前還是中文，保留 `data.error || t("xxxFailed")` 的寫法，API 的錯誤訊息另外處理。
+- 伺服器回來的 `data.error` 已經是使用者的語言（見下方「API 錯誤訊息」），前端照舊寫 `data.error || t("xxxFailed")`。
+- `lib/api/*` 是一般函式，不能放畫面文字：有 `data.error` 就丟它，沒有就丟空訊息，由呼叫端補翻譯過的 fallback。
 - 不翻：使用者輸入的資料（活動名稱、人名、地點名稱）、SD Event、NT$、LINE、Google Map、Leader / Follower。
+
+### API 錯誤訊息
+
+Route handler 用 `lib/api-error.ts`：`return apiError("apiErrors.common.eventNotFound", 404)`；
+錯誤以外的欄位（例如 `message`）用 `await apiMessage(key, values)`。語系跟頁面一樣從 cookie / Accept-Language 決定。
+
+- `apiErrors`：共用（`common.*`）與活動以外的 API；`eventApiErrors`：`app/api/events/**`。
+- `lib/` 裡前後端共用的驗證函式回傳代碼或結構（例如 `findSeatCountMismatch`、`lineIdInputError`），由呼叫端翻譯。
+- `proxy.ts` 拿不到 next-intl 的設定，直接讀 JSON。
+
+### Email
+
+文案在 `emails` namespace，`lib/email.ts` 用 `createTranslator` 依「收件人」的語言產生：
+報名者用 `event_registrations.locale`（報名當下的介面語言，現場報名為 null → 繁中），
+團隊成員用 `users.locale`（登入、註冊、在後台切換語言時更新）。信裡的使用者輸入要先 `escapeHtml`。
+
+`apiErrors`、`eventApiErrors`、`emails` 只在伺服器用，`app/layout.tsx` 不會把它們送到瀏覽器，client component 不要用。
 
 ### 瀏覽器翻譯安全（重要）
 
