@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lineAddFriendUrl, lineIdForDisplay, validateLineIdInput } from "./line";
+import { lineAddFriendUrl, lineIdForDisplay, lineIdInputError } from "./line";
 
 describe("lineAddFriendUrl", () => {
   it("個人 ID 加上 ~", () => {
@@ -25,16 +25,17 @@ describe("lineIdForDisplay", () => {
   });
 });
 
-describe("validateLineIdInput", () => {
+describe("lineIdInputError", () => {
   it("接受 ID、官方帳號與 LINE 連結", () => {
-    expect(validateLineIdInput("xiaoming")).toBeNull();
-    expect(validateLineIdInput("@abc123")).toBeNull();
-    expect(validateLineIdInput("https://line.me/ti/p/abc")).toBeNull();
-    expect(validateLineIdInput("https://lin.ee/abc")).toBeNull();
+    expect(lineIdInputError("xiaoming")).toBeNull();
+    expect(lineIdInputError("@abc123")).toBeNull();
+    expect(lineIdInputError("https://line.me/ti/p/abc")).toBeNull();
+    expect(lineIdInputError("https://lin.ee/abc")).toBeNull();
   });
   it("拒絕空值、空白與非 LINE 網址", () => {
-    expect(validateLineIdInput(" ")).not.toBeNull();
-    expect(validateLineIdInput("xiao ming")).not.toBeNull();
-    expect(validateLineIdInput("https://evil.example.com/line.me")).not.toBeNull();
+    expect(lineIdInputError(" ")).toBe("empty");
+    expect(lineIdInputError("xiao ming")).toBe("hasWhitespace");
+    expect(lineIdInputError("https://evil.example.com/line.me")).toBe("notLineHost");
+    expect(lineIdInputError("https://line.me:abc")).toBe("invalidUrl");
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, ChevronDown, Eye, Loader2, Settings2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Drawer } from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { TicketGroupsCard } from "./TicketGroupsCard";
@@ -21,17 +22,19 @@ type TicketSettingsProps = {
 /** 依 mode 與自動儲存狀態顯示的儲存提示 chip */
 function AutoSaveChip({ mode, form }: TicketSettingsProps) {
   const { autoSaveStatus, saveError } = form;
+  const t = useTranslations("tickets.settings");
+  const tCommon = useTranslations("common");
   if (mode === "create") {
     return (
       <span className="text-xs text-gray-400">
-        票券設定會在按「建立活動」時一併儲存
+        {t("createModeHint")}
       </span>
     );
   }
   if (saveError) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600">
-        儲存失敗，請重試
+        {t("saveFailed")}
       </span>
     );
   }
@@ -39,7 +42,7 @@ function AutoSaveChip({ mode, form }: TicketSettingsProps) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
         <Loader2 className="size-3 animate-spin" />
-        儲存中…
+        <span>{tCommon("saving")}</span>
       </span>
     );
   }
@@ -47,12 +50,12 @@ function AutoSaveChip({ mode, form }: TicketSettingsProps) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600">
         <Check className="size-3" />
-        已自動儲存
+        <span>{t("autoSaved")}</span>
       </span>
     );
   }
   return (
-    <span className="text-xs text-gray-400">此頁的變更會自動即時儲存</span>
+    <span className="text-xs text-gray-400">{t("autoSaveHint")}</span>
   );
 }
 
@@ -63,6 +66,7 @@ function AutoSaveChip({ mode, form }: TicketSettingsProps) {
 export function TicketSettings({ mode, form }: TicketSettingsProps) {
   const { groups, autoCalcAmount, setAutoCalcAmount, purchaseItems, priceTiers } = form;
   const readOnly = useReadOnly();
+  const t = useTranslations("tickets");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -74,7 +78,7 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
       <div className="flex items-center justify-end">
         {readOnly ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-            模擬檢視為唯讀模式，票券設定無法變更
+            {t("settings.readOnly")}
           </span>
         ) : (
           <AutoSaveChip mode={mode} form={form} />
@@ -105,7 +109,7 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
               className="flex w-full items-center gap-2 text-left cursor-pointer"
             >
               <Settings2 className="size-4 shrink-0 text-gray-400" />
-              <span className="flex-1 text-sm font-semibold text-ink">進階</span>
+              <span className="flex-1 text-sm font-semibold text-ink">{t("settings.advanced")}</span>
               <ChevronDown
                 className={`size-4 shrink-0 text-gray-400 transition-transform motion-reduce:transition-none ${
                   advancedOpen ? "rotate-180" : ""
@@ -116,10 +120,10 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
               <div className="flex flex-col gap-5 pt-3">
                 <ExclusionRulesCard form={form} />
                 <div className="flex flex-col gap-2">
-                  <Label className="text-sm">金額計算</Label>
+                  <Label className="text-sm">{t("settings.amountCalc")}</Label>
                   {groups.length > 0 ? (
                     <p className="text-xs text-gray-500">
-                      已使用票券區塊，總金額由系統依選取的票券自動計算。
+                      {t("settings.amountCalcWithGroups")}
                     </p>
                   ) : (
                     <label className="flex cursor-pointer items-center gap-2">
@@ -130,7 +134,7 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
                         className="size-4 rounded border-gray-300"
                       />
                       <span className="text-sm text-gray-600">
-                        讓報名者自行填寫金額（關閉自動加總）
+                        {t("settings.manualAmount")}
                       </span>
                     </label>
                   )}
@@ -153,10 +157,10 @@ export function TicketSettings({ mode, form }: TicketSettingsProps) {
         className="fixed bottom-20 right-4 z-20 flex items-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-ink/90 lg:hidden"
       >
         <Eye className="size-4" />
-        預覽報名頁
+        <span>{t("settings.previewButton")}</span>
       </button>
       {previewOpen && (
-        <Drawer open onClose={() => setPreviewOpen(false)} title="報名頁即時預覽">
+        <Drawer open onClose={() => setPreviewOpen(false)} title={t("preview.title")}>
           <RegistrationPreview key={previewKey} form={form} />
         </Drawer>
       )}

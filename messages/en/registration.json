@@ -1,0 +1,182 @@
+{
+  "itemsHeading": "Tickets",
+  "tierSuffix": "({tier})",
+  "checkIn": "Check in",
+  "checkedIn": "Checked in",
+  "refunded": "Refunded",
+  "actionFailed": "Something went wrong. Please try again later.",
+  "refundMethod": {
+    "bankTransfer": "Bank transfer",
+    "linePay": "LINE Pay",
+    "cash": "Cash"
+  },
+  "detail": {
+    "backToList": "Back to list",
+    "closeDetail": "Close details",
+    "previous": "Previous",
+    "next": "Next",
+    "position": "{current} of {total}",
+    "hidden": "Hidden",
+    "summary": "{count, plural, one {# person} other {# people}} · {source} · {time}",
+    "summaryWithAmount": "{count, plural, one {# person} other {# people}} · NT${amount} · {source} · {time}",
+    "sourceWalkIn": "Walk-in",
+    "sourceOnline": "Online",
+    "confirmPayment": "Confirm payment",
+    "moreActions": "More actions",
+    "editRegistration": "Edit registration",
+    "resending": "Sending…",
+    "resent": "Resent",
+    "resendConfirmation": "Resend confirmation email",
+    "resendFailed": "Couldn't resend the email",
+    "viewEntryPass": "View entry QR pass",
+    "hide": "Mark as hidden",
+    "unhide": "Unhide",
+    "markRefunded": "Mark as refunded…",
+    "rejectPayment": "Reject this payment",
+    "refundRecord": {
+      "refundedAmount": "Refunded NT${amount}",
+      "date": "Date",
+      "method": "Method",
+      "handledBy": "By",
+      "note": "Note",
+      "excluded": "Not counted in headcount, L/F, or collected amount",
+      "undo": "Undo refund"
+    },
+    "contact": {
+      "heading": "Contact",
+      "copyPhone": "Copy phone number",
+      "copyEmail": "Copy email",
+      "none": "No contact info provided"
+    },
+    "attendees": {
+      "heading": "Attendees",
+      "checkedInCount": "{checkedIn} / {total} checked in",
+      "checkInAll": "Check in all",
+      "undoCheckIn": "Undo",
+      "notCheckedIn": "Not checked in",
+      "refundedNoCheckIn": "Refunded, can't check in",
+      "checkInFailed": "Check-in failed. Please try again.",
+      "undoCheckInFailed": "Couldn't undo check-in. Please try again."
+    },
+    "items": {
+      "couponCode": "Coupon code",
+      "totalDue": "Total due",
+      "netReceived": "Net received"
+    },
+    "payment": {
+      "heading": "Payment",
+      "method": "Method",
+      "cash": "Cash",
+      "unspecified": "Not specified",
+      "note": "Note",
+      "proofHeading": "Payment proof",
+      "original": "Original",
+      "screenshotAlt": "Payment screenshot"
+    },
+    "confirmPaymentDrawer": {
+      "title": "Confirm payment?",
+      "description": "No payment has been reported for this registration. Confirming sends a payment confirmation email and sets the status to “Paid”.",
+      "summary": "{name} · {count, plural, one {# person} other {# people}}",
+      "confirm": "Confirm anyway"
+    },
+    "rejectDrawer": {
+      "title": "Reject this payment?",
+      "description": "The status will change to “Rejected”. The registrant can still report payment again from their registration link.",
+      "confirm": "Reject payment"
+    },
+    "undoRefundDrawer": {
+      "title": "Undo refund?",
+      "description": "The status goes back to “Paid”, the refund record is cleared, and this registration counts toward headcount and collected amount again. The registrant won't be emailed.",
+      "confirm": "Undo refund"
+    },
+    "hiddenDrawer": {
+      "hideTitle": "Mark as hidden?",
+      "unhideTitle": "Unhide?",
+      "hideDescription": "Hidden registrations don't appear in the default registrant list or stats. The data is kept, and you can unhide it later.",
+      "unhideDescription": "This registration will show up again in the default registrant list and stats."
+    },
+    "unpaidCheckInDrawer": {
+      "title": "Payment not confirmed",
+      "description": "Payment for this registration hasn't been confirmed yet. Check in anyway?",
+      "confirm": "Check in anyway"
+    }
+  },
+  "refund": {
+    "title": "Mark {name} as refunded?",
+    "intro": "This is only a record — the system won't transfer any money. Refund the registrant first, then come back and confirm.",
+    "fullRefund": "Full refund · {count, plural, one {# person} other {# people}}",
+    "method": "Refund method",
+    "note": "Note",
+    "noteHint": "(optional, only organizers can see it)",
+    "notePlaceholder": "e.g. Can't make it, full refund",
+    "notify": "Email a refund notice to {email}",
+    "effectNotCounted": "· No longer counted in headcount, L/F, or collected amount",
+    "effectQrVoid": "· The QR pass stops working; scanning it shows “Refunded”",
+    "effectUndo": "· You can “Undo refund” later from the registration details",
+    "confirm": "Confirm refund of NT${amount}"
+  },
+  "scan": {
+    "title": "Scan QR code",
+    "loadFailed": "Couldn't load the registration",
+    "wrongEvent": "This QR code is for a different event",
+    "invalidData": "Invalid registration data",
+    "checkInFailed": "Check-in failed",
+    "attendeeFallback": "Attendee",
+    "invalidQr": "Invalid QR code",
+    "cameraFailed": "Can't start the camera. Please allow camera access.",
+    "retry": "Retry",
+    "aimHint": "Point the camera at the QR code",
+    "walkIn": "Walk-in",
+    "backToScanner": "Back to scanner",
+    "unpaidConfirm": "Payment for this registration isn't confirmed. Check this attendee in anyway?",
+    "people": "{count, plural, one {# person} other {# people}}",
+    "peopleWithAmount": "{count, plural, one {# person} other {# people}} · NT${amount}",
+    "allCheckedIn": "All checked in",
+    "refundedWarning": "Refunded — QR pass is void. Do not let them in.",
+    "attendeesHeading": "Attendees",
+    "invalidEventId": "Invalid event ID",
+    "readOnlyTitle": "Read-only while viewing as another user",
+    "readOnlyBody": "QR check-in isn't available."
+  },
+  "form": {
+    "attendeesHeading": "Attendees",
+    "attendeeN": "Attendee {n}",
+    "removeAttendee": "Remove attendee",
+    "namePlaceholder": "Name",
+    "addAttendee": "Add attendee",
+    "amountPlaceholder": "Amount",
+    "atLeastOneAttendee": "Enter a name and role for at least one attendee",
+    "seatCountMismatch": "“{item}” needs exactly {required, plural, one {# attendee} other {# attendees}} (currently {actual})",
+    "flaggedShortfall": "“{item}” needs at least {required, plural, one {# attendee} other {# attendees}} to tick “{label}”"
+  },
+  "walkIn": {
+    "title": "Walk-in registration",
+    "subtitle": "Cash · Instant check-in",
+    "lockedBy": "(included in “{group}”)",
+    "priceForSeats": "${amount} / {seats} people",
+    "noneOption": "None",
+    "bundleHint": "“{name}” needs exactly {count, plural, one {# attendee} other {# attendees}}.",
+    "bundleBadge": "{seats}-person bundle",
+    "contactLabel": "Contact name (optional, defaults to the first attendee)",
+    "contactPlaceholder": "Contact name",
+    "amountLabelEditable": "Amount charged (auto-filled, editable)",
+    "amountLabelReadOnly": "Amount due",
+    "autoCheckIn": "Check in right away (mark as checked in)",
+    "submit": "Register (cash)",
+    "selectItem": "Please select a ticket",
+    "failed": "Walk-in registration failed",
+    "missingRegistrationKey": "Registered, but couldn't get the registration number"
+  },
+  "edit": {
+    "title": "Edit registration",
+    "subtitle": "Update contact, attendees, and amount",
+    "contactHeading": "Contact",
+    "nameLabel": "Name",
+    "phoneLabel": "Phone",
+    "amountLabel": "Total amount",
+    "contactNameRequired": "Please enter a contact name",
+    "invalidEmail": "Please enter a valid email",
+    "invalidAmount": "Please enter a valid total amount",
+    "failed": "Update failed"
+  }
+}

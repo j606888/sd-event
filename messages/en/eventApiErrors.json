@@ -1,0 +1,128 @@
+{
+  "invalidEventId": "Invalid eventId",
+  "invalidTeamId": "Invalid teamId",
+  "invalidId": "Invalid id",
+  "invalidParams": "Invalid parameters",
+  "invalidRegistrationParams": "Invalid eventId or registrationId",
+  "createFailed": "Couldn't create it",
+  "invalidEmail": "Please enter a valid email",
+  "invalidPurchaseItem": "Invalid ticket",
+  "invalidAttendees": "Enter a name and role for at least one attendee",
+  "totalAmountError": "Couldn't calculate the total amount",
+  "registrationNotFound": "Registration not found",
+  "events": {
+    "createInvalid": "Please provide a valid teamId and title",
+    "createFailed": "Couldn't create the event",
+    "deleteForbidden": "Only the event's creator or the team owner can delete this event",
+    "publicKeyRequired": "Missing public key"
+  },
+  "coupons": {
+    "codeRequired": "Please provide a coupon code",
+    "codeEmpty": "Coupon code can't be empty",
+    "codeTooLong": "Coupon code can't be longer than 50 characters",
+    "duplicate": "This coupon code already exists",
+    "notFound": "Coupon code not found",
+    "usageLimitBelowUsed": "The usage limit can't be lower than the number of times it's already been used",
+    "enterCode": "Please enter a coupon code",
+    "notSupported": "This event doesn't accept coupon codes",
+    "codeNotFound": "This coupon code doesn't exist",
+    "invalid": "Invalid coupon code",
+    "exhausted": "This coupon code has reached its usage limit",
+    "fields": {
+      "invalidDiscountType": "Discount type must be fixed or percent",
+      "invalidValue": "Discount value must be a positive whole number",
+      "invalidPercent": "Discount percentage must be between 1 and 100",
+      "invalidUsageLimit": "Usage limit must be a positive whole number or unlimited"
+    }
+  },
+  "priceTiers": {
+    "nameRequired": "Please provide a price tier name",
+    "nameEmpty": "Price tier name can't be empty",
+    "notFound": "Price tier not found"
+  },
+  "purchaseItemGroups": {
+    "titleRequired": "Please provide a ticket group name",
+    "titleEmpty": "Ticket group name can't be empty",
+    "notFound": "Ticket group not found"
+  },
+  "purchaseItems": {
+    "nameAmountRequired": "Please provide a name and an amount (a non-negative whole number)",
+    "nameEmpty": "Name can't be empty",
+    "amountInvalid": "Amount must be a non-negative whole number",
+    "seatCountInvalid": "People per ticket must be a whole number from 1 to {max}",
+    "minFlaggedInvalid": "The minimum number of ticked attendees must be a whole number from 0 to {max}",
+    "seatCountLocked": "People have already registered with this ticket, so the number of people per ticket can't be changed. Hide it and create a new ticket instead.",
+    "deleteInUse": "People have already registered with this ticket, so it can't be deleted. Hide it instead.",
+    "notFound": "Ticket not found"
+  },
+  "registration": {
+    "notOpen": "Registration for this event isn't open yet",
+    "missingFields": "Please provide valid contact details (name, phone, email), tickets, a total amount, and at least one attendee",
+    "walkInMissingFields": "Please provide a name, tickets, and at least one attendee",
+    "itemRequired": "Please select at least one ticket",
+    "itemUnavailable": "“{item}” isn't on sale right now ({tier}). Refresh the page and pick another ticket.",
+    "seatCountMismatch": "“{item}” needs exactly {required, plural, one {# attendee} other {# attendees}} (currently {actual})",
+    "flaggedShortfall": "“{item}” needs at least {required, plural, one {# attendee} other {# attendees}} to tick “{label}”"
+  },
+  "groupSelection": {
+    "invalidItem": "Invalid ticket",
+    "singleOnly": "You can pick only one option in “{group}”",
+    "requiredSingle": "Please pick one option in “{group}”",
+    "requiredMultiple": "Please pick at least one option in “{group}”",
+    "exclusive": "“{groupA}” and “{groupB}” can't be selected together"
+  },
+  "registrationList": {
+    "itemSeparator": ", "
+  },
+  "registrationEdit": {
+    "refundedLocked": "This registration has been refunded. Undo the refund before changing its payment status.",
+    "invalidTotalAmount": "Please enter a valid total amount"
+  },
+  "refund": {
+    "onlyConfirmed": "Only paid registrations can be marked as refunded",
+    "methodRequired": "Please choose a refund method",
+    "noRecord": "This registration has no refund record"
+  },
+  "resendConfirmation": {
+    "notConfirmed": "Payment for this registration hasn't been confirmed yet, so there's no confirmation email to resend",
+    "noEmail": "This registration has no email address, so no email can be sent",
+    "sendFailed": "Couldn't send the email. Please try again later."
+  },
+  "export": {
+    "header": {
+      "registrationKey": "Registration ID",
+      "contact": "Contact",
+      "phone": "Phone",
+      "email": "Email",
+      "attendeeName": "Attendee name",
+      "role": "Role",
+      "items": "Tickets",
+      "amount": "Amount",
+      "couponCode": "Coupon code",
+      "discount": "Discount",
+      "paymentMethod": "Payment method",
+      "paymentStatus": "Payment status",
+      "checkIn": "Check-in status",
+      "source": "Source",
+      "createdAt": "Registered at"
+    },
+    "role": {
+      "notSure": "Not sure"
+    },
+    "paymentStatus": {
+      "pending": "Unpaid",
+      "reported": "Awaiting confirmation",
+      "confirmed": "Paid",
+      "rejected": "Rejected",
+      "refunded": "Refunded"
+    },
+    "source": {
+      "online": "Online",
+      "walkIn": "Walk-in"
+    },
+    "cash": "Cash",
+    "checkedIn": "Checked in",
+    "notCheckedIn": "Not checked in",
+    "flagged": "Yes"
+  }
+}

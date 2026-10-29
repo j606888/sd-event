@@ -9,6 +9,9 @@ import {
 } from "@/lib/auth";
 import { PATHNAME_HEADER, SESSION_EXPIRED_HEADER } from "@/lib/request-path";
 import { shouldRefreshSession } from "@/lib/session-refresh";
+import { LOCALE_COOKIE, resolveLocale, type Locale } from "@/lib/locale";
+import zhApiErrors from "@/messages/zh-TW/apiErrors.json";
+import enApiErrors from "@/messages/en/apiErrors.json";
 
 /**
  * 這層做三件事：
@@ -29,6 +32,12 @@ import { shouldRefreshSession } from "@/lib/session-refresh";
  */
 
 const READ_ONLY_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/** proxy 拿不到 next-intl 的 request config，直接讀這一句的兩種語言 */
+const READ_ONLY_MESSAGE: Record<Locale, string> = {
+  "zh-TW": zhApiErrors.common.impersonationReadOnly,
+  en: enApiErrors.common.impersonationReadOnly,
+};
 
 /** 模擬檢視中仍需放行的寫入端點：登出與結束模擬 */
 const WRITE_ALLOWLIST = new Set([
@@ -99,10 +108,11 @@ export default async function proxy(request: NextRequest) {
       !READ_ONLY_METHODS.has(request.method) &&
       !WRITE_ALLOWLIST.has(pathname)
     ) {
-      return NextResponse.json(
-        { error: "模擬檢視模式為唯讀，無法執行此操作" },
-        { status: 403 }
+      const locale = resolveLocale(
+        request.cookies.get(LOCALE_COOKIE)?.value,
+        request.headers.get("accept-language")
       );
+      return NextResponse.json({ error: READ_ONLY_MESSAGE[locale] }, { status: 403 });
     }
 
     return passThrough(request);

@@ -62,7 +62,8 @@ async function main() {
   const result = await sendConfirmationEmail(
     ctx,
     registration.contactEmail,
-    registration.registrationKey
+    registration.registrationKey,
+    registration.locale
   );
 
   if (result.ok) {

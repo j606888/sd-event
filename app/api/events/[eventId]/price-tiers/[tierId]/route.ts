@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
 import { endOfDayFromDateInput } from "@/lib/pricing";
+import { apiError } from "@/lib/api-error";
 import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string; tierId: string }> };
@@ -16,13 +17,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, tierId: tierIdStr } = await params;
   const eventId = Number(eventIdStr);
   const tierId = Number(tierIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(tierId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -39,7 +40,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (typeof body.name === "string") {
     const trimmed = body.name.trim();
     if (!trimmed) {
-      return NextResponse.json({ error: "時段名稱不可為空" }, { status: 400 });
+      return apiError("eventApiErrors.priceTiers.nameEmpty", 400);
     }
     updates.name = trimmed;
   }
@@ -59,7 +60,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .returning();
 
   if (!updated) {
-    return NextResponse.json({ error: "找不到票價時段" }, { status: 404 });
+    return apiError("eventApiErrors.priceTiers.notFound", 404);
   }
 
   return NextResponse.json({ priceTier: updated });
@@ -71,13 +72,13 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, tierId: tierIdStr } = await params;
   const eventId = Number(eventIdStr);
   const tierId = Number(tierIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(tierId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -89,7 +90,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     .returning();
 
   if (!deleted) {
-    return NextResponse.json({ error: "找不到票價時段" }, { status: 404 });
+    return apiError("eventApiErrors.priceTiers.notFound", 404);
   }
 
   return NextResponse.json({ ok: true });

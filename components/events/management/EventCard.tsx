@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
 import { stripMarkdown } from "@/lib/markdown";
 
@@ -30,18 +31,20 @@ type EventCardProps = {
 };
 
 export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
+  const t = useTranslations("events");
+  const locale = useLocale();
   const getStatusBadge = () => {
     const now = new Date();
     const endDate = new Date(event.endAt);
     const isEnded = endDate < now;
 
     if (event.status === "draft") {
-      return { text: "草稿", className: "bg-orange-100 text-orange-700" };
+      return { text: t("status.draft"), className: "bg-orange-100 text-orange-700" };
     }
     if (isEnded) {
-      return { text: "已結束", className: "bg-gray-100 text-gray-700" };
+      return { text: t("status.ended"), className: "bg-gray-100 text-gray-700" };
     }
-    return { text: "銷售中", className: "bg-green-100 text-green-700" };
+    return { text: t("card.onSale"), className: "bg-green-100 text-green-700" };
   };
 
   const statusBadge = getStatusBadge();
@@ -98,7 +101,7 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
           <Clock className="size-4 text-gray-400 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm text-gray-900">
-              {getEventDateLabel(event.startAt, event.endAt)}
+              {getEventDateLabel(event.startAt, event.endAt, locale)}
             </p>
             <p className="text-sm text-gray-500">
               {getEventTimeRange(event.startAt, event.endAt)}
@@ -126,10 +129,10 @@ export function EventCard({ event, registrationCount = 0 }: EventCardProps) {
         {/* Footer with registration count and action button */}
         <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
           <span className="text-sm text-gray-500">
-            {registrationCount} 人報名
+            {t("card.registeredCount", { count: registrationCount })}
           </span>
           <span className="text-sm font-medium text-brand-strong">
-            管理
+            {t("card.manage")}
           </span>
         </div>
       </div>

@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, Copy, Check, Upload, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { PublicLanguageBar } from "@/components/layout/PublicLanguageBar";
 import { useUploadThing } from "@/lib/uploadthing";
 import type { EventLinePayee } from "@/types/event";
 import { LinePayeeCard } from "./LinePayeeCard";
@@ -16,6 +18,29 @@ type BankInfo = {
   bankCode: string;
   account: string | null;
 };
+
+type ReportErrorCode =
+  | "uploadFailedRetry"
+  | "notImage"
+  | "tooLarge"
+  | "proofRequired"
+  | "uploadFailed"
+  | "noUploadUrl"
+  | "submitFailed"
+  | "network";
+
+/**
+ * 自己判斷的錯誤存代碼、render 時才翻（切換語言會跟著換）；
+ * 伺服器或上傳套件給的訊息原樣顯示
+ */
+type ReportError = { code: ReportErrorCode } | { text: string };
+
+/** 上傳步驟自己丟出的錯誤，帶翻譯代碼 */
+class UploadStepError extends Error {
+  constructor(readonly code: ReportErrorCode) {
+    super(code);
+  }
+}
 
 type ReportPaymentPageProps = {
   registrationKey: string;
@@ -28,6 +53,8 @@ export function ReportPaymentPage({
   bankInfo,
   linePayee,
 }: ReportPaymentPageProps) {
+  const t = useTranslations("myRegistration.reportPayment");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { startUpload, isUploading } = useUploadThing("paymentScreenshot", {
     onClientUploadComplete: (res) => {
@@ -44,7 +71,7 @@ export function ReportPaymentPage({
     },
     onUploadError: (err) => {
       console.error("Upload error:", err);
-      setError("上傳失敗，請重試");
+      setError({ code: "uploadFailedRetry" });
       setUploading(false);
       setSubmitting(false);
     },
@@ -57,7 +84,7 @@ export function ReportPaymentPage({
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReportError | null>(null);
 
   // Cleanup preview URL on unmount
   useEffect(() => {
@@ -84,13 +111,13 @@ export function ReportPaymentPage({
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      setError("請選擇圖片檔案");
+      setError({ code: "notImage" });
       return;
     }
 
     // Validate file size (4MB)
     if (file.size > 4 * 1024 * 1024) {
-      setError("圖片大小不能超過 4MB");
+      setError({ code: "tooLarge" });
       return;
     }
 
@@ -125,7 +152,7 @@ export function ReportPaymentPage({
 
   const handleSubmit = async () => {
     if (!selectedFile && !paymentScreenshotUrl && !paymentNote.trim()) {
-      setError("請至少提供轉帳截圖或銀行末五碼");
+      setError({ code: "proofRequired" });
       return;
     }
 
@@ -141,7 +168,7 @@ export function ReportPaymentPage({
         try {
           const uploadResult = await startUpload([selectedFile]);
           if (!uploadResult || uploadResult.length === 0) {
-            throw new Error("上傳失敗");
+            throw new UploadStepError("uploadFailed");
           }
           const first = uploadResult[0];
           finalScreenshotUrl =
@@ -151,12 +178,18 @@ export function ReportPaymentPage({
               : (first as { ufsUrl?: string }).ufsUrl) ||
             null;
           if (!finalScreenshotUrl) {
-            throw new Error("無法取得上傳後的圖片網址");
+            throw new UploadStepError("noUploadUrl");
           }
           setPaymentScreenshotUrl(finalScreenshotUrl);
         } catch (uploadError) {
           console.error("Upload error:", uploadError);
-          setError(uploadError instanceof Error ? uploadError.message : "上傳失敗，請重試");
+          setError(
+            uploadError instanceof UploadStepError
+              ? { code: uploadError.code }
+              : uploadError instanceof Error
+                ? { text: uploadError.message }
+                : { code: "uploadFailedRetry" }
+          );
           setSubmitting(false);
           setUploading(false);
           return;
@@ -176,7 +209,7 @@ export function ReportPaymentPage({
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(data.error || "送出失敗，請稍後再試");
+        setError(data.error ? { text: data.error } : { code: "submitFailed" });
         setSubmitting(false);
         return;
       }
@@ -190,7 +223,7 @@ export function ReportPaymentPage({
       router.push(`/registration-success/${registrationKey}`);
     } catch (error) {
       console.error("Submit error:", error);
-      setError("網路錯誤，請稍後再試");
+      setError({ code: "network" });
       setSubmitting(false);
       setUploading(false);
     }
@@ -198,6 +231,7 @@ export function ReportPaymentPage({
 
   return (
     <div className="min-h-screen bg-paper p-4 sm:py-10">
+      <PublicLanguageBar />
       <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
       {/* Header */}
       <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
@@ -207,27 +241,27 @@ export function ReportPaymentPage({
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <h1 className="flex-1 text-lg font-semibold text-gray-900">回報付款資訊</h1>
+        <h1 className="flex-1 text-lg font-semibold text-gray-900">{t("title")}</h1>
       </div>
 
       <div className="px-4 py-6 space-y-6">
         {/* Bank Account Information */}
         {bankInfo && (
           <div className="space-y-3">
-            <h2 className="font-semibold text-gray-900">匯款帳號</h2>
+            <h2 className="font-semibold text-gray-900">{t("bankHeading")}</h2>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-gray-500">銀行</span>
+                  <span className="text-gray-500">{t("bank")}</span>
                   <span className="ml-2 text-gray-900">
-                    {bankInfo.bankName} {bankInfo.bankCode}
+                    {`${bankInfo.bankName} ${bankInfo.bankCode}`}
                   </span>
                 </div>
               </div>
               {bankInfo.account && (
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-gray-500">帳號</span>
+                    <span className="text-gray-500">{t("account")}</span>
                     <span className="ml-2 text-gray-900">{bankInfo.account}</span>
                   </div>
                   <Button
@@ -237,7 +271,7 @@ export function ReportPaymentPage({
                     className="h-8 text-brand-strong border-brand hover:bg-brand/10"
                   >
                     {copiedText === "bank" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedText === "bank" ? "已複製" : "複製帳號"}</span>
+                    <span>{copiedText === "bank" ? tCommon("copied") : t("copyAccount")}</span>
                   </Button>
                 </div>
               )}
@@ -250,13 +284,13 @@ export function ReportPaymentPage({
 
         {/* Transfer Screenshot Upload */}
         <div className="space-y-3">
-          <Label>轉帳截圖</Label>
+          <Label>{t("screenshot")}</Label>
           {previewUrl || paymentScreenshotUrl ? (
             <div className="relative">
               <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                 <Image
                   src={previewUrl || paymentScreenshotUrl || ""}
-                  alt="轉帳截圖"
+                  alt={t("screenshot")}
                   fill
                   className="object-contain"
                 />
@@ -265,7 +299,7 @@ export function ReportPaymentPage({
                 type="button"
                 onClick={handleRemoveFile}
                 className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
-                aria-label="移除截圖"
+                aria-label={t("removeScreenshot")}
               >
                 <X className="size-4" />
               </button>
@@ -273,7 +307,7 @@ export function ReportPaymentPage({
           ) : (
             <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 cursor-pointer hover:border-brand transition-colors">
               <Upload className="w-8 h-8 text-gray-400" />
-              <span className="text-sm text-gray-500">點擊選擇圖片或拖放圖片到此處</span>
+              <span className="text-sm text-gray-500">{t("dropzone")}</span>
               <input
                 id="screenshot-input"
                 type="file"
@@ -287,10 +321,10 @@ export function ReportPaymentPage({
 
         {/* Additional Message */}
         <div className="space-y-3">
-          <Label htmlFor="paymentNote">銀行末五碼或其他訊息</Label>
+          <Label htmlFor="paymentNote">{t("noteLabel")}</Label>
           <textarea
             id="paymentNote"
-            placeholder="輸入訊息"
+            placeholder={t("notePlaceholder")}
             rows={4}
             value={paymentNote}
             onChange={(e) => setPaymentNote(e.target.value)}
@@ -300,7 +334,9 @@ export function ReportPaymentPage({
 
         {/* Error Message */}
         {error && (
-          <div className="text-sm text-red-500 text-center">{error}</div>
+          <div className="text-sm text-red-500 text-center">
+            {"code" in error ? t(`errors.${error.code}`) : error.text}
+          </div>
         )}
 
         {/* Submit Button */}
@@ -315,10 +351,10 @@ export function ReportPaymentPage({
           className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
         >
           {uploading || isUploading
-            ? "上傳中…"
+            ? t("uploading")
             : submitting
-              ? "送出中…"
-              : "送出"}
+              ? t("submitting")
+              : t("submit")}
         </Button>
       </div>
       </div>

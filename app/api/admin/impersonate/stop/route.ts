@@ -2,18 +2,19 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, adminImpersonations } from "@/db/schema";
 import { getSession, createToken, setAuthCookie } from "@/lib/auth";
+import { apiError } from "@/lib/api-error";
 import { and, desc, eq, isNull } from "drizzle-orm";
 
 /** 結束模擬檢視，換回管理員本人的一般 session */
 export async function POST() {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "未登入或登入已過期" }, { status: 401 });
+    return apiError("apiErrors.common.sessionExpired", 401);
   }
 
   const adminId = session.impersonatorId;
   if (typeof adminId !== "number") {
-    return NextResponse.json({ error: "目前不在模擬檢視中" }, { status: 400 });
+    return apiError("apiErrors.admin.notImpersonating", 400);
   }
 
   const rows = await db
@@ -29,7 +30,7 @@ export async function POST() {
 
   if (!admin || !admin.isSuperAdmin) {
     // 管理員權限已被移除或帳號不存在 → 直接視為無效 session
-    return NextResponse.json({ error: "無權限" }, { status: 403 });
+    return apiError("apiErrors.common.forbidden", 403);
   }
 
   // 標記稽核記錄結束（找該管理員對此使用者最近一筆未結束的紀錄）

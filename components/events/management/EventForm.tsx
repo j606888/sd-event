@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { BasicInfoLayout } from "./BasicInfoLayout";
 import { EventFormDrawers } from "./EventFormDrawers";
@@ -13,10 +14,8 @@ export type { EventFormInitialData } from "@/hooks/use-event-form";
 
 type SectionId = "basic" | "items";
 
-const SECTIONS: { id: SectionId; label: string }[] = [
-  { id: "basic", label: "基本資訊" },
-  { id: "items", label: "票券設定" },
-];
+// 標籤：eventForm.sections.<id>
+const SECTIONS: SectionId[] = ["basic", "items"];
 
 type EventFormProps = {
   mode: "create" | "edit";
@@ -45,6 +44,8 @@ export function EventForm({
   onSaveSuccess,
   renderExtraActions,
 }: EventFormProps) {
+  const t = useTranslations("eventForm");
+  const tCommon = useTranslations("common");
   const form = useEventForm({
     mode,
     teamId,
@@ -79,7 +80,7 @@ export function EventForm({
         {saveError && (
           <p className="flex max-w-2xl items-center gap-1.5 text-sm text-red-600">
             <span className="size-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
-            {saveError}
+            <span>{saveError}</span>
           </p>
         )}
 
@@ -89,20 +90,20 @@ export function EventForm({
           className="grid max-w-2xl grid-cols-2 gap-1 rounded-full bg-field p-1"
           role="tablist"
         >
-          {SECTIONS.map((s) => (
+          {SECTIONS.map((id) => (
             <button
-              key={s.id}
+              key={id}
               type="button"
               role="tab"
-              aria-selected={activeSection === s.id}
-              onClick={() => setActiveSection(s.id)}
+              aria-selected={activeSection === id}
+              onClick={() => setActiveSection(id)}
               className={`rounded-full px-2 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                activeSection === s.id
+                activeSection === id
                   ? "bg-white text-ink shadow-sm"
                   : "text-gray-500 hover:text-gray-800"
               }`}
             >
-              {s.label}
+              {t(`sections.${id}`)}
             </button>
           ))}
         </div>
@@ -120,7 +121,7 @@ export function EventForm({
         <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-1 sm:max-w-2xl sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
           {mode === "create" && (
             <Button type="button" variant="outline" asChild className="flex-1 min-w-[100px]">
-              <Link href="/events">取消</Link>
+              <Link href="/events">{tCommon("cancel")}</Link>
             </Button>
           )}
           {renderExtraActions}
@@ -129,7 +130,7 @@ export function EventForm({
             className="flex-1 min-w-[100px] bg-primary text-ink hover:bg-brand-hover"
             disabled={saving}
           >
-            {saving ? (mode === "edit" ? "更新中…" : "儲存中…") : submitLabel}
+            {saving ? (mode === "edit" ? tCommon("updating") : tCommon("saving")) : submitLabel}
           </Button>
         </div>
       </form>

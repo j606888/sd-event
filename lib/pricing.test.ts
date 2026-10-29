@@ -5,7 +5,7 @@ import {
   isItemSoldInTier,
   resolveActiveTier,
   resolveItemSaleStatus,
-  saleStatusLabel,
+  unavailableSaleStatus,
   type PriceTier,
 } from "./pricing";
 
@@ -171,10 +171,17 @@ describe("時段限定票", () => {
     expect(resolveItemSaleStatus([], earlyOnly, null)).toEqual({ status: "on_sale" });
   });
 
-  it("狀態文字", () => {
-    expect(saleStatusLabel({ saleStatus: "ended" })).toBe("已截止");
-    expect(saleStatusLabel({ saleStatus: "upcoming", opensTierName: "一般" })).toBe("一般開賣");
-    expect(saleStatusLabel({ saleStatus: "on_sale" })).toBeNull();
-    expect(saleStatusLabel({})).toBeNull();
+  it("不可購買的狀態（文字由元件翻譯）", () => {
+    expect(unavailableSaleStatus({ saleStatus: "ended" })).toEqual({ status: "ended" });
+    expect(unavailableSaleStatus({ saleStatus: "upcoming", opensTierName: "一般" })).toEqual({
+      status: "upcoming",
+      opensTierName: "一般",
+    });
+    expect(unavailableSaleStatus({ saleStatus: "upcoming", opensTierName: "" })).toEqual({
+      status: "upcoming",
+      opensTierName: null,
+    });
+    expect(unavailableSaleStatus({ saleStatus: "on_sale" })).toBeNull();
+    expect(unavailableSaleStatus({})).toBeNull();
   });
 });

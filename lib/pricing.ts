@@ -88,14 +88,22 @@ export function isItemOnSale(item: { saleStatus?: string | null }): boolean {
   return item.saleStatus == null || item.saleStatus === "on_sale";
 }
 
-/** 前端用：不可購買項目的狀態文字；可購買回傳 null */
-export function saleStatusLabel(item: {
+/**
+ * 前端用：不可購買項目的狀態；可購買回傳 null。
+ * 只回傳代碼與時段名稱，狀態文字（已截止／某時段開賣／尚未開賣）由元件翻譯。
+ */
+export type UnavailableSaleStatus =
+  | { status: "ended" }
+  /** opensTierName 為 null 時沒有可顯示的開賣時段 */
+  | { status: "upcoming"; opensTierName: string | null };
+
+export function unavailableSaleStatus(item: {
   saleStatus?: string | null;
   opensTierName?: string | null;
-}): string | null {
-  if (item.saleStatus === "ended") return "已截止";
+}): UnavailableSaleStatus | null {
+  if (item.saleStatus === "ended") return { status: "ended" };
   if (item.saleStatus === "upcoming") {
-    return item.opensTierName ? `${item.opensTierName}開賣` : "尚未開賣";
+    return { status: "upcoming", opensTierName: item.opensTierName || null };
   }
   return null;
 }

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth";
 import { Logo } from "@/components/brand/Logo";
@@ -10,6 +11,7 @@ export default async function Home() {
   if (session) {
     redirect("/events");
   }
+  const t = await getTranslations("auth");
 
   return (
     <div className="min-h-screen flex flex-col items-center">
@@ -29,11 +31,10 @@ export default async function Home() {
             />
           </div>
           <h2 className="text-[17px] font-semibold text-gray-900 mb-4 text-center">
-            受夠了用 Google Form 來辦活動?
+            {t("landing.headline")}
           </h2>
           <p className="text-[15px] text-gray-600 mb-8 text-center leading-relaxed">
-            從建立活動、收集表單、對帳查帳、到最後的 QR-Code 入場我們全都幫你做好了
-            還不趕快來試試看
+            {t("landing.body")}
           </p>
         </div>
         <div className="flex flex-col gap-2 w-full items-center mb-8">
@@ -42,13 +43,13 @@ export default async function Home() {
               href="/register"
               className="w-full"
             >
-              註冊帳號
+              {t("signUp")}
             </Link>
           </Button>
           <p className="text-gray-600 text-sm">
-            已經有帳號了?{" "}
+            <span>{t("hasAccount")}</span>{" "}
             <Link href="/login" className="text-brand-strong font-medium underline">
-              登入
+              {t("logIn")}
             </Link>
           </p>
         </div>

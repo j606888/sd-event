@@ -3,7 +3,8 @@ import { db } from "@/db";
 import { linePayees } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
-import { validateLineIdInput } from "@/lib/line";
+import { lineIdInputError } from "@/lib/line";
+import { apiError } from "@/lib/api-error";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -14,11 +15,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -38,11 +39,11 @@ export async function POST(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -52,11 +53,11 @@ export async function POST(request: Request, { params }: Params) {
   const label = typeof body.label === "string" ? body.label.trim() : "";
   const lineId = typeof body.lineId === "string" ? body.lineId.trim() : "";
   if (!label) {
-    return NextResponse.json({ error: "請提供名稱／備註 label" }, { status: 400 });
+    return apiError("apiErrors.savedInfo.linePayeeLabelRequired", 400);
   }
-  const lineIdError = validateLineIdInput(lineId);
+  const lineIdError = lineIdInputError(lineId);
   if (lineIdError) {
-    return NextResponse.json({ error: lineIdError }, { status: 400 });
+    return apiError(`savedInfo.linePayee.lineIdErrors.${lineIdError}`, 400);
   }
 
   const [linePayee] = await db
@@ -65,7 +66,7 @@ export async function POST(request: Request, { params }: Params) {
     .returning();
 
   if (!linePayee) {
-    return NextResponse.json({ error: "新增失敗" }, { status: 500 });
+    return apiError("apiErrors.common.addFailed", 500);
   }
 
   return NextResponse.json({ linePayee });

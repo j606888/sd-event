@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Landmark } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,8 @@ type BankInfo = {
 export default function EventBankPage() {
   // 驗票人員看不到團隊/常用資訊設定，導回活動列表
   const { ready: isTeamAdminReady } = useRequireTeamAdmin();
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const { teamId, isLoading: teamLoading, error: teamError } = useCurrentTeam();
   const [bankInfos, setBankInfos] = useState<BankInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +86,7 @@ export default function EventBankPage() {
     const bankName = formBankName.trim();
     const bankCode = formBankCode.trim();
     if (!bankName || !bankCode) {
-      setSubmitError("請輸入銀行名稱與銀行代碼");
+      setSubmitError(t("bank.required"));
       return;
     }
 
@@ -108,13 +111,13 @@ export default function EventBankPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSubmitError(data.error || (isEditing ? "更新失敗" : "新增失敗"));
+        setSubmitError(data.error || (isEditing ? t("updateFailed") : t("addFailed")));
         return;
       }
       setDrawerOpen(false);
       fetchBankInfos();
     } catch {
-      setSubmitError(isEditing ? "更新失敗" : "新增失敗");
+      setSubmitError(isEditing ? t("updateFailed") : t("addFailed"));
     }
   };
 
@@ -122,7 +125,7 @@ export default function EventBankPage() {
   if (!isTeamAdminReady) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -130,7 +133,7 @@ export default function EventBankPage() {
   if (teamLoading || (teamId == null && !teamError)) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -138,7 +141,7 @@ export default function EventBankPage() {
   if (teamError || teamId == null) {
     return (
       <div className="p-6">
-        <p className="text-red-500">{teamError || "請先建立或加入團隊"}</p>
+        <p className="text-red-500">{teamError || t("noTeam")}</p>
       </div>
     );
   }
@@ -146,18 +149,18 @@ export default function EventBankPage() {
   return (
     <div className="w-full max-w-3xl px-4 py-5 md:px-8 md:py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink">銀行資訊</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">{t("bank.title")}</h1>
         <Button onClick={openDrawer} className="gap-2">
           <Plus className="size-4" />
-          新增銀行資訊
+          <span>{t("bank.add")}</span>
         </Button>
       </div>
 
       {loading ? (
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       ) : bankInfos.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500">
-          尚無銀行資訊，點擊「新增銀行資訊」建立
+          {t("bank.empty")}
         </div>
       ) : (
         <ul className="surface-card overflow-hidden divide-y divide-hairline">
@@ -171,8 +174,9 @@ export default function EventBankPage() {
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{bank.label || bank.bankName}</p>
                 <p className="text-sm text-gray-500">
-                  {bank.label ? `${bank.bankName} · ` : ""}代碼 {bank.bankCode}
-                  {bank.account ? ` · ${bank.account}` : ""}
+                  {[bank.label ? bank.bankName : null, t("bank.code", { code: bank.bankCode }), bank.account]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
             </li>
@@ -184,55 +188,55 @@ export default function EventBankPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         subtitle={editingBankInfoId ? "Edit Bank Info" : "New Bank Info"}
-        title={editingBankInfoId ? "編輯銀行資訊" : "新增銀行資訊"}
+        title={editingBankInfoId ? t("bank.editTitle") : t("bank.newTitle")}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {submitError && (
             <p className="text-sm text-red-500">{submitError}</p>
           )}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="bank-label">名稱／備註</Label>
+            <Label htmlFor="bank-label">{t("bank.labelLabel")}</Label>
             <Input
               id="bank-label"
               value={formLabel}
               onChange={(e) => setFormLabel(e.target.value)}
-              placeholder="例如：小明的帳戶、工作室公帳"
+              placeholder={t("bank.labelPlaceholder")}
             />
-            <p className="text-xs text-gray-500">只有主辦方看得到，用來區分多組帳戶</p>
+            <p className="text-xs text-gray-500">{t("bank.labelHint")}</p>
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="bank-name">銀行名稱 *</Label>
+            <Label htmlFor="bank-name">{t("bank.bankNameLabel")}</Label>
             <Input
               id="bank-name"
               value={formBankName}
               onChange={(e) => setFormBankName(e.target.value)}
-              placeholder="輸入銀行名稱"
+              placeholder={t("bank.bankNamePlaceholder")}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="bank-code">銀行代碼 *</Label>
+            <Label htmlFor="bank-code">{t("bank.bankCodeLabel")}</Label>
             <Input
               id="bank-code"
               value={formBankCode}
               onChange={(e) => setFormBankCode(e.target.value)}
-              placeholder="輸入銀行代碼"
+              placeholder={t("bank.bankCodePlaceholder")}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="bank-account">銀行帳戶</Label>
+            <Label htmlFor="bank-account">{t("bank.accountLabel")}</Label>
             <Input
               id="bank-account"
               value={formAccount}
               onChange={(e) => setFormAccount(e.target.value)}
-              placeholder="輸入銀行帳戶"
+              placeholder={t("bank.accountPlaceholder")}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
-              取消
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" className="bg-primary text-ink hover:bg-brand-hover">
-              {editingBankInfoId ? "更新" : "新增"}
+              {editingBankInfoId ? t("update") : tCommon("add")}
             </Button>
           </div>
         </form>

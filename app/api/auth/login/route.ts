@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { verifyPassword, createToken, setAuthCookie } from "@/lib/auth";
+import { apiError } from "@/lib/api-error";
+import { getLocale } from "next-intl/server";
 import { eq } from "drizzle-orm";
 
 const loginSchema = {
@@ -15,10 +17,7 @@ export async function POST(request: Request) {
     const { email, password } = body;
 
     if (!loginSchema.email(email) || !loginSchema.password(password)) {
-      return NextResponse.json(
-        { error: "請提供有效的 email 與 password（至少 6 字）" },
-        { status: 400 }
-      );
+      return apiError("apiErrors.auth.invalidLoginInput", 400);
     }
 
     const rows = await db
@@ -35,23 +34,18 @@ export async function POST(request: Request) {
     const user = rows[0];
 
     if (!user) {
-      return NextResponse.json(
-        { error: "此信箱尚未註冊" },
-        { status: 401 }
-      );
+      return apiError("apiErrors.auth.emailNotRegistered", 401);
     }
 
     const ok = await verifyPassword(password, user.encryptedPassword);
     if (!ok) {
-      return NextResponse.json(
-        { error: "密碼錯誤" },
-        { status: 401 }
-      );
+      return apiError("apiErrors.auth.wrongPassword", 401);
     }
 
     await db
       .update(users)
-      .set({ lastLoginAt: new Date() })
+      // 順便記下目前的介面語言，寄給他的通知信（新報名、團隊邀請）就用這個語言
+      .set({ lastLoginAt: new Date(), locale: await getLocale() })
       .where(eq(users.id, user.id));
 
     const token = await createToken({ userId: user.id, email: user.email });
@@ -67,6 +61,6 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error("Login error:", e);
-    return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
+    return apiError("apiErrors.common.serverError", 500);
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type UndoToastProps = {
   message: string;
@@ -16,6 +17,7 @@ type UndoToastProps = {
  * 換一則訊息時請給不同的 `key`，計時才會重來。
  */
 export function UndoToast({ message, onUndo, onDismiss, duration = 6000 }: UndoToastProps) {
+  const tCommon = useTranslations("common");
   useEffect(() => {
     const timer = setTimeout(onDismiss, duration);
     return () => clearTimeout(timer);
@@ -34,7 +36,7 @@ export function UndoToast({ message, onUndo, onDismiss, duration = 6000 }: UndoT
           onClick={onUndo}
           className="h-10 shrink-0 cursor-pointer rounded-xl bg-white/10 px-4 font-bold transition-colors hover:bg-white/20"
         >
-          復原
+          {tCommon("undo")}
         </button>
       </div>
     </div>

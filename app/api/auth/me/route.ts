@@ -2,16 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
+import { apiError } from "@/lib/api-error";
 import { inArray } from "drizzle-orm";
 
 export async function GET() {
   try {
     const session = await getSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "未登入或登入已過期" },
-        { status: 401 }
-      );
+      return apiError("apiErrors.common.sessionExpired", 401);
     }
 
     const impersonatorId = session.impersonatorId;
@@ -36,10 +34,7 @@ export async function GET() {
     const user = rows.find((r) => r.id === session.userId);
 
     if (!user) {
-      return NextResponse.json(
-        { error: "找不到使用者" },
-        { status: 404 }
-      );
+      return apiError("apiErrors.common.userNotFound", 404);
     }
 
     const admin =
@@ -70,6 +65,6 @@ export async function GET() {
     });
   } catch (e) {
     console.error("Me error:", e);
-    return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
+    return apiError("apiErrors.common.serverError", 500);
   }
 }

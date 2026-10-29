@@ -6,12 +6,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 /**
  * 順序即顯示順序：開賣後每天在用的（報名者、統計）在前，設定類在後。
  * QR 驗票不再是分頁 —— 門口多半報名字或電話找人，掃描器改成報名者頁的次要按鈕。
+ * 分頁名稱在元件裡依 id 翻譯（events.tabs.<id>）。
  */
 export const EVENT_TABS = [
-  { id: "registrations", label: "報名者" },
-  { id: "stats", label: "統計" },
-  { id: "tickets", label: "票券設定" },
-  { id: "basic", label: "基本資訊" },
+  { id: "registrations" },
+  { id: "stats" },
+  { id: "tickets" },
+  { id: "basic" },
 ] as const;
 
 export type EventTabId = (typeof EVENT_TABS)[number]["id"];

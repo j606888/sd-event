@@ -1,0 +1,189 @@
+{
+  "readOnly": "模擬檢視為唯讀模式",
+  "status": {
+    "draft": "草稿",
+    "active": "售票中",
+    "ended": "已結束"
+  },
+  "units": {
+    "people": "<num>{count}</num><unit> 人</unit>",
+    "registrations": "<num>{count}</num><unit> 筆</unit>",
+    "ofTotal": "<num>{count}</num><unit> / {total}</unit>",
+    "ofTotalPeople": "<num>{count}</num><unit> / {total} 人</unit>"
+  },
+  "errors": {
+    "loadEvent": "無法載入活動",
+    "loadStats": "無法載入統計",
+    "loadRegistrations": "無法載入報名列表",
+    "loadRegistrationDetail": "無法載入報名詳情",
+    "updateFailed": "更新失敗",
+    "checkInFailed": "檢查入場失敗",
+    "undoCheckInFailed": "取消入場失敗",
+    "resendFailed": "重寄失敗",
+    "refundFailed": "退款操作失敗"
+  },
+  "list": {
+    "title": "所有活動",
+    "create": "建立活動",
+    "createAria": "建立新活動",
+    "loadFailed": "無法載入活動",
+    "goToLogin": "前往登入",
+    "redirectingToSetup": "正在導向建立團隊…",
+    "emptyAdmin": "尚無活動，點擊「建立活動」開始",
+    "emptyStaff": "此團隊尚無活動"
+  },
+  "listRow": {
+    "registered": "報名",
+    "checkedIn": "已入場"
+  },
+  "card": {
+    "onSale": "銷售中",
+    "registeredCount": "{count} 人報名",
+    "manage": "管理"
+  },
+  "detail": {
+    "allEvents": "所有活動",
+    "notFound": "找不到活動",
+    "backToList": "返回活動列表",
+    "linkCopied": "已複製連結",
+    "shareForm": "分享表單",
+    "publish": "發布",
+    "publishing": "發布中…",
+    "publishFailed": "發布失敗，請稍後再試",
+    "walkIn": "現場報名",
+    "draftNotice": "活動尚未發布：報名連結僅團隊成員能預覽，按「發布」後才對外開放報名。",
+    "prevPage": "上一頁",
+    "nextPage": "下一頁",
+    "pageOf": "第 {page} / {total} 頁"
+  },
+  "tabs": {
+    "registrations": "報名者",
+    "stats": "統計",
+    "tickets": "票券設定",
+    "basic": "基本資訊"
+  },
+  "tabBar": {
+    "settings": "活動設定",
+    "walkIn": "現場報名",
+    "navLabel": "活動管理分頁"
+  },
+  "stats": {
+    "loading": "載入統計中…",
+    "loadFailed": "載入失敗",
+    "headcount": "報名人數",
+    "role": {
+      "Leader": "Leader",
+      "Follower": "Follower",
+      "notSure": "尚未確定"
+    },
+    "hiddenNote": "僅包含「未隱藏」的報名資料。",
+    "checkIn": "入場",
+    "checkInRate": "入場率",
+    "checkedIn": "已入場",
+    "notCheckedIn": "未入場",
+    "viewList": "看名單 →",
+    "payments": "款項",
+    "collectProgress": "收款進度",
+    "paymentRow": {
+      "confirmed": "已確認入帳",
+      "reported": "已回報・待確認",
+      "pending": "尚未付款"
+    },
+    "expectedTotal": "全部付款可收",
+    "items": "報名項目",
+    "itemsNote": "金額為各筆報名成交價加總（含時段價，折扣碼折抵另列於下方）",
+    "itemsEmpty": "尚無報名項目資料",
+    "itemsSubtotal": "項目小計",
+    "couponDiscount": "折扣碼折抵",
+    "netDue": "折抵後應收"
+  },
+  "strip": {
+    "headcount": "報名人數",
+    "notSure": "不確定 {count}",
+    "refunded": "另有 {count} 筆已退款",
+    "checkedIn": "已入場",
+    "notCheckedInRemaining": "還有 {count} 人未入場 →",
+    "toVerify": "{amount} 等你核對 →",
+    "allVerified": "都對完了",
+    "collected": "已入帳",
+    "refundedExcluded": "已退款 {amount}，不計入",
+    "expectedTotal": "全部付款可收 {amount}"
+  },
+  "registrations": {
+    "searchAria": "搜尋報名者",
+    "searchPlaceholder": "輸入姓名、電話或 Email 找人",
+    "clearSearch": "清除搜尋",
+    "matchedTotal": "共 {count} 筆",
+    "scanAria": "掃描 QR Code",
+    "scan": "掃 QR",
+    "exportAria": "匯出 CSV",
+    "moreFilters": "更多篩選條件",
+    "itemFilterLabel": "報名項目",
+    "clearItemFilter": "清除報名項目篩選",
+    "quick": {
+      "all": "全部",
+      "reported": "待確認收款",
+      "pending": "未付款",
+      "notCheckedIn": "未入場",
+      "checkedIn": "已入場"
+    },
+    "filterDrawer": {
+      "title": "篩選條件",
+      "payment": "狀態",
+      "item": "報名項目",
+      "checkIn": "入場狀態",
+      "coupon": "折扣碼",
+      "hidden": "顯示"
+    },
+    "filters": {
+      "payment": {
+        "all": "全部",
+        "confirmed": "已完成付款",
+        "pending": "待付款",
+        "reported": "待確認",
+        "rejected": "已拒絕",
+        "refunded": "已退款"
+      },
+      "checkIn": {
+        "all": "全部",
+        "none": "未入場",
+        "partial": "部分入場",
+        "allEntered": "已全部入場"
+      },
+      "hidden": {
+        "nonHidden": "未隱藏",
+        "all": "全部",
+        "hidden": "已隱藏"
+      },
+      "coupon": {
+        "all": "全部",
+        "used": "有用折扣碼",
+        "notUsed": "未用折扣碼"
+      }
+    },
+    "noMatchTitle": "名單裡找不到這個人",
+    "noMatchHint": "換電話末三碼或其他篩選試試，或直接幫他現場報名。",
+    "emptyTitle": "還沒有人報名",
+    "emptyHint": "把報名表單分享出去，或先幫到場的人現場報名。",
+    "walkIn": "現場報名",
+    "checkInFailed": "入場失敗，請重試",
+    "confirmPaymentFailed": "確認收款失敗，請重試",
+    "undoCheckInFailed": "取消入場失敗，請重試",
+    "unpaidTitle": "尚未確認收款",
+    "unpaidDescription": "這筆報名的款項還沒確認。仍要讓參與者入場嗎？",
+    "unpaidSummary": "{name} · {count} 人",
+    "unpaidConfirm": "仍要入場",
+    "checkedInToast": "{name} 已入場"
+  },
+  "registrationRow": {
+    "viewDetailAria": "查看 {name} 的報名明細",
+    "walkIn": "現場",
+    "hidden": "已隱藏",
+    "partiallyCheckedIn": "{checked}/{total} 已入場",
+    "confirmPayment": "確認收款",
+    "checkIn": "入場",
+    "checkInCount": "入場 {count}",
+    "checkedIn": "已入場",
+    "noCheckInNeeded": "不需入場"
+  }
+}

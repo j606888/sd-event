@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { QRScanner } from "@/components/events/registration/QRScanner";
 import { WalkInDrawer } from "@/components/events/management/WalkInDrawer";
 import { useReadOnly } from "@/hooks/use-session";
@@ -10,6 +11,8 @@ import { useTeamRole } from "@/hooks/use-team-role";
 export default function ScanPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations("registration.scan");
+  const tCommon = useTranslations("common");
   const readOnly = useReadOnly();
   // 驗票人員掃碼後不顯示金額，現場報名的金額也不能改
   const { isAdmin } = useTeamRole();
@@ -30,7 +33,7 @@ export default function ScanPage() {
   if (!Number.isInteger(eventId)) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
-        <p className="text-red-500">無效的活動 ID</p>
+        <p className="text-red-500">{t("invalidEventId")}</p>
       </div>
     );
   }
@@ -39,14 +42,14 @@ export default function ScanPage() {
   if (readOnly) {
     return (
       <div className="min-h-screen p-6 flex flex-col items-center justify-center gap-3 text-center">
-        <p className="font-semibold text-gray-900">模擬檢視為唯讀模式</p>
-        <p className="text-sm text-gray-500">無法使用掃碼報到功能</p>
+        <p className="font-semibold text-gray-900">{t("readOnlyTitle")}</p>
+        <p className="text-sm text-gray-500">{t("readOnlyBody")}</p>
         <button
           type="button"
           onClick={handleClose}
           className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
         >
-          返回
+          {tCommon("back")}
         </button>
       </div>
     );

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { events, eventCoupons, eventPurchaseItemGroups } from "@/db/schema";
 import { normalizeCouponCode } from "@/lib/coupon";
+import { apiError, apiMessage } from "@/lib/api-error";
 import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -13,7 +14,7 @@ type Params = { params: Promise<{ eventId: string }> };
 export async function POST(request: Request, { params }: Params) {
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const [event] = await db
@@ -22,7 +23,7 @@ export async function POST(request: Request, { params }: Params) {
     .where(eq(events.id, eventId))
     .limit(1);
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const body = await request.json().catch(() => ({}));
@@ -31,7 +32,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({
       valid: false,
       reason: "not_found",
-      error: "請輸入折扣碼",
+      error: await apiMessage("eventApiErrors.coupons.enterCode"),
     });
   }
 
@@ -47,7 +48,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({
       valid: false,
       reason: "not_supported",
-      error: "此活動不支援折扣碼",
+      error: await apiMessage("eventApiErrors.coupons.notSupported"),
     });
   }
 
@@ -60,7 +61,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({
       valid: false,
       reason: "not_found",
-      error: "查無此折扣碼",
+      error: await apiMessage("eventApiErrors.coupons.codeNotFound"),
     });
   }
 
@@ -68,7 +69,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({
       valid: false,
       reason: "exhausted",
-      error: "此折扣碼已額滿，無法使用",
+      error: await apiMessage("eventApiErrors.coupons.exhausted"),
     });
   }
 

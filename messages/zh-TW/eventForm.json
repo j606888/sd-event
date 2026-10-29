@@ -1,0 +1,121 @@
+{
+  "newEvent": {
+    "title": "建立新活動",
+    "chooseType": "選擇活動類型，我們會幫你預先填好對應的票價時段與購買項目範本（之後都可以調整）。",
+    "submit": "建立活動"
+  },
+  "typeDescriptions": {
+    "Party": "單一入場票，搭配早鳥優惠時段價。",
+    "Workshop": "Full Pass 或單堂購買，可加購 Party，含早鳥／現場價。",
+    "Festival": "綜合方案：Pass、單堂課、Party，多檔早鳥時段。"
+  },
+  "templates": {
+    "superEarlyBird": "超早鳥",
+    "earlyBird": "早鳥",
+    "regularOrDoor": "一般 / 現場",
+    "regular": "一般",
+    "door": "現場",
+    "classOptions": "課程方案",
+    "addOns": "加購",
+    "passOptions": "Pass 方案",
+    "singleClass": "單堂課",
+    "partyEntry": "Party 入場票",
+    "partyGroup": "Party",
+    "fullPassWithParty": "Full Pass（含 Party）",
+    "fullPassWithoutParty": "Full Pass（不含 Party）",
+    "addOnParty": "加購 Party",
+    "dayPass": "單日 Pass",
+    "fridayParty": "週五 Party",
+    "saturdayParty": "週六 Party"
+  },
+  "defaults": {
+    "newTier": "新時段",
+    "newGroup": "新群組"
+  },
+  "sections": {
+    "basic": "基本資訊",
+    "items": "票券設定"
+  },
+  "editTabs": {
+    "readOnlyTitle": "模擬檢視為唯讀模式",
+    "readOnly": "模擬檢視為唯讀模式，無法儲存變更",
+    "unsaved": "有還沒儲存的變更",
+    "saveHint": "此頁的變更要按「儲存變更」才會生效"
+  },
+  "drawers": {
+    "addLocation": "新增活動地點",
+    "editTicket": "編輯票券",
+    "addTicket": "新增票券",
+    "addNotice": "新增須知項目",
+    "addOrganizer": "新增主辦單位",
+    "addLinePayee": "新增 LINE 付款好友",
+    "addBankInfo": "新增銀行資訊"
+  },
+  "basic": {
+    "contentLabel": "活動內容",
+    "titleLabel": "標題",
+    "titlePlaceholder": "輸入標題",
+    "typeLabel": "活動類型",
+    "switchTypeConfirm": "切換類型會以新範本覆蓋目前的票價時段、票券區塊與票券設定，確定要切換嗎？",
+    "timeAndPlace": "時間與地點",
+    "start": "開始",
+    "end": "結束",
+    "organizerAndPayment": "主辦與收款"
+  },
+  "cover": {
+    "heading": "活動封面",
+    "zoom": "放大檢視封面",
+    "change": "更換圖片",
+    "choose": "點擊選擇圖片",
+    "hint": "建議 16:9 ・ 最大 4MB",
+    "preview": "活動封面預覽",
+    "closePreview": "關閉預覽"
+  },
+  "description": {
+    "label": "活動描述",
+    "modeLabel": "活動描述編輯模式",
+    "write": "編輯",
+    "preview": "預覽",
+    "placeholder": "輸入活動描述，可使用 Markdown\n\n## 活動時程\n- 14:00 Workshop 第一堂\n- 16:00 Workshop 第二堂\n\n**注意事項**：請提早 10 分鐘到場",
+    "insertImage": "插入圖片",
+    "uploading": "上傳中…",
+    "dropHint": "也可以直接貼上或拖放圖片",
+    "empty": "還沒有輸入活動描述",
+    "markdownHelp": "支援 Markdown：<code>## 小標題</code>、<code>**粗體**</code>、<code>- 項目</code>、<code>[文字](網址)</code>、<code>![](圖片網址)</code>；直接換行也會保留。",
+    "uploadFailed": "上傳圖片失敗，請重試"
+  },
+  "notice": {
+    "contentLabel": "內容",
+    "contentPlaceholder": "輸入內容",
+    "addFailed": "新增失敗"
+  },
+  "validation": {
+    "titleRequired": "請輸入標題",
+    "locationRequired": "請選擇活動地點",
+    "organizerRequired": "請選擇主辦單位",
+    "bankInfoRequired": "請選擇銀行資訊"
+  },
+  "errors": {
+    "notAnImage": "請選擇圖片檔案",
+    "imageTooLarge": "圖片大小不能超過 4MB",
+    "coverUploadFailed": "上傳封面失敗，請重試",
+    "uploadFailed": "上傳失敗",
+    "uploadUrlMissing": "無法取得上傳後的圖片網址",
+    "deleteItemFailed": "刪除購買項目失敗",
+    "updateItemFailed": "更新購買項目失敗",
+    "updatePurchaseRulesFailed": "更新購買規則失敗",
+    "updateAttendeeFlagFailed": "更新參加者勾選項目失敗",
+    "reorderTiersFailed": "時段排序更新失敗",
+    "addTierFailed": "新增時段失敗",
+    "updateTierFailed": "更新時段失敗",
+    "deleteTierFailed": "刪除時段失敗",
+    "addGroupFailed": "新增群組失敗",
+    "updateGroupFailed": "更新群組失敗",
+    "deleteGroupFailed": "刪除群組失敗",
+    "updateExclusionsFailed": "更新互斥規則失敗",
+    "saveCouponFailed": "儲存折扣碼失敗",
+    "deleteCouponFailed": "刪除折扣碼失敗",
+    "updateFailed": "更新失敗",
+    "saveFailed": "儲存失敗"
+  }
+}

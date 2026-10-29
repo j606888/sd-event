@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,6 +34,7 @@ export function BankInfoSelect({
   onValueChange,
   onAddClick,
 }: BankInfoSelectProps) {
+  const t = useTranslations("savedInfo.bank");
   // Normalize empty string to undefined to keep Select controlled consistently
   const safeValue = value ?? ""
 
@@ -47,13 +49,13 @@ export function BankInfoSelect({
   }
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="bank">銀行資訊 *</Label>
+      <Label htmlFor="bank">{t("selectLabel")}</Label>
       <Select
         value={safeValue}
         onValueChange={onValueChange2}
       >
         <SelectTrigger id="bank" className="w-full min-w-0">
-          <SelectValue placeholder="選擇銀行資訊" />
+          <SelectValue placeholder={t("selectPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {bankInfos.map((bank) => (
@@ -62,7 +64,7 @@ export function BankInfoSelect({
               value={String(bank.id)}
               description={[
                 bank.label ? `${bank.bankName} ${bank.bankCode}` : null,
-                bank.account ? `帳號 ${bank.account}` : "尚未填寫帳號",
+                bank.account ? t("selectAccount", { account: bank.account }) : t("selectNoAccount"),
               ]
                 .filter(Boolean)
                 .join(" · ")}
@@ -76,7 +78,7 @@ export function BankInfoSelect({
           >
             <span className="flex items-center gap-1.5">
               <Plus className="size-4" />
-              新增銀行資訊
+              <span>{t("add")}</span>
             </span>
           </SelectItem>
         </SelectContent>

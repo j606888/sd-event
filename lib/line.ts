@@ -21,21 +21,21 @@ export function lineIdForDisplay(value: string | null | undefined): string | nul
   return v;
 }
 
-/** 驗證 LINE ID 或加好友連結；回傳錯誤訊息，合法回 null */
-export function validateLineIdInput(value: string): string | null {
+export type LineIdError = "empty" | "notLineHost" | "invalidUrl" | "hasWhitespace";
+
+/** 驗證 LINE ID 或加好友連結；回傳錯誤代碼，合法回 null。介面依代碼翻譯 */
+export function lineIdInputError(value: string): LineIdError | null {
   const v = value.trim();
-  if (!v) return "請輸入 LINE ID 或加好友連結";
+  if (!v) return "empty";
   if (/^https?:\/\//i.test(v)) {
     try {
       const host = new URL(v).hostname;
-      if (!/(^|\.)line\.me$|(^|\.)lin\.ee$/i.test(host)) {
-        return "連結需為 LINE 的加好友連結（line.me 或 lin.ee）";
-      }
+      if (!/(^|\.)line\.me$|(^|\.)lin\.ee$/i.test(host)) return "notLineHost";
     } catch {
-      return "連結格式不正確";
+      return "invalidUrl";
     }
     return null;
   }
-  if (/\s/.test(v)) return "LINE ID 不能包含空白";
+  if (/\s/.test(v)) return "hasWhitespace";
   return null;
 }

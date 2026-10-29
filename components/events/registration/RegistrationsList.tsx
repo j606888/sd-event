@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Search, SlidersHorizontal, X, QrCode, Download, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -93,12 +94,17 @@ function FilterPills<T extends string | number>({
  * 搜尋框下方的快速篩選：門口與對帳最常切的幾種，一點就到。
  * 每個都是「付款 + 入場」兩個篩選的固定組合；其餘條件留在篩選抽屜。
  */
-const QUICK_FILTERS: { label: string; payment: PaymentFilter; checkIn: CheckInFilter }[] = [
-  { label: "全部", payment: "all", checkIn: "all" },
-  { label: "待確認收款", payment: "reported", checkIn: "all" },
-  { label: "未付款", payment: "pending", checkIn: "all" },
-  { label: "未入場", payment: "all", checkIn: "not_all" },
-  { label: "已入場", payment: "all", checkIn: "all_entered" },
+const QUICK_FILTERS: {
+  /** 也是翻譯 key：events.registrations.quick.<id> */
+  id: "all" | "reported" | "pending" | "notCheckedIn" | "checkedIn";
+  payment: PaymentFilter;
+  checkIn: CheckInFilter;
+}[] = [
+  { id: "all", payment: "all", checkIn: "all" },
+  { id: "reported", payment: "reported", checkIn: "all" },
+  { id: "pending", payment: "pending", checkIn: "all" },
+  { id: "notCheckedIn", payment: "all", checkIn: "not_all" },
+  { id: "checkedIn", payment: "all", checkIn: "all_entered" },
 ];
 
 type UndoState = { key: number; name: string; attendeeIds: number[] };
@@ -127,6 +133,9 @@ export function RegistrationsList({
   onWalkIn,
   onExportCsv,
 }: RegistrationsListProps) {
+  const t = useTranslations("events.registrations");
+  const tEvents = useTranslations("events");
+  const tCommon = useTranslations("common");
   const readOnly = useReadOnly();
   const [filterOpen, setFilterOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -161,7 +170,7 @@ export function RegistrationsList({
         done.push(id);
       }
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "入場失敗，請重試");
+      setActionError(e instanceof Error ? e.message : t("checkInFailed"));
     } finally {
       setBusyId(null);
       if (done.length > 0) {
@@ -184,7 +193,7 @@ export function RegistrationsList({
           patch: { paymentStatus: "confirmed" },
         });
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "確認收款失敗，請重試");
+        setActionError(e instanceof Error ? e.message : t("confirmPaymentFailed"));
       } finally {
         setBusyId(null);
       }
@@ -201,7 +210,7 @@ export function RegistrationsList({
         await undoCheckIn.mutateAsync(id);
       }
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "取消入場失敗，請重試");
+      setActionError(e instanceof Error ? e.message : t("undoCheckInFailed"));
     }
   };
 
@@ -216,9 +225,25 @@ export function RegistrationsList({
     (purchaseItemFilter !== "all" ? 1 : 0);
 
   const itemFilterOptions: { value: PurchaseItemFilter; label: string }[] = [
-    { value: "all", label: "全部" },
+    { value: "all", label: tCommon("all") },
     ...purchaseItemOptions.map((item) => ({ value: item.id, label: item.name })),
   ];
+  const paymentOptions = PAYMENT_OPTIONS.map((o) => ({
+    value: o.value,
+    label: t(`filters.payment.${o.labelKey}`),
+  }));
+  const checkInOptions = CHECK_IN_OPTIONS.map((o) => ({
+    value: o.value,
+    label: t(`filters.checkIn.${o.labelKey}`),
+  }));
+  const couponOptions = COUPON_OPTIONS.map((o) => ({
+    value: o.value,
+    label: t(`filters.coupon.${o.labelKey}`),
+  }));
+  const hiddenOptions = HIDDEN_OPTIONS.map((o) => ({
+    value: o.value,
+    label: t(`filters.hidden.${o.labelKey}`),
+  }));
   const activeItemName =
     purchaseItemFilter === "all"
       ? null
@@ -243,8 +268,8 @@ export function RegistrationsList({
             type="search"
             inputMode="search"
             enterKeyHint="search"
-            aria-label="搜尋報名者"
-            placeholder="輸入姓名、電話或 Email 找人"
+            aria-label={t("searchAria")}
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="h-full min-w-0 flex-1 bg-transparent text-[17px] text-ink outline-none placeholder:text-gray-400 [&::-webkit-search-cancel-button]:hidden"
@@ -256,7 +281,7 @@ export function RegistrationsList({
                 onSearchChange("");
                 searchRef.current?.focus();
               }}
-              aria-label="清除搜尋"
+              aria-label={t("clearSearch")}
               className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-ink hover:bg-field hover:text-ink"
             >
               <X className="size-4" />
@@ -264,18 +289,18 @@ export function RegistrationsList({
           ) : (
             !isLoading && (
               <span className="hidden shrink-0 text-xs text-muted-ink tabular-nums sm:inline">
-                {`共 ${matchedTotal} 筆`}
+                {t("matchedTotal", { count: matchedTotal })}
               </span>
             )
           )}
         </label>
         <Link
           href={`/events/${eventId}/scan`}
-          aria-label="掃描 QR Code"
+          aria-label={t("scanAria")}
           className="flex h-14 shrink-0 items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 text-sm font-medium text-ink transition-colors hover:border-ink"
         >
           <QrCode className="size-5" />
-          <span className="hidden sm:inline">掃 QR</span>
+          <span className="hidden sm:inline">{t("scan")}</span>
         </Link>
       </div>
 
@@ -286,7 +311,7 @@ export function RegistrationsList({
             const active = q.payment === paymentFilter && q.checkIn === checkInFilter;
             return (
               <button
-                key={q.label}
+                key={q.id}
                 type="button"
                 onClick={() => {
                   onPaymentFilterChange(q.payment);
@@ -299,7 +324,7 @@ export function RegistrationsList({
                     : "border-gray-300 bg-white text-muted-ink hover:border-ink hover:text-ink"
                 )}
               >
-                {q.label}
+                {t(`quick.${q.id}`)}
               </button>
             );
           })}
@@ -310,11 +335,11 @@ export function RegistrationsList({
             variant="outline"
             onClick={onExportCsv}
             disabled={registrations.length === 0}
-            aria-label="匯出 CSV"
+            aria-label={t("exportAria")}
             className="hidden h-10 shrink-0 gap-1.5 rounded-full px-3.5 sm:inline-flex"
           >
             <Download className="size-4" />
-            匯出
+            <span>{tCommon("export")}</span>
           </Button>
         )}
         <div className="relative shrink-0">
@@ -322,7 +347,7 @@ export function RegistrationsList({
             type="button"
             variant="outline"
             onClick={() => setFilterOpen(true)}
-            aria-label="更多篩選條件"
+            aria-label={t("moreFilters")}
             className="size-10 rounded-full p-0"
           >
             <SlidersHorizontal className="size-4" />
@@ -338,14 +363,14 @@ export function RegistrationsList({
       {/* 項目篩選生效時明確標示，從統計頁跳過來才看得出目前在看哪個項目 */}
       {activeItemName && (
         <div className="flex items-center gap-2 text-sm text-gray-500">
-          報名項目
+          <span>{t("itemFilterLabel")}</span>
           <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft py-1 pr-1.5 pl-3 text-xs font-medium text-brand-strong">
-            {activeItemName}
+            <span>{activeItemName}</span>
             <button
               type="button"
               onClick={() => onPurchaseItemFilterChange("all")}
               className="rounded-full p-0.5 hover:bg-brand/30 cursor-pointer"
-              aria-label="清除報名項目篩選"
+              aria-label={t("clearItemFilter")}
             >
               <X className="size-3.5" />
             </button>
@@ -356,34 +381,34 @@ export function RegistrationsList({
       {actionError && (
         <p role="alert" className="flex items-center gap-1.5 text-sm text-red-600">
           <span className="size-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
-          {actionError}
+          <span>{actionError}</span>
         </p>
       )}
 
       {/* Filter Drawer */}
-      <Drawer open={filterOpen} onClose={() => setFilterOpen(false)} title="篩選條件">
+      <Drawer open={filterOpen} onClose={() => setFilterOpen(false)} title={t("filterDrawer.title")}>
         <div className="flex justify-end -mt-1 mb-2">
           <button
             type="button"
             onClick={() => setFilterOpen(false)}
             className="p-2 text-gray-400 hover:text-gray-600 rounded-full"
-            aria-label="關閉"
+            aria-label={tCommon("close")}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="space-y-6">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">狀態</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">{t("filterDrawer.payment")}</h3>
             <FilterPills
-              options={PAYMENT_OPTIONS}
+              options={paymentOptions}
               value={paymentFilter}
               onChange={onPaymentFilterChange}
             />
           </div>
           {purchaseItemOptions.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">報名項目</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">{t("filterDrawer.item")}</h3>
               <FilterPills
                 options={itemFilterOptions}
                 value={purchaseItemFilter}
@@ -392,27 +417,27 @@ export function RegistrationsList({
             </div>
           )}
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">入場狀態</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">{t("filterDrawer.checkIn")}</h3>
             <FilterPills
-              options={CHECK_IN_OPTIONS}
+              options={checkInOptions}
               value={checkInFilter}
               onChange={onCheckInFilterChange}
             />
           </div>
           {canManage && (
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">折扣碼</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">{t("filterDrawer.coupon")}</h3>
               <FilterPills
-                options={COUPON_OPTIONS}
+                options={couponOptions}
                 value={couponFilter}
                 onChange={onCouponFilterChange}
               />
             </div>
           )}
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">顯示</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">{t("filterDrawer.hidden")}</h3>
             <FilterPills
-              options={HIDDEN_OPTIONS}
+              options={hiddenOptions}
               value={hiddenFilter}
               onChange={onHiddenFilterChange}
             />
@@ -430,22 +455,20 @@ export function RegistrationsList({
       ) : registrations.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-300 px-6 py-10 text-center">
           <p className="text-base font-bold text-ink">
-            {hasQuery ? "名單裡找不到這個人" : "還沒有人報名"}
+            {hasQuery ? t("noMatchTitle") : t("emptyTitle")}
           </p>
           <p className="text-sm text-muted-ink">
-            {hasQuery
-              ? "換電話末三碼或其他篩選試試，或直接幫他現場報名。"
-              : "把報名表單分享出去，或先幫到場的人現場報名。"}
+            {hasQuery ? t("noMatchHint") : t("emptyHint")}
           </p>
           <Button
             type="button"
             onClick={onWalkIn}
             disabled={readOnly}
-            title={readOnly ? "模擬檢視為唯讀模式" : undefined}
+            title={readOnly ? tEvents("readOnly") : undefined}
             className="h-11 gap-1.5 rounded-xl px-5 font-bold"
           >
             <UserPlus className="size-4" />
-            現場報名
+            <span>{t("walkIn")}</span>
           </Button>
         </div>
       ) : (
@@ -470,18 +493,20 @@ export function RegistrationsList({
       <ConfirmActionDrawer
         open={unpaidCheckIn !== null}
         onClose={() => setUnpaidCheckIn(null)}
-        title="尚未確認收款"
-        description="這筆報名的款項還沒確認。仍要讓參與者入場嗎？"
+        title={t("unpaidTitle")}
+        description={t("unpaidDescription")}
         summary={
           unpaidCheckIn && (
             <span className="text-gray-600">
-              {unpaidCheckIn.contactName} ·{" "}
-              {unpaidCheckIn.attendees.filter((a) => !a.checkedIn).length} 人
+              {t("unpaidSummary", {
+                name: unpaidCheckIn.contactName,
+                count: unpaidCheckIn.attendees.filter((a) => !a.checkedIn).length,
+              })}
             </span>
           )
         }
-        confirmLabel="仍要入場"
-        pendingLabel="處理中…"
+        confirmLabel={t("unpaidConfirm")}
+        pendingLabel={tCommon("processing")}
         onConfirm={async () => {
           if (unpaidCheckIn) await runCheckIn(unpaidCheckIn);
         }}
@@ -490,7 +515,7 @@ export function RegistrationsList({
       {undo && (
         <UndoToast
           key={undo.key}
-          message={`${undo.name} 已入場`}
+          message={t("checkedInToast", { name: undo.name })}
           onUndo={() => void handleUndo()}
           onDismiss={dismissUndo}
         />

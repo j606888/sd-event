@@ -1,8 +1,10 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function ConfirmedPaymentHeader() {
+  const t = useTranslations("myRegistration.headers.confirmed");
   return (
     <div className="p-4 text-center">
       <div
@@ -27,22 +29,22 @@ export function ConfirmedPaymentHeader() {
 
         {/* 文字區域 */}
         <h1 className="text-2xl font-extrabold text-slate-900 mb-3 tracking-tight">
-          付款確認完成！
+          {t("title")}
         </h1>
-        
+
         <div className="space-y-1 mb-6">
           <p className="text-[15px] font-medium text-slate-600">
-            主辦方已確認收到款項
+            {t("received")}
           </p>
           <p className="text-[14px] text-slate-400">
-            請於活動當天出示入場憑證
+            {t("showPass")}
           </p>
         </div>
 
         {/* 狀態 Tag：使用品牌藍實心色塊（霧藍底配深色字） */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand">
           <Check className="w-3.5 h-3.5 text-ink" strokeWidth={3} />
-          <span className="text-sm font-bold text-ink">報名成功</span>
+          <span className="text-sm font-bold text-ink">{t("badge")}</span>
         </div>
       </div>
     </div>

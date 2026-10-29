@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Menu } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Logo } from "@/components/brand/Logo";
 
 type Team = { id: number; name: string } | null;
@@ -12,13 +13,15 @@ type HeaderProps = {
 };
 
 export function Header({ onMenuClick }: HeaderProps) {
+  const t = useTranslations("header");
+
   return (
     <header className="sticky top-0 z-30 flex h-14 lg:h-16 items-center border-b border-hairline bg-white px-2 lg:px-4 lg:hidden">
       <button
         type="button"
         onClick={onMenuClick}
         className="flex lg:hidden size-10 shrink-0 items-center justify-center text-muted-ink hover:text-ink"
-        aria-label="開啟選單"
+        aria-label={t("openMenu")}
       >
         <Menu className="size-6" />
       </button>
@@ -27,7 +30,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <Link
           href="/events"
           className="shrink-0"
-          aria-label="SD Event 所有活動"
+          aria-label={t("homeLink")}
         >
           <Logo />
         </Link>

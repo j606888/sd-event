@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { teamMembers, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { isTeamAdmin, type TeamRole } from "@/lib/team-roles";
+import { apiError } from "@/lib/api-error";
 
 export type Session = { userId: number; email: string; impersonatorId?: number };
 
@@ -16,7 +17,7 @@ export async function requireSession(): Promise<Session | null> {
 export async function requireAuth(): Promise<NextResponse | null> {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "未登入或登入已過期" }, { status: 401 });
+    return apiError("apiErrors.common.sessionExpired", 401);
   }
   return null;
 }
@@ -45,7 +46,7 @@ export async function requireTeamMember(
 ): Promise<NextResponse | null> {
   const role = await getTeamRole(teamId, userId);
   if (!role) {
-    return NextResponse.json({ error: "無權限操作此團隊" }, { status: 403 });
+    return apiError("apiErrors.common.noTeamPermission", 403);
   }
   return null;
 }
@@ -57,10 +58,10 @@ export async function requireTeamAdmin(
 ): Promise<NextResponse | null> {
   const role = await getTeamRole(teamId, userId);
   if (!role) {
-    return NextResponse.json({ error: "無權限操作此團隊" }, { status: 403 });
+    return apiError("apiErrors.common.noTeamPermission", 403);
   }
   if (!isTeamAdmin(role)) {
-    return NextResponse.json({ error: "此功能僅限管理員" }, { status: 403 });
+    return apiError("apiErrors.common.adminOnly", 403);
   }
   return null;
 }
@@ -78,17 +79,14 @@ export function isImpersonating(session: Session | null): boolean {
 export async function requireSuperAdmin(): Promise<NextResponse | null> {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "未登入或登入已過期" }, { status: 401 });
+    return apiError("apiErrors.common.sessionExpired", 401);
   }
   if (isImpersonating(session)) {
-    return NextResponse.json(
-      { error: "模擬檢視中無法使用總管理功能，請先結束模擬" },
-      { status: 403 }
-    );
+    return apiError("apiErrors.common.impersonationNoAdmin", 403);
   }
   const ok = await isSuperAdminUser(session.userId);
   if (!ok) {
-    return NextResponse.json({ error: "無權限" }, { status: 403 });
+    return apiError("apiErrors.common.forbidden", 403);
   }
   return null;
 }

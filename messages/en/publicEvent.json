@@ -1,0 +1,111 @@
+{
+  "metadata": {
+    "notFoundTitle": "Event not found"
+  },
+  "page": {
+    "loadFailed": "Couldn't load the event",
+    "notFound": "Event not found",
+    "linkInvalid": "The link may have expired, or the event has been deleted",
+    "draftPreview": "Preview mode — this event isn't published yet. Only team members can see this page."
+  },
+  "details": {
+    "navigate": "Directions >",
+    "ticketsHeading": "Tickets",
+    "tierDeadline": "{tier} price until {date}",
+    "organizerHeading": "Organizer",
+    "noticesHeading": "Registration notices",
+    "agreeToNotices": "I've read and agree to the registration notices",
+    "register": "Register"
+  },
+  "saleStatus": {
+    "ended": "Sales ended",
+    "opensAt": "On sale from {tier}",
+    "upcoming": "Not on sale yet"
+  },
+  "priceLine": {
+    "perSeats": "/ {count, plural, one {# person} other {# people}}",
+    "tierPrice": "{tier} price ${amount}",
+    "originalPrice": "Original price ${amount}",
+    "savings": "Save ${amount}"
+  },
+  "ticketPicker": {
+    "bundleBadge": "{seats}-person bundle · enter {seats} attendees",
+    "optional": "(optional)",
+    "lockedBy": "(included in “{group}”)",
+    "noneOption": "None",
+    "chooseTicket": "Choose your ticket"
+  },
+  "form": {
+    "title": "Tickets & attendees",
+    "contactHeading": "Contact details",
+    "contactNameLabel": "Name",
+    "contactNamePlaceholder": "Enter your name",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "Enter your phone number",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter your email",
+    "attendeesHeading": "Attendees",
+    "bundleNotice": "You chose “<b>{name}</b>”. Please fill in exactly <num>{count}</num> attendees.",
+    "attendeeN": "Attendee {n}",
+    "attendeeNameLabel": "Name",
+    "attendeeNamePlaceholder": "Enter a name",
+    "roleLabel": "Role",
+    "roleNotSure": "Not sure yet",
+    "addAttendee": "Add attendee",
+    "seatCountMismatch": "“{item}” needs exactly {required, plural, one {# attendee} other {# attendees}} (you've entered {actual})",
+    "flaggedShortfall": "“{item}” needs at least {required, plural, one {# attendee} other {# attendees}} to tick “{label}”",
+    "costHeading": "Cost",
+    "totalAuto": "Total (calculated automatically)",
+    "totalManual": "Total (please calculate it yourself)",
+    "totalPlaceholder": "Enter the total",
+    "couponLabel": "Coupon code",
+    "couponFixed": "NT${value} off",
+    "couponPercent": "{value}% off",
+    "removeCoupon": "Remove coupon code",
+    "couponPlaceholder": "Enter a coupon code (optional)",
+    "couponChecking": "Checking…",
+    "couponApply": "Apply",
+    "discountedTotal": "Total after discount",
+    "checkingCoupon": "Checking coupon code…",
+    "toPayment": "Choose payment method"
+  },
+  "payment": {
+    "title": "Choose payment method",
+    "summary": {
+      "time": "When",
+      "venue": "Venue",
+      "tickets": "Tickets",
+      "planWithSeats": "{name} ${amount} / {seats} people",
+      "contact": "Contact",
+      "attendees": "Attendees",
+      "attendeeSeparator": ", ",
+      "coupon": "Coupon code",
+      "total": "Total"
+    },
+    "methodHeading": "Payment method",
+    "payRightAway": "Please pay right after confirming your registration",
+    "methods": {
+      "linePay": "LINE Pay",
+      "bankTransfer": "Bank transfer",
+      "other": "Other"
+    },
+    "bankHeading": "Bank account",
+    "bank": "Bank",
+    "account": "Account no.",
+    "copyAccount": "Copy account no.",
+    "submit": "Confirm registration"
+  },
+  "linePayee": {
+    "heading": "Pay with LINE",
+    "instructions": "Add this LINE friend, pay via LINE Pay or a LINE transfer, then send them a screenshot of your payment.",
+    "addFriend": "Add LINE friend",
+    "qrAlt": "QR code to add this LINE friend",
+    "scanWithPhone": "Scan with your phone"
+  },
+  "errors": {
+    "couponCheckFailed": "Couldn't check the coupon code. Please try again later.",
+    "submitFailed": "Registration failed. Please try again later.",
+    "missingRegistrationKey": "You're registered, but we couldn't get your registration number.",
+    "network": "Network error. Please try again later."
+  }
+}

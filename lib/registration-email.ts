@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { eventLocations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
+import { asLocale } from "@/lib/locale";
 
 /** 寄確認信需要的活動欄位（events 表的子集） */
 export type ConfirmationEmailEvent = {
@@ -50,21 +51,26 @@ export async function loadConfirmationEmailContext(
   };
 }
 
-/** 用準備好的 context 寄一封收款確認信。不會 throw，失敗以回傳值表示。 */
+/**
+ * 用準備好的 context 寄一封收款確認信。不會 throw，失敗以回傳值表示。
+ * `locale` 傳報名當下存下來的 event_registrations.locale，信用報名者的語言寫。
+ */
 export async function sendConfirmationEmail(
   ctx: ConfirmationEmailContext,
   to: string,
-  registrationKey: string
+  registrationKey: string,
+  locale: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    return await sendPaymentConfirmedEmail(
+    return await sendPaymentConfirmedEmail({
       to,
       registrationKey,
-      ctx.title,
-      ctx.startAt,
-      ctx.endAt,
-      ctx.location
-    );
+      locale: asLocale(locale),
+      eventTitle: ctx.title,
+      eventStartAt: ctx.startAt,
+      eventEndAt: ctx.endAt,
+      eventLocation: ctx.location,
+    });
   } catch (e) {
     const error = e instanceof Error ? e.message : "寄信失敗";
     console.error("sendConfirmationEmail error:", error);

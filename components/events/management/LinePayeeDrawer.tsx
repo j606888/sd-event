@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { validateLineIdInput } from "@/lib/line";
+import { lineIdInputError } from "@/lib/line";
 import { LinePayeeFields } from "./LinePayeeFields";
 
 type LinePayeeDrawerProps = {
@@ -16,6 +17,8 @@ export function LinePayeeDrawer({
   onSuccess,
   onCancel,
 }: LinePayeeDrawerProps) {
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const [label, setLabel] = useState("");
   const [lineId, setLineId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -26,12 +29,12 @@ export function LinePayeeDrawer({
     setError(null);
     const trimmedLabel = label.trim();
     if (!trimmedLabel) {
-      setError("請輸入名稱／備註");
+      setError(t("linePayee.labelRequired"));
       return;
     }
-    const lineIdError = validateLineIdInput(lineId);
+    const lineIdError = lineIdInputError(lineId);
     if (lineIdError) {
-      setError(lineIdError);
+      setError(t(`linePayee.lineIdErrors.${lineIdError}`));
       return;
     }
     setSubmitting(true);
@@ -44,7 +47,7 @@ export function LinePayeeDrawer({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "新增失敗");
+        setError(data.error || t("addFailed"));
         setSubmitting(false);
         return;
       }
@@ -55,7 +58,7 @@ export function LinePayeeDrawer({
       setLineId("");
       onCancel();
     } catch {
-      setError("新增失敗");
+      setError(t("addFailed"));
     }
     setSubmitting(false);
   };
@@ -71,14 +74,14 @@ export function LinePayeeDrawer({
       />
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          取消
+          {tCommon("cancel")}
         </Button>
         <Button
           type="submit"
           className="bg-primary text-ink hover:bg-brand-hover"
           disabled={submitting}
         >
-          {submitting ? "新增中…" : "新增"}
+          {submitting ? tCommon("adding") : tCommon("add")}
         </Button>
       </div>
     </form>

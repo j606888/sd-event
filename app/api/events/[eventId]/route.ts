@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
 import { isEventType, type EventType } from "@/lib/event-templates";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
+import { apiError } from "@/lib/api-error";
 import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -15,11 +16,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const rows = await db
@@ -29,7 +30,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
   const event = rows[0];
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);
@@ -44,11 +45,11 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const rows = await db
@@ -58,7 +59,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .limit(1);
   const existing = rows[0];
   if (!existing) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamAdmin(existing.teamId, session.userId);
@@ -120,11 +121,11 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const rows = await db
@@ -134,7 +135,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     .limit(1);
   const existing = rows[0];
   if (!existing) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamAdmin(existing.teamId, session.userId);
@@ -154,10 +155,7 @@ export async function DELETE(_request: Request, { params }: Params) {
       .limit(1);
 
     if (!membership || membership.role !== "owner") {
-      return NextResponse.json(
-        { error: "只有活動建立者或團隊擁有者可以刪除活動" },
-        { status: 403 }
-      );
+      return apiError("eventApiErrors.events.deleteForbidden", 403);
     }
   }
 

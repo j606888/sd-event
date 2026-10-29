@@ -23,6 +23,7 @@ import {
 } from "@/lib/pricing";
 import { getSession } from "@/lib/auth";
 import { requireTeamMember } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 
 type Params = { params: Promise<{ publicKey: string }> };
 
@@ -33,7 +34,7 @@ type Params = { params: Promise<{ publicKey: string }> };
 export async function GET(_request: Request, { params }: Params) {
   const publicKey = (await params).publicKey?.trim();
   if (!publicKey) {
-    return NextResponse.json({ error: "請提供公開金鑰" }, { status: 400 });
+    return apiError("eventApiErrors.events.publicKeyRequired", 400);
   }
 
   const rows = await db
@@ -43,7 +44,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
   const event = rows[0];
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   // 草稿活動僅該團隊成員可見（預覽）；對外一律視同不存在
@@ -53,7 +54,7 @@ export async function GET(_request: Request, { params }: Params) {
       ? await requireTeamMember(event.teamId, session.userId)
       : null;
     if (!session || forbidden) {
-      return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+      return apiError("apiErrors.common.eventNotFound", 404);
     }
   }
 

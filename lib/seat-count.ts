@@ -52,16 +52,18 @@ export function requiredAttendeeCount(items: SeatItem[]): number | null {
   return bundle ? seatCountOf(bundle) : null;
 }
 
-/** 驗證參加者人數符合所選套票。回傳錯誤訊息，或 null 表通過。 */
-export function validateSeatCount(
+export type SeatCountMismatch = { item: string; required: number; actual: number };
+
+/** 找出第一張人數不符的套票；null 表通過。介面用這個自己組（翻譯過的）訊息 */
+export function findSeatCountMismatch(
   items: SeatItem[],
   attendeeCount: number
-): string | null {
+): SeatCountMismatch | null {
   for (const item of items) {
     if (!isBundleItem(item)) continue;
     const required = seatCountOf(item);
     if (attendeeCount !== required) {
-      return `「${item.name}」需填寫剛好 ${required} 位參加者（目前 ${attendeeCount} 位）`;
+      return { item: item.name, required, actual: attendeeCount };
     }
   }
   return null;

@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { RegistrationSuccessPage } from "@/components/events/registration/RegistrationSuccessPage";
 import type {
   RegistrationSuccessPageRouteData,
@@ -9,17 +10,22 @@ import type {
   RegistrationSuccessRegistrationData,
 } from "@/types/registration";
 
+/** 錯誤存代碼、render 時才翻，切換語言時訊息才會跟著換 */
+type LoadErrorCode = "invalidKey" | "notFound" | "loadFailed";
+
 export default function RegistrationSuccessPageRoute() {
+  const t = useTranslations("myRegistration.loadError");
+  const tCommon = useTranslations("common");
   const params = useParams();
   const registrationKey = params?.registrationKey as string;
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LoadErrorCode | null>(null);
 
   const [registrationData, setRegistrationData] = useState<RegistrationSuccessPageRouteData | null>(null);
 
   const fetchRegistrationData = useCallback(async () => {
     if (!registrationKey) {
-      setError("無效的報名編號");
+      setError("invalidKey");
       setLoading(false);
       return;
     }
@@ -28,12 +34,12 @@ export default function RegistrationSuccessPageRoute() {
       const res = await fetch(`/api/registrations/${encodeURIComponent(registrationKey)}`);
       
       if (res.status === 404) {
-        setError("找不到報名資料");
+        setError("notFound");
         setLoading(false);
         return;
       }
       
-      if (!res.ok) throw new Error("無法載入");
+      if (!res.ok) throw new Error(`Failed to load registration: ${res.status}`);
       
       const data = await res.json();
       
@@ -91,10 +97,10 @@ export default function RegistrationSuccessPageRoute() {
           paymentStatus: data.registration.paymentStatus,
         });
       } else {
-        setError("找不到報名資料");
+        setError("notFound");
       }
     } catch (err) {
-      setError("無法載入報名資料");
+      setError("loadFailed");
     } finally {
       setLoading(false);
     }
@@ -120,7 +126,7 @@ export default function RegistrationSuccessPageRoute() {
   if (loading) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-gray-500">{tCommon("loading")}</p>
       </div>
     );
   }
@@ -128,8 +134,8 @@ export default function RegistrationSuccessPageRoute() {
   if (error || !registrationData) {
     return (
       <div className="min-h-screen p-6 flex flex-col items-center justify-center gap-4">
-        <p className="text-red-500">{error ?? "找不到報名資料"}</p>
-        <p className="text-sm text-gray-500">連結可能已失效</p>
+        <p className="text-red-500">{t(error ?? "notFound")}</p>
+        <p className="text-sm text-gray-500">{t("linkExpired")}</p>
       </div>
     );
   }

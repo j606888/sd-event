@@ -31,6 +31,8 @@ export const users = pgTable("users", {
   isSuperAdmin: boolean("is_super_admin").notNull().default(false),
   /** 最後一次登入時間，用於總後台判斷使用者活躍度 */
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  /** 最近使用的介面語言（"zh-TW" | "en"），寄給這個人的通知信用這個語言；null 用預設的繁中 */
+  locale: text("locale"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -374,6 +376,8 @@ export const eventRegistrations = pgTable("event_registrations", {
   }),
   /** 管理員可將報名標記為隱藏，在報名詳情頁可再取消隱藏 */
   hidden: boolean("hidden").default(false).notNull(),
+  /** 報名當下的介面語言（"zh-TW" | "en"），寄給報名者的信用這個語言；現場報名與舊資料為 null，用預設的繁中 */
+  locale: text("locale"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [

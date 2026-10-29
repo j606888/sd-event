@@ -7,6 +7,7 @@ import {
   SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { EVENT_TABS, SETTINGS_TAB_IDS, type EventTabId } from "@/hooks/use-tab-param";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +35,10 @@ export function EventTabBar({
   tabIds,
   onWalkIn,
 }: EventTabBarProps) {
-  const tabs = EVENT_TABS.filter((t) => !tabIds || tabIds.includes(t.id));
-  const dailyTabs = tabs.filter((t) => !isSettingsTab(t.id));
-  const settingsTabs = tabs.filter((t) => isSettingsTab(t.id));
+  const t = useTranslations("events");
+  const tabs = EVENT_TABS.filter((tab) => !tabIds || tabIds.includes(tab.id));
+  const dailyTabs = tabs.filter((tab) => !isSettingsTab(tab.id));
+  const settingsTabs = tabs.filter((tab) => isSettingsTab(tab.id));
   const inSettings = isSettingsTab(activeTab);
 
   const desktopTab = (tab: (typeof EVENT_TABS)[number], quiet = false) => {
@@ -53,7 +55,7 @@ export function EventTabBar({
             : cn("text-muted-ink hover:text-ink", quiet ? "font-normal" : "font-medium")
         )}
       >
-        {tab.label}
+        <span>{t(`tabs.${tab.id}`)}</span>
         {tab.id === "registrations" && registrationCount > 0 && (
           <span
             className={cn(
@@ -109,7 +111,7 @@ export function EventTabBar({
         {settingsTabs.length > 0 && (
           <>
             <span className="flex-1" />
-            <span className="px-1.5 text-xs text-gray-400">活動設定</span>
+            <span className="px-1.5 text-xs text-gray-400">{t("tabBar.settings")}</span>
             {settingsTabs.map((tab) => desktopTab(tab, true))}
           </>
         )}
@@ -130,7 +132,7 @@ export function EventTabBar({
                   : "font-medium text-muted-ink"
               )}
             >
-              {tab.label}
+              {t(`tabs.${tab.id}`)}
             </button>
           ))}
         </div>
@@ -139,13 +141,13 @@ export function EventTabBar({
       {/* 手機：固定底部導覽列 */}
       <nav
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hairline bg-white/95 px-2 pt-1 backdrop-blur pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:hidden"
-        aria-label="活動管理分頁"
+        aria-label={t("tabBar.navLabel")}
       >
         {dailyTabs.map((tab) =>
           mobileItem({
             key: tab.id,
             icon: tab.id === "registrations" ? Search : ChartColumn,
-            label: tab.label,
+            label: t(`tabs.${tab.id}`),
             active: activeTab === tab.id,
             onClick: () => onSelect(tab.id),
           })
@@ -154,7 +156,7 @@ export function EventTabBar({
           mobileItem({
             key: "walk-in",
             icon: UserPlus,
-            label: "現場報名",
+            label: t("tabBar.walkIn"),
             active: false,
             onClick: onWalkIn,
           })}
@@ -162,7 +164,7 @@ export function EventTabBar({
           mobileItem({
             key: "settings",
             icon: SlidersHorizontal,
-            label: "活動設定",
+            label: t("tabBar.settings"),
             active: inSettings,
             onClick: () => onSelect(inSettings ? activeTab : settingsTabs[0].id),
           })}

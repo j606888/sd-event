@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, teams, teamMembers, teamInvitations } from "@/db/schema";
 import { hashPassword, createToken, setAuthCookie } from "@/lib/auth";
+import { apiError, apiMessage } from "@/lib/api-error";
+import { getLocale } from "next-intl/server";
 import { eq, and, isNull } from "drizzle-orm";
 
 const registerSchema = {
@@ -20,10 +22,7 @@ export async function POST(request: Request) {
       !registerSchema.email(email) ||
       !registerSchema.password(password)
     ) {
-      return NextResponse.json(
-        { error: "請提供有效的 name、email（格式正確）與 password（至少 6 字）" },
-        { status: 400 }
-      );
+      return apiError("apiErrors.auth.invalidRegisterInput", 400);
     }
 
     const existing = await db
@@ -32,10 +31,7 @@ export async function POST(request: Request) {
       .where(eq(users.email, email.trim().toLowerCase()))
       .limit(1);
     if (existing.length > 0) {
-      return NextResponse.json(
-        { error: "此信箱已被註冊" },
-        { status: 409 }
-      );
+      return apiError("apiErrors.auth.emailTaken", 409);
     }
 
     const encryptedPassword = await hashPassword(password);
@@ -45,11 +41,12 @@ export async function POST(request: Request) {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         encryptedPassword,
+        locale: await getLocale(),
       })
       .returning({ id: users.id, name: users.name, email: users.email, role: users.role });
 
     if (!user) {
-      return NextResponse.json({ error: "註冊失敗" }, { status: 500 });
+      return apiError("apiErrors.auth.registerFailed", 500);
     }
 
     // 檢查是否有待處理的團隊邀請
@@ -100,7 +97,8 @@ export async function POST(request: Request) {
     if (pendingInvitations.length === 0) {
       const [team] = await db
         .insert(teams)
-        .values({ name: "我的團隊" })
+        // 預設團隊名稱用註冊當下的介面語言，之後可在團隊頁改名
+        .values({ name: await apiMessage("team.defaultName") })
         .returning({ id: teams.id });
       if (team) {
         defaultTeamId = team.id;
@@ -136,6 +134,6 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error("Register error:", e);
-    return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
+    return apiError("apiErrors.common.serverError", 500);
   }
 }

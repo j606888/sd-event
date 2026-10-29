@@ -1,0 +1,44 @@
+{
+  "notFound": "Team not found",
+  "createdAt": "Created {date}",
+  "invite": "Invite member",
+  "members": {
+    "title": "Team members",
+    "empty": "No members yet. Click \"Invite member\" to add one.",
+    "notifyOnRegistration": "New registration emails",
+    "makeAdmin": "Make Admin",
+    "makeStaff": "Make Check-in staff",
+    "removeConfirm": "Remove this member?",
+    "removeFailed": "Couldn't remove the member",
+    "updateFailed": "Couldn't update the member"
+  },
+  "invitations": {
+    "title": "Pending invitations",
+    "pendingSignup": "Awaiting sign-up",
+    "sentAt": "Invited on {date}",
+    "resend": "Resend invitation",
+    "resending": "Sending…"
+  },
+  "notice": {
+    "memberAdded": "Added {email} to the team and emailed them",
+    "memberAddedEmailFailed": "Added {email} to the team, but the notification email wasn't sent",
+    "invited": "Sent an invitation to {email}. They'll join the team once they sign up with this email.",
+    "invitedEmailFailed": "Invitation created, but the email wasn't sent. You can resend it under \"Pending invitations\" below.",
+    "resent": "Resent the invitation to {email}",
+    "resendFailed": "Couldn't send the invitation email. Please try again later."
+  },
+  "inviteForm": {
+    "emailPlaceholder": "Enter the member's email",
+    "emailHint": "Registered users join the team right away and get a notification email. Others get an invitation and join automatically once they sign up with this email.",
+    "emailRequired": "Please enter an email",
+    "roleLabel": "Role",
+    "submit": "Invite",
+    "submitting": "Inviting…",
+    "failed": "Couldn't send the invitation"
+  },
+  "roleDescription": {
+    "member": "Can manage events, registrants, payments and team members",
+    "staff": "Can only scan QR codes to check people in and take walk-ins; can't see amounts or revenue"
+  },
+  "defaultName": "My team"
+}

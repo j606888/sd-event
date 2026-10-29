@@ -38,9 +38,9 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
         onUpdateParticipant={form.updateParticipant}
         requiredParticipants={form.requiredParticipants}
         bundleItem={form.bundleItem}
-        seatError={form.seatError}
+        seatMismatch={form.seatMismatch}
         flagLabel={form.flagLabel}
-        flagError={form.flagError}
+        flagShortfall={form.flagShortfall}
         onToggleParticipantFlag={form.toggleParticipantFlag}
         canProceed={form.canProceedToStep3}
         onBack={() => form.setStep(1)}

@@ -1,0 +1,89 @@
+{
+  "loadError": {
+    "invalidKey": "無效的報名編號",
+    "notFound": "找不到報名資料",
+    "loadFailed": "無法載入報名資料",
+    "linkExpired": "連結可能已失效",
+    "refunded": "這筆報名已退款，入場憑證已失效",
+    "qrFailed": "無法產生 QR code"
+  },
+  "headers": {
+    "pending": {
+      "title": "報名資訊已送出！",
+      "notPaid": "目前尚未完成付款",
+      "payBeforeDeadline": "請於期限內完成付款以保留名額",
+      "badge": "尚未付款"
+    },
+    "reported": {
+      "title": "付款資訊已回報",
+      "received": "我們已收到您回報的付款資訊",
+      "pleaseWait": "主辦方將盡快為您確認，請稍候",
+      "badge": "待主辦方確認"
+    },
+    "confirmed": {
+      "title": "付款確認完成！",
+      "received": "主辦方已確認收到款項",
+      "showPass": "請於活動當天出示入場憑證",
+      "badge": "報名成功"
+    },
+    "rejected": {
+      "title": "付款確認失敗",
+      "couldNotVerify": "主辦方無法確認您的付款資訊",
+      "reportAgain": "請重新回報付款資訊或聯繫主辦單位"
+    },
+    "refunded": {
+      "title": "已退款",
+      "refunded": "主辦方已退還這筆報名的款項",
+      "passVoid": "報名已取消，入場憑證也一併失效"
+    }
+  },
+  "status": {
+    "directions": "導航>",
+    "ticket": "選擇方案",
+    "attendees": "參加者",
+    "nameSeparator": "、",
+    "discount": "折扣",
+    "openEntryPass": "開啟入場憑證",
+    "amountDue": "應付金額",
+    "reportedNotice": "付款資訊已送出，請等待主辦方確認",
+    "totalDue": "應付總額",
+    "reportAgain": "重新回報",
+    "reportPayment": "回報付款",
+    "organizer": "主辦單位"
+  },
+  "reportPayment": {
+    "title": "回報付款資訊",
+    "bankHeading": "匯款帳號",
+    "bank": "銀行",
+    "account": "帳號",
+    "copyAccount": "複製帳號",
+    "screenshot": "轉帳截圖",
+    "removeScreenshot": "移除截圖",
+    "dropzone": "點擊選擇圖片或拖放圖片到此處",
+    "noteLabel": "銀行末五碼或其他訊息",
+    "notePlaceholder": "輸入訊息",
+    "uploading": "上傳中…",
+    "submitting": "送出中…",
+    "submit": "送出",
+    "errors": {
+      "uploadFailedRetry": "上傳失敗，請重試",
+      "notImage": "請選擇圖片檔案",
+      "tooLarge": "圖片大小不能超過 4MB",
+      "proofRequired": "請至少提供轉帳截圖或銀行末五碼",
+      "uploadFailed": "上傳失敗",
+      "noUploadUrl": "無法取得上傳後的圖片網址",
+      "submitFailed": "送出失敗，請稍後再試",
+      "network": "網路錯誤，請稍後再試"
+    }
+  },
+  "voucher": {
+    "title": "入場憑證",
+    "qrAlt": "入場 QR Code",
+    "attendees": "參加者",
+    "checkedIn": "入場成功",
+    "notCheckedIn": "未入場",
+    "directions": "導航 >",
+    "ticket": "選擇方案",
+    "amountDue": "應付金額"
+  }
+}

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { siInstagram, siFacebook } from "simple-icons";
 import { Label } from "@/components/ui/label";
 import { SimpleIcon } from "@/components/ui/simple-icon";
@@ -37,6 +38,7 @@ export function OrganizerSelect({
   onValueChange,
   onAddClick,
 }: OrganizerSelectProps) {
+  const t = useTranslations("savedInfo.organizer");
   // Normalize empty string to undefined to keep Select controlled consistently
   const safeValue = value ?? ""
 
@@ -52,13 +54,13 @@ export function OrganizerSelect({
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="organizer">主辦單位 *</Label>
+      <Label htmlFor="organizer">{t("selectLabel")}</Label>
       <Select
         value={safeValue}
         onValueChange={onValueChange2}
       >
         <SelectTrigger id="organizer" className="w-full min-w-0">
-          <SelectValue placeholder="選擇主辦單位" />
+          <SelectValue placeholder={t("selectPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {organizers.map((org) => {
@@ -67,7 +69,7 @@ export function OrganizerSelect({
                 {org.instagram && <SimpleIcon icon={siInstagram} size={14} />}
                 {org.facebook && <SimpleIcon icon={siFacebook} size={14} />}
                 {!org.instagram && !org.facebook && (
-                  <span className="text-gray-400">尚未填寫社群</span>
+                  <span className="text-gray-400">{t("noSocials")}</span>
                 )}
               </span>
             );
@@ -104,7 +106,7 @@ export function OrganizerSelect({
           >
             <span className="flex items-center gap-1.5">
               <Plus className="size-4" />
-              新增主辦單位
+              <span>{t("add")}</span>
             </span>
           </SelectItem>
         </SelectContent>

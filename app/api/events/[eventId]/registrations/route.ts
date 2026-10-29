@@ -21,12 +21,15 @@ import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
 import { applyRegistrationVisibility } from "@/lib/registration-visibility";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
-import { computeItemsTotal, validateSeatCount } from "@/lib/seat-count";
-import { normalizeFlagLabel, validateFlaggedCount } from "@/lib/attendee-flag";
+import { computeItemsTotal, findSeatCountMismatch } from "@/lib/seat-count";
+import { normalizeFlagLabel, findFlaggedShortfall } from "@/lib/attendee-flag";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
 import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/registration-item-filter";
 import { registrationMatchesSearch } from "@/lib/registration-search";
 import { parseCheckInFilterParam, registrationMatchesCheckIn } from "@/lib/registration-checkin-filter";
+import { apiError, apiMessage } from "@/lib/api-error";
+import { asLocale } from "@/lib/locale";
+import { getLocale } from "next-intl/server";
 import { eq, desc, count, or, and, inArray, asc, sql, isNull, isNotNull, lt } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -52,11 +55,11 @@ export async function GET(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   // 檢查活動是否存在且使用者為團隊成員
@@ -67,7 +70,7 @@ export async function GET(request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);
@@ -224,6 +227,7 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   // 組合結果
+  const itemSeparator = await apiMessage("eventApiErrors.registrationList.itemSeparator");
   const result = registrations.map((reg) => {
     const attendees = (attendeesByRegistration.get(reg.id) ?? []).map(
       ({ id, name, role, checkedIn, checkedInAt }) => ({ id, name, role, checkedIn, checkedInAt })
@@ -237,7 +241,7 @@ export async function GET(request: Request, { params }: Params) {
       attendees,
       attendeeCount: attendees.length,
       checkedInCount: attendees.filter((a) => a.checkedIn).length,
-      itemSummary: labels.join("、"),
+      itemSummary: labels.join(itemSeparator),
     };
   });
 
@@ -256,7 +260,7 @@ export async function POST(request: Request, { params }: Params) {
   try {
     const eventId = Number((await params).eventId);
     if (!Number.isInteger(eventId)) {
-      return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+      return apiError("eventApiErrors.invalidEventId", 400);
     }
 
     // 檢查活動是否存在且已發布
@@ -267,14 +271,11 @@ export async function POST(request: Request, { params }: Params) {
       .limit(1);
 
     if (!event) {
-      return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+      return apiError("apiErrors.common.eventNotFound", 404);
     }
 
     if (event.status !== "published") {
-      return NextResponse.json(
-        { error: "此活動尚未開放報名" },
-        { status: 403 }
-      );
+      return apiError("eventApiErrors.registration.notOpen", 403);
     }
 
     const body = await request.json().catch(() => ({}));
@@ -327,28 +328,19 @@ export async function POST(request: Request, { params }: Params) {
       attendees.length === 0 ||
       !hasPurchaseItems
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "請提供有效的聯絡人資訊（姓名、電話、信箱）、購買項目、總金額與至少一位參加者",
-        },
-        { status: 400 }
-      );
+      return apiError("eventApiErrors.registration.missingFields", 400);
     }
 
     // 驗證 email 格式
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-      return NextResponse.json({ error: "請提供有效的 email" }, { status: 400 });
+      return apiError("eventApiErrors.invalidEmail", 400);
     }
 
     // 驗證購買項目是否存在
     if (effectiveMultiple) {
       // Multiple selection: validate all purchase items
       if (purchaseItemIds.length === 0) {
-        return NextResponse.json(
-          { error: "請至少選擇一個購買項目" },
-          { status: 400 }
-        );
+        return apiError("eventApiErrors.registration.itemRequired", 400);
       }
       const purchaseItems = await db
         .select()
@@ -362,10 +354,7 @@ export async function POST(request: Request, { params }: Params) {
       const validItemIds = purchaseItems.map((item) => item.id);
       const invalidIds = purchaseItemIds.filter((id: number) => !validItemIds.includes(id));
       if (invalidIds.length > 0) {
-        return NextResponse.json(
-          { error: "無效的購買項目" },
-          { status: 400 }
-        );
+        return apiError("eventApiErrors.invalidPurchaseItem", 400);
       }
 
       // 群組活動：依群組規則做後端校驗（與現場報名共用 validateGroupSelection）
@@ -384,7 +373,11 @@ export async function POST(request: Request, { params }: Params) {
           exclusions
         );
         if (groupError) {
-          return NextResponse.json({ error: groupError }, { status: 400 });
+          return apiError(
+            `eventApiErrors.groupSelection.${groupError.code}`,
+            400,
+            groupError.values
+          );
         }
       }
     } else {
@@ -401,10 +394,7 @@ export async function POST(request: Request, { params }: Params) {
           purchaseItem.eventId !== eventId ||
           purchaseItem.hidden
         ) {
-          return NextResponse.json(
-            { error: "無效的購買項目" },
-            { status: 400 }
-          );
+          return apiError("eventApiErrors.invalidPurchaseItem", 400);
         }
       }
     }
@@ -419,10 +409,7 @@ export async function POST(request: Request, { params }: Params) {
     );
 
     if (validAttendees.length === 0) {
-      return NextResponse.json(
-        { error: "請提供至少一位有效的參加者（姓名與角色）" },
-        { status: 400 }
-      );
+      return apiError("eventApiErrors.invalidAttendees", 400);
     }
 
     // 解析當下時段價（伺服器時間），快照每個選取項目的單價並重算權威總額
@@ -466,33 +453,33 @@ export async function POST(request: Request, { params }: Params) {
         : Promise.resolve([] as { purchaseItemId: number; tierId: number; amount: number }[]),
     ]);
 
-    const { activeTier, unitPriceById, unavailableError } = resolveUnitPrices(
+    const { activeTier, unitPriceById, unavailableItem } = resolveUnitPrices(
       selectedItems,
       tiers,
       priceRows,
       new Date()
     );
     // 時段限定票（如早鳥限定）過了販售時段：不論 client 顯示什麼，一律以伺服器時間擋下
-    if (unavailableError) {
-      return NextResponse.json({ error: unavailableError }, { status: 400 });
+    if (unavailableItem) {
+      return apiError("eventApiErrors.registration.itemUnavailable", 400, unavailableItem);
     }
 
     // 套票（如雙人票）要求參加者人數剛好等於票券人數
-    const seatError = validateSeatCount(selectedItems, validAttendees.length);
-    if (seatError) {
-      return NextResponse.json({ error: seatError }, { status: 400 });
+    const seatMismatch = findSeatCountMismatch(selectedItems, validAttendees.length);
+    if (seatMismatch) {
+      return apiError("eventApiErrors.registration.seatCountMismatch", 400, seatMismatch);
     }
 
     // 參加者勾選項目（如參加伸展台比賽）：活動未設 label 時一律存 false
     const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
     const flaggedOf = (a: { flagged?: unknown }) => flagLabel != null && a.flagged === true;
-    const flagError = validateFlaggedCount(
+    const flagShortfall = findFlaggedShortfall(
       selectedItems,
       validAttendees.filter(flaggedOf).length,
       flagLabel
     );
-    if (flagError) {
-      return NextResponse.json({ error: flagError }, { status: 400 });
+    if (flagShortfall) {
+      return apiError("eventApiErrors.registration.flaggedShortfall", 400, flagShortfall);
     }
 
     // autoCalc（或群組活動）時以伺服器解析價為準（一般票 單價 × 參加者數、套票 整組價），
@@ -511,7 +498,10 @@ export async function POST(request: Request, { params }: Params) {
     if (couponCode) {
       if (!serverAuthoritative) {
         return NextResponse.json(
-          { error: "此活動不支援折扣碼", code: "COUPON_NOT_SUPPORTED" },
+          {
+            error: await apiMessage("eventApiErrors.coupons.notSupported"),
+            code: "COUPON_NOT_SUPPORTED",
+          },
           { status: 400 }
         );
       }
@@ -524,14 +514,17 @@ export async function POST(request: Request, { params }: Params) {
         .limit(1);
       if (!found) {
         return NextResponse.json(
-          { error: "折扣碼無效", code: "COUPON_INVALID" },
+          { error: await apiMessage("eventApiErrors.coupons.invalid"), code: "COUPON_INVALID" },
           { status: 400 }
         );
       }
       // 友善預檢；實際名額由 transaction 內的原子更新把關
       if (found.usageLimit != null && found.usedCount >= found.usageLimit) {
         return NextResponse.json(
-          { error: "此折扣碼已額滿，無法使用", code: "COUPON_EXHAUSTED" },
+          {
+            error: await apiMessage("eventApiErrors.coupons.exhausted"),
+            code: "COUPON_EXHAUSTED",
+          },
           { status: 409 }
         );
       }
@@ -549,12 +542,14 @@ export async function POST(request: Request, { params }: Params) {
       finalTotalAmount < 0 ||
       (serverAuthoritative && computedTotal <= 0)
     ) {
-      return NextResponse.json({ error: "總金額計算錯誤" }, { status: 400 });
+      return apiError("eventApiErrors.totalAmountError", 400);
     }
 
     const registrationKey = generateRegistrationKey();
 
     // 建立報名記錄（在 transaction 中確保原子性）
+    // 報名者當下的介面語言，之後寄給他的信（報名成功、收款確認、退款）都用這個語言
+    const locale = await getLocale();
     const registration = await db.transaction(async (tx) => {
       // 原子搶折扣碼名額：條件更新保證併發時只有 usageLimit 筆成功。
       // 註：取消/拒絕報名不回補 usedCount（v1 限制）。
@@ -596,6 +591,7 @@ export async function POST(request: Request, { params }: Params) {
           couponCode: coupon?.code ?? null,
           discountAmount,
           paymentStatus: "pending",
+          locale,
         })
         .returning();
 
@@ -630,11 +626,12 @@ export async function POST(request: Request, { params }: Params) {
 
     // 回應送出後才寄信（outside transaction）；用 after() 確保 Vercel 不會在寄完前中止
     after(async () => {
-      await sendRegistrationSuccessEmail(
-        contactEmail,
-        registration.registrationKey,
-        event.title ?? undefined
-      ).catch((err) => console.error("Registration success email error:", err));
+      await sendRegistrationSuccessEmail({
+        to: contactEmail,
+        registrationKey: registration.registrationKey,
+        eventTitle: event.title ?? undefined,
+        locale,
+      }).catch((err) => console.error("Registration success email error:", err));
     });
 
     // 通知有開啟「新報名通知信」的團隊管理員。只在正式環境寄：本機 .env 也有 RESEND_API_KEY，
@@ -643,7 +640,7 @@ export async function POST(request: Request, { params }: Params) {
       after(async () => {
         try {
           const recipients = await db
-            .select({ email: users.email })
+            .select({ email: users.email, locale: users.locale })
             .from(teamMembers)
             .innerJoin(users, eq(teamMembers.userId, users.id))
             .where(
@@ -654,7 +651,7 @@ export async function POST(request: Request, { params }: Params) {
               )
             );
           await sendNewRegistrationNotificationEmail(
-            recipients.map((r) => r.email),
+            recipients.map((r) => ({ email: r.email, locale: asLocale(r.locale) })),
             {
               eventId,
               eventTitle: event.title,
@@ -695,11 +692,11 @@ export async function POST(request: Request, { params }: Params) {
   } catch (e) {
     if (e instanceof CouponExhaustedError) {
       return NextResponse.json(
-        { error: "此折扣碼已額滿，無法使用", code: "COUPON_EXHAUSTED" },
+        { error: await apiMessage("eventApiErrors.coupons.exhausted"), code: "COUPON_EXHAUSTED" },
         { status: 409 }
       );
     }
     console.error("Registration creation error:", e);
-    return NextResponse.json({ error: "伺服器錯誤" }, { status: 500 });
+    return apiError("apiErrors.common.serverError", 500);
   }
 }

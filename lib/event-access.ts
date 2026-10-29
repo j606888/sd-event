@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { events } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 
 type Event = typeof events.$inferSelect;
 type EventAccess = { event: Event } | { error: NextResponse };
@@ -18,7 +19,7 @@ export async function requireEventAdmin(
   userId: number
 ): Promise<EventAccess> {
   const event = await loadEvent(eventId);
-  if (!event) return { error: NextResponse.json({ error: "找不到活動" }, { status: 404 }) };
+  if (!event) return { error: await apiError("apiErrors.common.eventNotFound", 404) };
   const forbidden = await requireTeamAdmin(event.teamId, userId);
   if (forbidden) return { error: forbidden };
   return { event };
@@ -30,7 +31,7 @@ export async function requireEventMember(
   userId: number
 ): Promise<EventAccess> {
   const event = await loadEvent(eventId);
-  if (!event) return { error: NextResponse.json({ error: "找不到活動" }, { status: 404 }) };
+  if (!event) return { error: await apiError("apiErrors.common.eventNotFound", 404) };
   const forbidden = await requireTeamMember(event.teamId, userId);
   if (forbidden) return { error: forbidden };
   return { event };

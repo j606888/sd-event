@@ -5,6 +5,8 @@ import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { isAssignableTeamRole } from "@/lib/team-roles";
 import { sendTeamJoinEmail } from "@/lib/team-invitation-email";
+import { apiError } from "@/lib/api-error";
+import { getLocale } from "next-intl/server";
 import { eq, and, asc, isNull } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -15,11 +17,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -51,11 +53,11 @@ export async function POST(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -67,14 +69,11 @@ export async function POST(request: Request, { params }: Params) {
   const role = isAssignableTeamRole(body.role) ? body.role : "member";
 
   if (!email) {
-    return NextResponse.json({ error: "請提供 email" }, { status: 400 });
+    return apiError("apiErrors.members.emailRequired", 400);
   }
 
   if (body.role != null && !isAssignableTeamRole(body.role)) {
-    return NextResponse.json(
-      { error: "請提供有效的 role (member 或 staff)" },
-      { status: 400 }
-    );
+    return apiError("apiErrors.members.invalidRole", 400);
   }
 
   // 檢查使用者是否存在
@@ -94,7 +93,7 @@ export async function POST(request: Request, { params }: Params) {
       .limit(1);
 
     if (existingMember) {
-      return NextResponse.json({ error: "該使用者已經是團隊成員" }, { status: 409 });
+      return apiError("apiErrors.members.alreadyMember", 409);
     }
 
     // 檢查是否有待處理的邀請，有的話刪除
@@ -113,7 +112,7 @@ export async function POST(request: Request, { params }: Params) {
       .returning();
 
     if (!newMember) {
-      return NextResponse.json({ error: "新增失敗" }, { status: 500 });
+      return apiError("apiErrors.common.addFailed", 500);
     }
 
     const emailSent = await sendTeamJoinEmail({
@@ -122,6 +121,7 @@ export async function POST(request: Request, { params }: Params) {
       inviterUserId: session.userId,
       role,
       hasAccount: true,
+      inviterLocale: await getLocale(),
     });
 
     return NextResponse.json({
@@ -153,7 +153,7 @@ export async function POST(request: Request, { params }: Params) {
       .limit(1);
 
     if (existingInvitation) {
-      return NextResponse.json({ error: "該 email 已有待處理的邀請" }, { status: 409 });
+      return apiError("apiErrors.members.invitationPending", 409);
     }
 
     // 建立邀請
@@ -167,7 +167,7 @@ export async function POST(request: Request, { params }: Params) {
       .returning();
 
     if (!invitation) {
-      return NextResponse.json({ error: "建立邀請失敗" }, { status: 500 });
+      return apiError("apiErrors.members.createInvitationFailed", 500);
     }
 
     const emailSent = await sendTeamJoinEmail({
@@ -176,6 +176,7 @@ export async function POST(request: Request, { params }: Params) {
       inviterUserId: session.userId,
       role,
       hasAccount: false,
+      inviterLocale: await getLocale(),
     });
 
     return NextResponse.json({

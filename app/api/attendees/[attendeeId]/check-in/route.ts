@@ -8,6 +8,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { apiError, apiMessage } from "@/lib/api-error";
 import { eq, and } from "drizzle-orm";
 
 type Params = { params: Promise<{ attendeeId: string }> };
@@ -21,11 +22,11 @@ export async function POST(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const attendeeId = Number((await params).attendeeId);
   if (!Number.isInteger(attendeeId)) {
-    return NextResponse.json({ error: "無效的 attendeeId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "attendeeId" });
   }
 
   // 取得參加者記錄
@@ -40,7 +41,7 @@ export async function POST(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!attendee) {
-    return NextResponse.json({ error: "找不到參加者記錄" }, { status: 404 });
+    return apiError("apiErrors.checkIn.attendeeNotFound", 404);
   }
 
   // 取得報名記錄以取得活動 ID
@@ -54,7 +55,7 @@ export async function POST(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!registration) {
-    return NextResponse.json({ error: "找不到報名記錄" }, { status: 404 });
+    return apiError("apiErrors.common.registrationNotFound", 404);
   }
 
   // 檢查活動是否存在且使用者為團隊成員
@@ -65,7 +66,7 @@ export async function POST(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);
@@ -73,7 +74,7 @@ export async function POST(_request: Request, { params }: Params) {
 
   // 已退款的報名 QR 憑證已失效，不能入場
   if (registration.paymentStatus === "refunded") {
-    return NextResponse.json({ error: "這筆報名已退款，無法入場" }, { status: 409 });
+    return apiError("apiErrors.checkIn.refunded", 409);
   }
 
   // 如果已經入場，直接返回
@@ -85,7 +86,7 @@ export async function POST(_request: Request, { params }: Params) {
       .limit(1);
     return NextResponse.json({
       attendee: updated,
-      message: "已入場",
+      message: await apiMessage("apiErrors.checkIn.alreadyCheckedIn"),
     });
   }
 
@@ -102,7 +103,7 @@ export async function POST(_request: Request, { params }: Params) {
 
   return NextResponse.json({
     attendee: updated,
-    message: "入場成功",
+    message: await apiMessage("apiErrors.checkIn.checkedIn"),
   });
 }
 
@@ -115,11 +116,11 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const attendeeId = Number((await params).attendeeId);
   if (!Number.isInteger(attendeeId)) {
-    return NextResponse.json({ error: "無效的 attendeeId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "attendeeId" });
   }
 
   const [row] = await db
@@ -131,7 +132,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!row) {
-    return NextResponse.json({ error: "找不到參加者記錄" }, { status: 404 });
+    return apiError("apiErrors.checkIn.attendeeNotFound", 404);
   }
 
   const forbidden = await requireTeamMember(row.teamId, session.userId);
@@ -143,7 +144,10 @@ export async function DELETE(_request: Request, { params }: Params) {
     .where(eq(eventAttendees.id, attendeeId))
     .returning();
 
-  return NextResponse.json({ attendee: updated, message: "已取消入場" });
+  return NextResponse.json({
+    attendee: updated,
+    message: await apiMessage("apiErrors.checkIn.undone"),
+  });
 }
 
 /**
@@ -154,11 +158,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const attendeeId = Number((await params).attendeeId);
   if (!Number.isInteger(attendeeId)) {
-    return NextResponse.json({ error: "無效的 attendeeId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "attendeeId" });
   }
 
   // 取得參加者記錄
@@ -169,7 +173,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!attendee) {
-    return NextResponse.json({ error: "找不到參加者記錄" }, { status: 404 });
+    return apiError("apiErrors.checkIn.attendeeNotFound", 404);
   }
 
   // 取得報名記錄以取得活動 ID
@@ -180,7 +184,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!registration) {
-    return NextResponse.json({ error: "找不到報名記錄" }, { status: 404 });
+    return apiError("apiErrors.common.registrationNotFound", 404);
   }
 
   // 檢查活動是否存在且使用者為團隊成員
@@ -191,7 +195,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);

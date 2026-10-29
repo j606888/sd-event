@@ -2,10 +2,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 
 export default function TeamsPage() {
   const router = useRouter();
+  const tCommon = useTranslations("common");
   const { teamId, isLoading: loading, error } = useCurrentTeam();
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function TeamsPage() {
 
   return (
     <div className="p-6">
-      <p className="text-gray-500">載入中…</p>
+      <p className="text-gray-500">{tCommon("loading")}</p>
     </div>
   );
 }

@@ -1,0 +1,72 @@
+{
+  "greeting": "您好，",
+  "signature": "— SD Event",
+  "registrationReceived": {
+    "subject": "[確認中] 您已成功報名活動：{event}",
+    "subjectNoEvent": "[確認中] 您已成功報名活動",
+    "thanks": "感謝您報名「{event}」！",
+    "thanksNoEvent": "感謝您報名活動！",
+    "intro": "我們已經收到您的報名資訊，請點擊下方連結確認您的報名狀態：",
+    "cta": "👉 查看報名狀態與付款資訊",
+    "noticeTitle": "注意事項：",
+    "noticePay": "若您尚未付款，請於 24 小時內完成匯款以保留名額。",
+    "noticeReport": "若您已完成匯款，請至上方連結回報後五碼，我們將儘速為您確認。",
+    "closing": "期待在活動見到您！"
+  },
+  "paymentConfirmed": {
+    "subject": "[報名成功] {event}：付款已確認，這是您的活動憑證",
+    "subjectNoEvent": "[報名成功] 付款已確認，這是您的活動憑證",
+    "body": "恭喜您！我們已確認收到您的款項，您的報名狀態已更新為「報名成功」。",
+    "voucherIntro": "活動當天請出示下方連結中的憑證（QR Code）進行報到：",
+    "cta": "🎫 打開我的活動憑證 / QR Code",
+    "infoTitle": "活動資訊：",
+    "time": "時間：{time}",
+    "location": "地點：{location}",
+    "contact": "如果有任何問題，歡迎直接回覆此郵件與我們聯繫。"
+  },
+  "refunded": {
+    "subject": "[已退款] 活動報名已退款：{event}",
+    "subjectNoEvent": "[已退款] 活動報名已退款",
+    "body": "您報名「{event}」的款項 <strong>NT$ {amount}</strong> 已由主辦單位退還。",
+    "bodyNoEvent": "您報名活動的款項 <strong>NT$ {amount}</strong> 已由主辦單位退還。",
+    "cancelled": "這筆報名已取消，入場 QR 憑證也一併失效。如果沒有收到退款，請直接與主辦單位聯絡。",
+    "cta": "查看報名狀態",
+    "closing": "希望下次活動再見！"
+  },
+  "newRegistration": {
+    "subject": "[新報名] {event} — {name}",
+    "eventFallback": "活動",
+    "intro": "「{event}」有一筆新的報名：",
+    "contact": "聯絡人：{value}",
+    "phone": "電話：{value}",
+    "email": "Email：{value}",
+    "tickets": "票種：{items}",
+    "ticketsWithTier": "票種：{items}（{tier}）",
+    "itemSeparator": "、",
+    "amount": "金額：{amount}",
+    "amountWithCoupon": "NT$ {amount}（折扣碼 {code}）",
+    "amountWithCouponDiscount": "NT$ {amount}（折扣碼 {code}，折抵 NT$ {discount}）",
+    "paymentMethod": "付款方式：{value}",
+    "attendeesTitle": "參加者（{count} 位）：",
+    "attendee": "{name}（{role}）",
+    "cta": "查看報名名單",
+    "footer": "— SD Event｜您收到這封信是因為團隊設定中開啟了「新報名通知信」，可請團隊管理員在團隊頁關閉。"
+  },
+  "team": {
+    "roleLine": "權限：<strong>{role}</strong>（{description}）",
+    "inviterFallback": "團隊管理員"
+  },
+  "teamInvitation": {
+    "subject": "[團隊邀請] {inviter} 邀請你加入「{team}」",
+    "body": "{inviter} 邀請你加入 SD Event 上的團隊「<strong>{team}</strong>」，一起管理活動報名與入場。",
+    "cta": "建立帳號並加入團隊",
+    "useThisEmail": "註冊時請使用這個信箱（{email}），完成後會自動加入團隊。",
+    "footer": "— SD Event｜如果你不認識邀請人，忽略這封信即可。"
+  },
+  "teamMemberAdded": {
+    "subject": "[團隊] {inviter} 把你加入了「{team}」",
+    "body": "{inviter} 已把你加入 SD Event 上的團隊「<strong>{team}</strong>」。",
+    "cta": "登入查看團隊活動",
+    "switchTeam": "登入後可在左上角切換到這個團隊。"
+  }
+}

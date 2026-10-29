@@ -9,6 +9,7 @@ import {
   IMPERSONATION_MAX_AGE_SECONDS,
 } from "@/lib/auth";
 import { requireSuperAdmin } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { eq } from "drizzle-orm";
 
 /** 以指定使用者身分開始唯讀模擬檢視 */
@@ -17,16 +18,16 @@ export async function POST(request: Request) {
   if (denied) return denied;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const body = await request.json().catch(() => ({}));
   const userId = body?.userId;
   if (!Number.isInteger(userId)) {
-    return NextResponse.json({ error: "無效的 userId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "userId" });
   }
 
   if (userId === session.userId) {
-    return NextResponse.json({ error: "無法模擬自己" }, { status: 400 });
+    return apiError("apiErrors.admin.cannotImpersonateSelf", 400);
   }
 
   const rows = await db
@@ -42,13 +43,10 @@ export async function POST(request: Request) {
   const target = rows[0];
 
   if (!target) {
-    return NextResponse.json({ error: "找不到使用者" }, { status: 404 });
+    return apiError("apiErrors.common.userNotFound", 404);
   }
   if (target.isSuperAdmin) {
-    return NextResponse.json(
-      { error: "無法模擬其他總管理員" },
-      { status: 403 }
-    );
+    return apiError("apiErrors.admin.cannotImpersonateAdmin", 403);
   }
 
   const token = await createToken(

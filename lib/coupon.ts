@@ -11,26 +11,33 @@ export type CouponLike = {
   value: number;
 };
 
+/** validateCouponFields 的錯誤代碼，對應訊息 key eventApiErrors.coupons.fields.<code> */
+export type CouponFieldError =
+  | "invalidDiscountType"
+  | "invalidValue"
+  | "invalidPercent"
+  | "invalidUsageLimit";
+
 /**
- * 驗證折扣碼欄位（後台 CRUD 用）。回傳錯誤訊息字串，或 null 表通過。
+ * 驗證折扣碼欄位（後台 CRUD 用）。回傳錯誤代碼，或 null 表通過；訊息由 route 翻譯。
  * value：fixed 為正整數 TWD；percent 為 1–100。usageLimit：null（不限）或 ≥ 1 的整數。
  */
 export function validateCouponFields(
   discountType: unknown,
   value: unknown,
   usageLimit: unknown
-): string | null {
+): CouponFieldError | null {
   if (discountType !== "fixed" && discountType !== "percent") {
-    return "折扣類型必須為 fixed 或 percent";
+    return "invalidDiscountType";
   }
   if (!Number.isInteger(value) || (value as number) < 1) {
-    return "折扣數值必須為正整數";
+    return "invalidValue";
   }
   if (discountType === "percent" && (value as number) > 100) {
-    return "折扣百分比必須介於 1–100";
+    return "invalidPercent";
   }
   if (usageLimit !== null && (!Number.isInteger(usageLimit) || (usageLimit as number) < 1)) {
-    return "使用上限必須為正整數或不限";
+    return "invalidUsageLimit";
   }
   return null;
 }

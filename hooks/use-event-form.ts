@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { useUploadThing } from "@/lib/uploadthing";
-import { getEventTemplate, type EventType } from "@/lib/event-templates";
+import {
+  getEventTemplate,
+  type EventType,
+  type TemplateTextKey,
+} from "@/lib/event-templates";
 import {
   taipeiDateInput,
   taipeiDateTimeLocal,
@@ -149,6 +154,10 @@ export function useEventForm({
   initialType,
   onSaveSuccess,
 }: UseEventFormParams) {
+  const t = useTranslations("eventForm");
+  const tTemplates = useTranslations("eventForm.templates");
+  // 範本／預設時段名稱會存進活動，依建立者當下的介面語系產生
+  const templateText = (key: TemplateTextKey) => tTemplates(key);
   const [drawer, setDrawer] = useState<DrawerType>(null);
   const [type, setType] = useState<EventType>(initialType ?? "Party");
   const [allowMultiple, setAllowMultiple] = useState(false);
@@ -183,7 +192,7 @@ export function useEventForm({
   // 新增活動依所選類型預填購買項目範本（時段／群組／項目／互斥），可自行增刪修改；
   // 編輯模式皆從空起始，由載入 effect 從 API 回填
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItemDraft[]>(() =>
-    mode === "create" ? getEventTemplate(initialType ?? "Party").purchaseItems : []
+    mode === "create" ? getEventTemplate(initialType ?? "Party", templateText).purchaseItems : []
   );
   const [purchaseItemHiddenUpdatingIndex, setPurchaseItemHiddenUpdatingIndex] =
     useState<number | null>(null);
@@ -192,16 +201,16 @@ export function useEventForm({
   // 目前正在編輯的購買項目 index（null = 抽屜為「新增」模式）
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [priceTiers, setPriceTiers] = useState<PriceTierDraft[]>(() =>
-    mode === "create" ? getEventTemplate(initialType ?? "Party").priceTiers : []
+    mode === "create" ? getEventTemplate(initialType ?? "Party", templateText).priceTiers : []
   );
   const [groups, setGroups] = useState<PurchaseItemGroupDraft[]>(() =>
-    mode === "create" ? getEventTemplate(initialType ?? "Party").groups : []
+    mode === "create" ? getEventTemplate(initialType ?? "Party", templateText).groups : []
   );
   // 群組互斥配對；以群組 key（`id-<id>` / `draft-<index>`）成對表示，與票券設定 UI 一致
   const [groupExclusions, setGroupExclusions] = useState<Array<[string, string]>>(
     () =>
       mode === "create"
-        ? getEventTemplate(initialType ?? "Party").groupExclusions
+        ? getEventTemplate(initialType ?? "Party", templateText).groupExclusions
         : []
   );
   const [noticeItems, setNoticeItems] = useState<NoticeItemDraft[]>([]);
@@ -265,7 +274,7 @@ export function useEventForm({
       },
       onUploadError: (err) => {
         console.error("Cover upload error:", err);
-        setSaveError("上傳封面失敗，請重試");
+        setSaveError(t("errors.coverUploadFailed"));
       },
     });
 
@@ -526,12 +535,12 @@ export function useEventForm({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setSaveError("請選擇圖片檔案");
+      setSaveError(t("errors.notAnImage"));
       return;
     }
 
     if (file.size > 4 * 1024 * 1024) {
-      setSaveError("圖片大小不能超過 4MB");
+      setSaveError(t("errors.imageTooLarge"));
       return;
     }
 
@@ -589,13 +598,16 @@ export function useEventForm({
   };
 
   // 套用某類型範本：以範本覆寫時段／群組／項目／互斥（create 模式換類型用，會蓋掉現有 draft）
-  const applyTemplate = useCallback((nextType: EventType) => {
-    const tpl = getEventTemplate(nextType);
-    setPriceTiers(tpl.priceTiers);
-    setGroups(tpl.groups);
-    setPurchaseItems(tpl.purchaseItems);
-    setGroupExclusions(tpl.groupExclusions);
-  }, []);
+  const applyTemplate = useCallback(
+    (nextType: EventType) => {
+      const tpl = getEventTemplate(nextType, (key) => tTemplates(key));
+      setPriceTiers(tpl.priceTiers);
+      setGroups(tpl.groups);
+      setPurchaseItems(tpl.purchaseItems);
+      setGroupExclusions(tpl.groupExclusions);
+    },
+    [tTemplates]
+  );
 
   const handleNoticeItemSuccess = (item: NoticeItemDraft) => {
     setNoticeItems((prev) => [...prev, item]);
@@ -619,12 +631,12 @@ export function useEventForm({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setSaveError(data.error || "刪除購買項目失敗");
+        setSaveError(data.error || t("errors.deleteItemFailed"));
         return;
       }
       setPurchaseItems((prev) => prev.filter((_, i) => i !== index));
     } catch {
-      setSaveError("刪除購買項目失敗");
+      setSaveError(t("errors.deleteItemFailed"));
     } finally {
       setPurchaseItemDeletingIndex(null);
     }
@@ -659,14 +671,14 @@ export function useEventForm({
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSaveError(data.error || "更新購買項目失敗");
+        setSaveError(data.error || t("errors.updateItemFailed"));
         return;
       }
       setPurchaseItems((prev) =>
         prev.map((row, i) => (i === index ? { ...row, hidden } : row))
       );
     } catch {
-      setSaveError("更新購買項目失敗");
+      setSaveError(t("errors.updateItemFailed"));
     } finally {
       setPurchaseItemHiddenUpdatingIndex(null);
     }
@@ -703,12 +715,12 @@ export function useEventForm({
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSaveError(data.error || "更新購買項目失敗");
+        setSaveError(data.error || t("errors.updateItemFailed"));
         return;
       }
       applyLocal();
     } catch {
-      setSaveError("更新購買項目失敗");
+      setSaveError(t("errors.updateItemFailed"));
     }
   };
 
@@ -725,10 +737,10 @@ export function useEventForm({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setSaveError(data.error || "更新購買規則失敗");
+        setSaveError(data.error || t("errors.updatePurchaseRulesFailed"));
       }
     } catch {
-      setSaveError("更新購買規則失敗");
+      setSaveError(t("errors.updatePurchaseRulesFailed"));
     }
   };
 
@@ -744,10 +756,10 @@ export function useEventForm({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setSaveError(data.error || "更新參加者勾選項目失敗");
+        setSaveError(data.error || t("errors.updateAttendeeFlagFailed"));
       }
     } catch {
-      setSaveError("更新參加者勾選項目失敗");
+      setSaveError(t("errors.updateAttendeeFlagFailed"));
     }
   };
 
@@ -784,7 +796,7 @@ export function useEventForm({
             body: JSON.stringify({ sortOrder: index }),
           });
         } catch {
-          setSaveError("時段排序更新失敗");
+          setSaveError(t("errors.reorderTiersFailed"));
         }
       })
     );
@@ -819,7 +831,7 @@ export function useEventForm({
     // 第一段就是 fallback 段（永不過期）；之後的新增都插在 fallback 之前並帶截止日
     const isFirst = priceTiers.length === 0;
     const insertAt = isFirst ? 0 : fallbackTierIndex(priceTiers);
-    const name = isFirst ? "現場" : "新時段";
+    const name = isFirst ? tTemplates("door") : t("defaults.newTier");
     const endsAt = isFirst ? "" : defaultEndsAtForInsert(priceTiers, insertAt);
 
     if (mode === "edit" && eventId != null) {
@@ -832,7 +844,7 @@ export function useEventForm({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setSaveError(data.error || "新增時段失敗");
+          setSaveError(data.error || t("errors.addTierFailed"));
           return;
         }
         const next = [...priceTiers];
@@ -845,7 +857,7 @@ export function useEventForm({
         setPriceTiers(next.map((t, i) => ({ ...t, sortOrder: i })));
         await renumberPriceTiers(next);
       } catch {
-        setSaveError("新增時段失敗");
+        setSaveError(t("errors.addTierFailed"));
       }
       return;
     }
@@ -862,8 +874,8 @@ export function useEventForm({
   /** 空狀態一鍵建立「早鳥 + 現場」兩段，省得使用者自己拼出合法的時段梯 */
   const seedDefaultPriceTiers = async () => {
     const seeds: { name: string; endsAt: string }[] = [
-      { name: "早鳥", endsAt: dateInputInDays(30) },
-      { name: "現場", endsAt: "" },
+      { name: tTemplates("earlyBird"), endsAt: dateInputInDays(30) },
+      { name: tTemplates("door"), endsAt: "" },
     ];
 
     if (mode === "edit" && eventId != null) {
@@ -878,12 +890,12 @@ export function useEventForm({
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
-            setSaveError(data.error || "新增時段失敗");
+            setSaveError(data.error || t("errors.addTierFailed"));
             break;
           }
           created.push({ id: data.priceTier?.id, ...seed, sortOrder: index });
         } catch {
-          setSaveError("新增時段失敗");
+          setSaveError(t("errors.addTierFailed"));
           break;
         }
       }
@@ -917,9 +929,9 @@ export function useEventForm({
         body: JSON.stringify({ name: tier.name, endsAt: tier.endsAt }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) setSaveError(data.error || "更新時段失敗");
+      if (!res.ok) setSaveError(data.error || t("errors.updateTierFailed"));
     } catch {
-      setSaveError("更新時段失敗");
+      setSaveError(t("errors.updateTierFailed"));
     }
   };
 
@@ -933,11 +945,11 @@ export function useEventForm({
         );
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setSaveError(data.error || "刪除時段失敗");
+          setSaveError(data.error || t("errors.deleteTierFailed"));
           return;
         }
       } catch {
-        setSaveError("刪除時段失敗");
+        setSaveError(t("errors.deleteTierFailed"));
         return;
       }
     }
@@ -960,6 +972,7 @@ export function useEventForm({
   // ===== 票種群組 =====
   const addGroup = async () => {
     const sortOrder = groups.length;
+    const groupTitle = t("defaults.newGroup");
     if (mode === "edit" && eventId != null) {
       try {
         const res = await fetch(`/api/events/${eventId}/purchase-item-groups`, {
@@ -967,7 +980,7 @@ export function useEventForm({
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            title: "新群組",
+            title: groupTitle,
             selectionMode: "single",
             required: true,
             sortOrder,
@@ -975,27 +988,27 @@ export function useEventForm({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setSaveError(data.error || "新增群組失敗");
+          setSaveError(data.error || t("errors.addGroupFailed"));
           return;
         }
         setGroups((prev) => [
           ...prev,
           {
             id: data.group?.id,
-            title: "新群組",
+            title: groupTitle,
             selectionMode: "single",
             required: true,
             sortOrder,
           },
         ]);
       } catch {
-        setSaveError("新增群組失敗");
+        setSaveError(t("errors.addGroupFailed"));
       }
       return;
     }
     setGroups((prev) => [
       ...prev,
-      { title: "新群組", selectionMode: "single", required: true, sortOrder },
+      { title: groupTitle, selectionMode: "single", required: true, sortOrder },
     ]);
   };
 
@@ -1034,9 +1047,9 @@ export function useEventForm({
         }
       );
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) setSaveError(data.error || "更新群組失敗");
+      if (!res.ok) setSaveError(data.error || t("errors.updateGroupFailed"));
     } catch {
-      setSaveError("更新群組失敗");
+      setSaveError(t("errors.updateGroupFailed"));
     }
   };
 
@@ -1050,11 +1063,11 @@ export function useEventForm({
         );
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setSaveError(data.error || "刪除群組失敗");
+          setSaveError(data.error || t("errors.deleteGroupFailed"));
           return;
         }
       } catch {
-        setSaveError("刪除群組失敗");
+        setSaveError(t("errors.deleteGroupFailed"));
         return;
       }
     }
@@ -1127,10 +1140,10 @@ export function useEventForm({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setSaveError(data.error || "更新互斥規則失敗");
+        setSaveError(data.error || t("errors.updateExclusionsFailed"));
       }
     } catch {
-      setSaveError("更新互斥規則失敗");
+      setSaveError(t("errors.updateExclusionsFailed"));
     }
   };
 
@@ -1196,7 +1209,7 @@ export function useEventForm({
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSaveError(data.error || "儲存折扣碼失敗");
+        setSaveError(data.error || t("errors.saveCouponFailed"));
         return;
       }
       setSaveError(null);
@@ -1216,7 +1229,7 @@ export function useEventForm({
         );
       }
     } catch {
-      setSaveError("儲存折扣碼失敗");
+      setSaveError(t("errors.saveCouponFailed"));
     }
   };
 
@@ -1230,11 +1243,11 @@ export function useEventForm({
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setSaveError(data.error || "刪除折扣碼失敗");
+          setSaveError(data.error || t("errors.deleteCouponFailed"));
           return;
         }
       } catch {
-        setSaveError("刪除折扣碼失敗");
+        setSaveError(t("errors.deleteCouponFailed"));
         return;
       }
     }
@@ -1246,19 +1259,19 @@ export function useEventForm({
     setSaveError(null);
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setSaveError("請輸入標題");
+      setSaveError(t("validation.titleRequired"));
       return;
     }
     if (!locationId || !locationId.trim()) {
-      setSaveError("請選擇活動地點");
+      setSaveError(t("validation.locationRequired"));
       return;
     }
     if (!organizerId || !organizerId.trim()) {
-      setSaveError("請選擇主辦單位");
+      setSaveError(t("validation.organizerRequired"));
       return;
     }
     if (!bankInfoId || !bankInfoId.trim()) {
-      setSaveError("請選擇銀行資訊");
+      setSaveError(t("validation.bankInfoRequired"));
       return;
     }
     setSaving(true);
@@ -1268,7 +1281,7 @@ export function useEventForm({
         try {
           const uploadResult = await startCoverUpload([selectedCoverFile]);
           if (!uploadResult || uploadResult.length === 0) {
-            throw new Error("上傳失敗");
+            throw new Error(t("errors.uploadFailed"));
           }
           const first = uploadResult[0];
           finalCoverUrl =
@@ -1278,12 +1291,12 @@ export function useEventForm({
               : (first as { ufsUrl?: string }).ufsUrl) ||
             null;
           if (!finalCoverUrl) {
-            throw new Error("無法取得上傳後的圖片網址");
+            throw new Error(t("errors.uploadUrlMissing"));
           }
         } catch (uploadError) {
           console.error("Upload error:", uploadError);
           setSaveError(
-            uploadError instanceof Error ? uploadError.message : "上傳封面失敗，請重試"
+            uploadError instanceof Error ? uploadError.message : t("errors.coverUploadFailed")
           );
           setSaving(false);
           return;
@@ -1311,7 +1324,7 @@ export function useEventForm({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setSaveError(data.error || "更新失敗");
+          setSaveError(data.error || t("errors.updateFailed"));
           setSaving(false);
           return;
         }
@@ -1341,7 +1354,7 @@ export function useEventForm({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setSaveError(data.error || "儲存失敗");
+          setSaveError(data.error || t("errors.saveFailed"));
           setSaving(false);
           return;
         }
@@ -1477,7 +1490,7 @@ export function useEventForm({
         window.location.href = "/events";
       }
     } catch {
-      setSaveError(mode === "edit" ? "更新失敗" : "儲存失敗");
+      setSaveError(mode === "edit" ? t("errors.updateFailed") : t("errors.saveFailed"));
     }
     setSaving(false);
   };

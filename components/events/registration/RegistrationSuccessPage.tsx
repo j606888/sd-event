@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin, Wallet, Users, DollarSign } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
+import { PublicLanguageBar } from "@/components/layout/PublicLanguageBar";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
 import { isRenderableImageSrc } from "@/lib/utils";
 import { siInstagram, siFacebook } from "simple-icons";
@@ -21,7 +23,11 @@ export function RegistrationSuccessPage({
   registrationKey,
   paymentStatus,
 }: RegistrationSuccessPageProps) {
-  const participantsText = registration.participants.map((p) => p.name).join("、");
+  const t = useTranslations("myRegistration.status");
+  const locale = useLocale();
+  const participantsText = registration.participants
+    .map((p) => p.name)
+    .join(t("nameSeparator"));
   const discountAmount = registration.discountAmount ?? 0;
   // totalAmount 為實付（已折扣）金額；有折扣時另示原價
   const originalAmount = Number(registration.totalAmount) + discountAmount;
@@ -44,6 +50,10 @@ export function RegistrationSuccessPage({
   return (
     <div className="">
       <div className="mx-auto max-w-lg">
+        {/* 這頁沒有 bg-paper 外框與白卡，語言切換跟內容一樣左右留 px-4 */}
+        <div className="px-4 pt-4">
+          <PublicLanguageBar />
+        </div>
         {renderHeader()}
 
         <div className="px-4 space-y-4 pb-4 bg-white border-b border-gray-200">
@@ -54,7 +64,7 @@ export function RegistrationSuccessPage({
               <Clock className="w-6 h-6 text-gray-500 " />
               <div>
                 <div className="text-gray-900 text-[15px]">
-                  {getEventDateLabel(event.startAt, event.endAt)}
+                  {getEventDateLabel(event.startAt, event.endAt, locale)}
                 </div>
                 <div className="text-gray-900 text-[15px]">
                   {getEventTimeRange(event.startAt, event.endAt)}
@@ -81,7 +91,7 @@ export function RegistrationSuccessPage({
                     rel="noopener noreferrer"
                     className="text-sm text-brand-strong mt-1 inline-block"
                   >
-                    導航&gt;
+                    {t("directions")}
                   </a>
                 )}
               </div>
@@ -92,9 +102,9 @@ export function RegistrationSuccessPage({
               <div className="flex items-center gap-4">
                 <Wallet className="w-6 h-6 text-gray-500 " />
                 <div>
-                  <div className="text-sm text-gray-500">選擇方案</div>
+                  <div className="text-sm text-gray-500">{t("ticket")}</div>
                   <div className="text-gray-900">
-                    {registration.selectedPlan.name} ${registration.selectedPlan.amount}
+                    {`${registration.selectedPlan.name} $${registration.selectedPlan.amount}`}
                   </div>
                 </div>
               </div>
@@ -105,7 +115,7 @@ export function RegistrationSuccessPage({
               <div className="flex items-center gap-4">
                 <Users className="w-6 h-6 text-gray-500 " />
                 <div>
-                  <div className="text-sm text-gray-500">參加者</div>
+                  <div className="text-sm text-gray-500">{t("attendees")}</div>
                   <div className="text-gray-900">{participantsText}</div>
                 </div>
               </div>
@@ -116,17 +126,17 @@ export function RegistrationSuccessPage({
               <div className="flex items-center gap-4">
                 <DollarSign className="w-6 h-6 text-gray-500 " />
                 <div>
-                  <div className="text-sm text-gray-500">折扣</div>
+                  <div className="text-sm text-gray-500">{t("discount")}</div>
                   <div className="text-gray-900">
                     <span className="mr-2 text-gray-400 line-through">
-                      NT ${originalAmount}
+                      {`NT $${originalAmount}`}
                     </span>
                     {registration.couponCode && (
                       <span className="mr-1 font-mono text-sm text-brand-strong">
                         {registration.couponCode}
                       </span>
                     )}
-                    <span className="text-brand-strong">−NT ${discountAmount}</span>
+                    <span className="text-brand-strong">{`−NT $${discountAmount}`}</span>
                   </div>
                 </div>
               </div>
@@ -142,7 +152,7 @@ export function RegistrationSuccessPage({
               className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
             >
               <Link href={`/entry-voucher/${registrationKey}`}>
-                開啟入場憑證
+                {t("openEntryPass")}
               </Link>
             </Button>
           </div>
@@ -154,14 +164,14 @@ export function RegistrationSuccessPage({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-slate-500">
                       <DollarSign className="w-5 h-5" />
-                      <span>應付金額</span>
+                      <span>{t("amountDue")}</span>
                     </div>
                     <span className="text-xl font-bold text-slate-900">
-                      NT {registration.totalAmount}
+                      {`NT ${registration.totalAmount}`}
                     </span>
                   </div>
                   <div className="text-center py-3 px-4 bg-slate-50 rounded-xl text-sm text-slate-500 border border-slate-100">
-                    付款資訊已送出，請等待主辦方確認
+                    {t("reportedNotice")}
                   </div>
                 </div>
               </div>
@@ -173,10 +183,10 @@ export function RegistrationSuccessPage({
                   <div className="flex items-center justify-between gap-4">
                     {/* 左側：金額資訊 */}
                     <div className="flex flex-col">
-                      <span className="text-xs text-slate-400 font-medium">應付總額</span>
+                      <span className="text-xs text-slate-400 font-medium">{t("totalDue")}</span>
                       <span className="text-xl font-black text-slate-900">
                         <span className="text-sm mr-1 font-bold">NT$</span>
-                        {registration.totalAmount}
+                        <span>{registration.totalAmount}</span>
                       </span>
                     </div>
 
@@ -186,7 +196,7 @@ export function RegistrationSuccessPage({
                       className="flex-1 bg-brand text-ink hover:bg-brand-hover h-12 rounded-xl text-base font-bold transition-all active:scale-[0.97]"
                     >
                       <Link href={`/report-payment/${registrationKey}`}>
-                        {paymentStatus === "rejected" ? "重新回報" : "回報付款"}
+                        {paymentStatus === "rejected" ? t("reportAgain") : t("reportPayment")}
                       </Link>
                     </Button>
                   </div>
@@ -198,7 +208,7 @@ export function RegistrationSuccessPage({
 
         {event.organizer && (
           <div className="px-4 py-6 bg-white border-t border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3">主辦單位</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t("organizer")}</h3>
             <div className="flex items-center gap-3">
               {isRenderableImageSrc(event.organizer.photoUrl) && (
                 <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 shrink-0">

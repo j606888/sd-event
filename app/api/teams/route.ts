@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { teams, teamMembers, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { eq } from "drizzle-orm";
 
 /** 取得當前使用者所屬團隊列表 */
@@ -11,7 +12,7 @@ export async function GET() {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const list = await db
     .select({
@@ -34,12 +35,12 @@ export async function POST(request: Request) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const body = await request.json().catch(() => ({}));
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name) {
-    return NextResponse.json({ error: "請提供團隊名稱 name" }, { status: 400 });
+    return apiError("apiErrors.teams.nameRequired", 400);
   }
 
   const [team] = await db
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     .returning({ id: teams.id, name: teams.name, createdAt: teams.createdAt });
 
   if (!team) {
-    return NextResponse.json({ error: "建立失敗" }, { status: 500 });
+    return apiError("apiErrors.common.createFailed", 500);
   }
 
   await db.insert(teamMembers).values({

@@ -1,0 +1,14 @@
+{
+  "paymentStatus": {
+    "pending": "未付款",
+    "reported": "待確認收款",
+    "confirmed": "已收款",
+    "rejected": "已拒絕",
+    "refunded": "已退款"
+  },
+  "role": {
+    "Leader": "Leader",
+    "Follower": "Follower",
+    "notSure": "不確定"
+  }
+}

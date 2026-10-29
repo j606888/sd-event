@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import {
   events,
@@ -9,6 +10,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
 import { eq, asc, desc, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { matchesCheckInFilter, type CheckInFilter } from "@/lib/registration-list-filters";
@@ -16,25 +18,6 @@ import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/reg
 import { registrationMatchesSearch } from "@/lib/registration-search";
 
 type Params = { params: Promise<{ eventId: string }> };
-
-const ROLE_LABELS: Record<string, string> = {
-  Leader: "Leader",
-  Follower: "Follower",
-  "Not sure": "尚未確定",
-};
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  pending: "待付款",
-  reported: "待確認",
-  confirmed: "已完成付款",
-  rejected: "已拒絕",
-  refunded: "已退款",
-};
-
-const SOURCE_LABELS: Record<string, string> = {
-  online: "線上",
-  walk_in: "現場",
-};
 
 /** Wrap a value as a CSV field, escaping quotes/commas/newlines. */
 function csvCell(value: string | number | null | undefined): string {
@@ -54,11 +37,11 @@ export async function GET(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const [event] = await db
@@ -68,7 +51,7 @@ export async function GET(request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamAdmin(event.teamId, session.userId);
@@ -180,26 +163,45 @@ export async function GET(request: Request, { params }: Params) {
     itemNamesByReg.set(row.registrationId, list);
   }
 
+  // 欄位標題與狀態文字跟著請求者的介面語言；資料本身照存的值輸出
+  const t = await getTranslations("eventApiErrors.export");
+  const roleLabels: Record<string, string> = {
+    Leader: "Leader",
+    Follower: "Follower",
+    "Not sure": t("role.notSure"),
+  };
+  const paymentStatusLabels: Record<string, string> = {
+    pending: t("paymentStatus.pending"),
+    reported: t("paymentStatus.reported"),
+    confirmed: t("paymentStatus.confirmed"),
+    rejected: t("paymentStatus.rejected"),
+    refunded: t("paymentStatus.refunded"),
+  };
+  const sourceLabels: Record<string, string> = {
+    online: t("source.online"),
+    walk_in: t("source.walkIn"),
+  };
+
   // 活動有設參加者勾選項目時，於「角色」後多一欄（如「參加伸展台比賽」）
   const flagLabel = normalizeFlagLabel(event.attendeeFlagLabel);
 
   const header = [
-    "報名編號",
-    "聯絡人",
-    "電話",
-    "Email",
-    "參加者姓名",
-    "角色",
+    t("header.registrationKey"),
+    t("header.contact"),
+    t("header.phone"),
+    t("header.email"),
+    t("header.attendeeName"),
+    t("header.role"),
     ...(flagLabel ? [flagLabel] : []),
-    "報名項目",
-    "金額",
-    "折扣碼",
-    "折抵金額",
-    "付款方式",
-    "付款狀態",
-    "入場狀態",
-    "來源",
-    "報名時間",
+    t("header.items"),
+    t("header.amount"),
+    t("header.couponCode"),
+    t("header.discount"),
+    t("header.paymentMethod"),
+    t("header.paymentStatus"),
+    t("header.checkIn"),
+    t("header.source"),
+    t("header.createdAt"),
   ];
 
   const lines: string[] = [header.map(csvCell).join(",")];
@@ -222,10 +224,10 @@ export async function GET(request: Request, { params }: Params) {
     const itemLabel = itemNames.join(" / ");
 
     const paymentMethodLabel =
-      reg.paymentMethod === "Cash" ? "現金" : reg.paymentMethod || "";
+      reg.paymentMethod === "Cash" ? t("cash") : reg.paymentMethod || "";
     const paymentStatusLabel =
-      PAYMENT_STATUS_LABELS[reg.paymentStatus] ?? reg.paymentStatus;
-    const sourceLabel = SOURCE_LABELS[reg.source] ?? reg.source;
+      paymentStatusLabels[reg.paymentStatus] ?? reg.paymentStatus;
+    const sourceLabel = sourceLabels[reg.source] ?? reg.source;
     const createdLabel = reg.createdAt
       ? new Date(reg.createdAt).toLocaleString("zh-TW", {
           timeZone: "Asia/Taipei",
@@ -236,7 +238,7 @@ export async function GET(request: Request, { params }: Params) {
     // 一位參加者一列；沒有參加者的報名仍輸出一列（參加者欄留空）
     const rows = attendeeCount > 0 ? regAttendees : [null];
     for (const a of rows) {
-      const checkInLabel = a ? (a.checkedIn ? "已入場" : "未入場") : "";
+      const checkInLabel = a ? (a.checkedIn ? t("checkedIn") : t("notCheckedIn")) : "";
       lines.push(
         [
           reg.registrationKey,
@@ -244,8 +246,8 @@ export async function GET(request: Request, { params }: Params) {
           reg.contactPhone ?? "",
           reg.contactEmail ?? "",
           a?.name ?? "",
-          a ? ROLE_LABELS[a.role] ?? a.role : "",
-          ...(flagLabel ? [a?.flagged ? "是" : ""] : []),
+          a ? roleLabels[a.role] ?? a.role : "",
+          ...(flagLabel ? [a?.flagged ? t("flagged") : ""] : []),
           itemLabel,
           reg.totalAmount,
           reg.couponCode ?? "",

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { PurchaseItemGroupDraft, UseEventFormReturn } from "@/hooks/use-event-form";
 
@@ -14,6 +15,8 @@ const groupKeyOf = (group: PurchaseItemGroupDraft, groupIndex: number) =>
  */
 export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
   const { groups, groupExclusions, toggleGroupExclusion } = form;
+  const t = useTranslations("tickets");
+  const tCommon = useTranslations("common");
   const [pickA, setPickA] = useState("");
   const [pickB, setPickB] = useState("");
   const [adding, setAdding] = useState(false);
@@ -21,7 +24,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
   if (groups.length < 2) return null;
 
   const titleByKey = new Map(
-    groups.map((g, i) => [groupKeyOf(g, i), g.title || "（未命名區塊）"])
+    groups.map((g, i) => [groupKeyOf(g, i), g.title || t("untitledGroup")])
   );
 
   // 只render兩端都還存在的規則（群組被刪時 hook 會同步清掉，這裡再保險一次）
@@ -35,7 +38,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
     );
 
   const optionsForB = groups
-    .map((g, i) => ({ key: groupKeyOf(g, i), title: g.title || "（未命名區塊）" }))
+    .map((g, i) => ({ key: groupKeyOf(g, i), title: g.title || t("untitledGroup") }))
     .filter((o) => o.key !== pickA && (!pickA || !existingPair(pickA, o.key)));
 
   const confirmAdd = () => {
@@ -49,7 +52,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-sm font-bold text-ink">互斥規則（選填）</h3>
+        <h3 className="font-display text-sm font-bold text-ink">{t("exclusions.title")}</h3>
         {!adding && (
           <Button
             type="button"
@@ -59,13 +62,12 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
             onClick={() => setAdding(true)}
           >
             <Plus className="size-4" />
-            新增互斥規則
+            <span>{t("exclusions.add")}</span>
           </Button>
         )}
       </div>
       <p className="text-xs text-gray-500">
-        設定後，報名者只要在其中一個區塊選了票，另一個區塊就會鎖住並顯示「已包含於…」。
-        常見用途：全套票（Full Pass）已包含單堂課時，避免重複購買。
+        {t("exclusions.description")}
       </p>
 
       {visiblePairs.length > 0 && (
@@ -76,16 +78,17 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
               className="flex items-center justify-between gap-2 rounded-md bg-field px-3 py-2 text-sm text-gray-700"
             >
               <span>
-                <span className="font-medium">「{titleByKey.get(a)}」</span>
-                {" 與 "}
-                <span className="font-medium">「{titleByKey.get(b)}」</span>
-                {" 不能同時選"}
+                {t.rich("exclusions.rule", {
+                  a: titleByKey.get(a) ?? "",
+                  b: titleByKey.get(b) ?? "",
+                  name: (chunks) => <span className="font-medium">{chunks}</span>,
+                })}
               </span>
               <button
                 type="button"
                 onClick={() => toggleGroupExclusion(a, b)}
                 className="flex size-7 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
-                aria-label="移除此互斥規則"
+                aria-label={t("exclusions.removeAria")}
               >
                 <X className="size-4" />
               </button>
@@ -103,30 +106,30 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
               setPickA(e.target.value);
               if (e.target.value === pickB) setPickB("");
             }}
-            aria-label="區塊 A"
+            aria-label={t("exclusions.groupAAria")}
           >
-            <option value="">選擇區塊…</option>
+            <option value="">{t("exclusions.pickPlaceholder")}</option>
             {groups.map((g, i) => (
               <option key={g.id ?? `draft-${i}`} value={groupKeyOf(g, i)}>
-                {g.title || "（未命名區塊）"}
+                {g.title || t("untitledGroup")}
               </option>
             ))}
           </select>
-          <span className="text-xs text-gray-500">與</span>
+          <span className="text-xs text-gray-500">{t("exclusions.and")}</span>
           <select
             className="h-9 min-w-[8rem] flex-1 rounded-md border-0 bg-field px-2 text-sm shadow-xs"
             value={pickB}
             onChange={(e) => setPickB(e.target.value)}
-            aria-label="區塊 B"
+            aria-label={t("exclusions.groupBAria")}
           >
-            <option value="">選擇區塊…</option>
+            <option value="">{t("exclusions.pickPlaceholder")}</option>
             {optionsForB.map((o) => (
               <option key={o.key} value={o.key}>
                 {o.title}
               </option>
             ))}
           </select>
-          <span className="text-xs text-gray-500">不能同時選</span>
+          <span className="text-xs text-gray-500">{t("exclusions.cannotCombine")}</span>
           <div className="flex gap-2">
             <Button
               type="button"
@@ -135,7 +138,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
               onClick={confirmAdd}
               className="bg-brand text-ink hover:bg-brand-hover"
             >
-              加入
+              {t("exclusions.confirm")}
             </Button>
             <Button
               type="button"
@@ -147,7 +150,7 @@ export function ExclusionRulesCard({ form }: { form: UseEventFormReturn }) {
                 setPickB("");
               }}
             >
-              取消
+              {tCommon("cancel")}
             </Button>
           </div>
         </div>

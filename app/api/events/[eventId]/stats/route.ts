@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { isTeamAdmin } from "@/lib/team-roles";
 import { eq, ne, inArray, and, asc, count, sql } from "drizzle-orm";
 import { priceUnitsFor } from "@/lib/seat-count";
@@ -29,11 +30,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("eventApiErrors.invalidEventId", 400);
   }
 
   const [event] = await db
@@ -43,7 +44,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const forbidden = await requireTeamMember(event.teamId, session.userId);

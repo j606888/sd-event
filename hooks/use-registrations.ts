@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import type { PaymentFilter, HiddenFilter, CheckInFilter, CouponFilter, PurchaseItemFilter } from "@/lib/registration-list-filters";
 import type { Registration, RegistrationDetailData } from "@/types/registration";
 import {
@@ -30,6 +31,7 @@ type RegistrationsResponse = {
 };
 
 export function useRegistrations(eventId: string, params: RegistrationsParams) {
+  const t = useTranslations("events.errors");
   return useQuery({
     queryKey: ["registrations", eventId, params],
     queryFn: async () => {
@@ -48,7 +50,7 @@ export function useRegistrations(eventId: string, params: RegistrationsParams) {
       const res = await fetch(`/api/events/${eventId}/registrations?${qs}`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("無法載入報名列表");
+      if (!res.ok) throw new Error(t("loadRegistrations"));
       return res.json() as Promise<RegistrationsResponse>;
     },
     enabled: !!eventId,
@@ -61,6 +63,7 @@ export function useRegistrationDetail(
   eventId: string,
   registrationId: number | null
 ) {
+  const t = useTranslations("events.errors");
   return useQuery({
     queryKey: ["registration", eventId, registrationId],
     queryFn: async () => {
@@ -68,7 +71,7 @@ export function useRegistrationDetail(
         `/api/events/${eventId}/registrations/${registrationId}`,
         { credentials: "include" }
       );
-      if (!res.ok) throw new Error("無法載入報名詳情");
+      if (!res.ok) throw new Error(t("loadRegistrationDetail"));
       const data = await res.json();
       return data.registration as RegistrationDetailData;
     },
@@ -79,6 +82,7 @@ export function useRegistrationDetail(
 
 export function useUpdateRegistration(eventId: string) {
   const queryClient = useQueryClient();
+  const t = useTranslations("events.errors");
   return useMutation({
     mutationFn: async ({
       registrationId,
@@ -96,7 +100,7 @@ export function useUpdateRegistration(eventId: string) {
           body: JSON.stringify(patch),
         }
       );
-      if (!res.ok) throw new Error("更新失敗");
+      if (!res.ok) throw new Error(t("updateFailed"));
       return res.json();
     },
     onSuccess: (
@@ -138,6 +142,7 @@ function invalidateCheckInQueries(
 /** 取消入場：門口按錯人時的復原 */
 export function useUndoCheckIn(eventId: string) {
   const queryClient = useQueryClient();
+  const t = useTranslations("events.errors");
   return useMutation({
     mutationFn: async (attendeeId: number) => {
       const res = await fetch(`/api/attendees/${attendeeId}/check-in`, {
@@ -145,7 +150,7 @@ export function useUndoCheckIn(eventId: string) {
         credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((data as { error?: string }).error || "取消入場失敗");
+      if (!res.ok) throw new Error((data as { error?: string }).error || t("undoCheckInFailed"));
       return data;
     },
     onSuccess: () => invalidateCheckInQueries(queryClient, eventId),
@@ -154,6 +159,7 @@ export function useUndoCheckIn(eventId: string) {
 
 export function useCheckIn(eventId: string) {
   const queryClient = useQueryClient();
+  const t = useTranslations("events.errors");
   return useMutation({
     mutationFn: async (attendeeId: number) => {
       const res = await fetch(`/api/attendees/${attendeeId}/check-in`, {
@@ -161,7 +167,7 @@ export function useCheckIn(eventId: string) {
         credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((data as { error?: string }).error || "檢查入場失敗");
+      if (!res.ok) throw new Error((data as { error?: string }).error || t("checkInFailed"));
       return data;
     },
     onSuccess: () => invalidateCheckInQueries(queryClient, eventId),
@@ -170,6 +176,7 @@ export function useCheckIn(eventId: string) {
 
 /** 重寄收款確認信。只寄信、不改狀態，所以不需要 invalidate 任何查詢。 */
 export function useResendConfirmationEmail(eventId: string) {
+  const t = useTranslations("events.errors");
   return useMutation({
     mutationFn: async (registrationId: number) => {
       const res = await fetch(
@@ -178,7 +185,7 @@ export function useResendConfirmationEmail(eventId: string) {
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error((data as { error?: string }).error || "重寄失敗");
+        throw new Error((data as { error?: string }).error || t("resendFailed"));
       }
       return data as { ok: true; sentTo: string };
     },
@@ -188,6 +195,7 @@ export function useResendConfirmationEmail(eventId: string) {
 /** 標記為已退款（refund 不為 null）或撤銷退款（refund 為 null） */
 export function useRefundRegistration(eventId: string) {
   const queryClient = useQueryClient();
+  const t = useTranslations("events.errors");
   return useMutation({
     mutationFn: async ({
       registrationId,
@@ -209,7 +217,7 @@ export function useRefundRegistration(eventId: string) {
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error((data as { error?: string }).error || "退款操作失敗");
+        throw new Error((data as { error?: string }).error || t("refundFailed"));
       }
       return data;
     },

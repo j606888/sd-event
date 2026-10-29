@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  findFlaggedShortfall,
   minFlaggedOf,
   normalizeFlagLabel,
   requiredFlaggedCount,
-  validateFlaggedCount,
 } from "./attendee-flag";
 
 describe("normalizeFlagLabel", () => {
@@ -31,26 +31,28 @@ describe("requiredFlaggedCount", () => {
   });
 });
 
-describe("validateFlaggedCount", () => {
+describe("findFlaggedShortfall", () => {
   const pair = { name: "1+1 早鳥優惠票", minFlagged: 1 };
 
   it("passes when enough attendees are flagged", () => {
-    expect(validateFlaggedCount([pair], 1, "參加伸展台比賽")).toBeNull();
-    expect(validateFlaggedCount([pair], 2, "參加伸展台比賽")).toBeNull();
+    expect(findFlaggedShortfall([pair], 1, "參加伸展台比賽")).toBeNull();
+    expect(findFlaggedShortfall([pair], 2, "參加伸展台比賽")).toBeNull();
   });
 
   it("fails when too few attendees are flagged", () => {
-    expect(validateFlaggedCount([pair], 0, "參加伸展台比賽")).toBe(
-      "「1+1 早鳥優惠票」需至少 1 位參加者勾選「參加伸展台比賽」"
-    );
+    expect(findFlaggedShortfall([pair], 0, "參加伸展台比賽")).toEqual({
+      item: "1+1 早鳥優惠票",
+      required: 1,
+      label: "參加伸展台比賽",
+    });
   });
 
   it("skips validation when the event has no label", () => {
-    expect(validateFlaggedCount([pair], 0, null)).toBeNull();
-    expect(validateFlaggedCount([pair], 0, "  ")).toBeNull();
+    expect(findFlaggedShortfall([pair], 0, null)).toBeNull();
+    expect(findFlaggedShortfall([pair], 0, "  ")).toBeNull();
   });
 
   it("ignores tickets without a requirement", () => {
-    expect(validateFlaggedCount([{ name: "純舞會" }], 0, "參加伸展台比賽")).toBeNull();
+    expect(findFlaggedShortfall([{ name: "純舞會" }], 0, "參加伸展台比賽")).toBeNull();
   });
 });

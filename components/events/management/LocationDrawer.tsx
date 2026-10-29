@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,8 @@ export function LocationDrawer({
   onSuccess,
   onCancel,
 }: LocationDrawerProps) {
+  const t = useTranslations("savedInfo");
+  const tCommon = useTranslations("common");
   const [name, setName] = useState("");
   const [googleMapUrl, setGoogleMapUrl] = useState("");
   const [address, setAddress] = useState("");
@@ -28,7 +31,7 @@ export function LocationDrawer({
     setError(null);
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("請輸入名稱");
+      setError(t("nameRequired"));
       return;
     }
     setSubmitting(true);
@@ -46,7 +49,7 @@ export function LocationDrawer({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "新增失敗");
+        setError(data.error || t("addFailed"));
         setSubmitting(false);
         return;
       }
@@ -59,7 +62,7 @@ export function LocationDrawer({
       setRemark("");
       onCancel();
     } catch {
-      setError("新增失敗");
+      setError(t("addFailed"));
     }
     setSubmitting(false);
   };
@@ -68,10 +71,10 @@ export function LocationDrawer({
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       {error && <p className="text-sm text-red-500">{error}</p>}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="loc-name">名稱 *</Label>
+        <Label htmlFor="loc-name">{t("nameLabel")}</Label>
         <Input
           id="loc-name"
-          placeholder="輸入名稱"
+          placeholder={t("namePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -80,39 +83,39 @@ export function LocationDrawer({
         <Label htmlFor="loc-map">Google Map</Label>
         <Input
           id="loc-map"
-          placeholder="輸入 Google Map 連結"
+          placeholder={t("location.googleMapLinkPlaceholder")}
           value={googleMapUrl}
           onChange={(e) => setGoogleMapUrl(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="loc-address">地址</Label>
+        <Label htmlFor="loc-address">{t("location.addressLabel")}</Label>
         <Input
           id="loc-address"
-          placeholder="輸入地址"
+          placeholder={t("location.addressPlaceholder")}
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="loc-remark">備註</Label>
+        <Label htmlFor="loc-remark">{t("location.remarkLabel")}</Label>
         <Input
           id="loc-remark"
-          placeholder="輸入備註"
+          placeholder={t("location.remarkPlaceholder")}
           value={remark}
           onChange={(e) => setRemark(e.target.value)}
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          取消
+          {tCommon("cancel")}
         </Button>
         <Button
           type="submit"
           className="bg-primary text-ink hover:bg-brand-hover"
           disabled={submitting}
         >
-          {submitting ? "新增中…" : "新增"}
+          {submitting ? tCommon("adding") : tCommon("add")}
         </Button>
       </div>
     </form>

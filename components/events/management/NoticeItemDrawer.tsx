@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,8 @@ export function NoticeItemDrawer({
   onSuccess,
   onCancel,
 }: NoticeItemDrawerProps) {
+  const t = useTranslations("eventForm.notice");
+  const tCommon = useTranslations("common");
   const [content, setContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -44,7 +47,7 @@ export function NoticeItemDrawer({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(data.error || "新增失敗");
+          setError(data.error || t("addFailed"));
           setSubmitting(false);
           return;
         }
@@ -52,7 +55,7 @@ export function NoticeItemDrawer({
         setContent("");
         onCancel();
       } catch {
-        setError("新增失敗");
+        setError(t("addFailed"));
       }
       setSubmitting(false);
     } else {
@@ -66,24 +69,24 @@ export function NoticeItemDrawer({
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       {error && <p className="text-sm text-red-500">{error}</p>}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="notice-content">內容</Label>
+        <Label htmlFor="notice-content">{t("contentLabel")}</Label>
         <Input
           id="notice-content"
-          placeholder="輸入內容"
+          placeholder={t("contentPlaceholder")}
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          取消
+          {tCommon("cancel")}
         </Button>
         <Button
           type="submit"
           className="bg-primary text-ink hover:bg-brand-hover"
           disabled={submitting}
         >
-          {submitting ? "新增中…" : "新增"}
+          {submitting ? tCommon("adding") : tCommon("add")}
         </Button>
       </div>
     </form>

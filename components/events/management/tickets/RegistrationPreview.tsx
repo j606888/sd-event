@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Eye } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { GroupTicketPicker } from "@/components/events/registration/GroupTicketPicker";
 import { computeItemsTotal, requiredAttendeeCount } from "@/lib/seat-count";
 import {
@@ -26,6 +27,7 @@ import type { EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
 export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
   const { purchaseItems, priceTiers, groups, groupExclusions, allowMultiple, autoCalcAmount } =
     form;
+  const t = useTranslations("tickets");
 
   // ---- 時段模擬 ----
   // 與伺服器同一套規則算出「現在」生效的時段；管理者可點 pill 模擬其他時段
@@ -92,7 +94,7 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     const sale = resolveItemSaleStatus(tierRows, prices, tierRows[tierIndex] ?? null);
     return {
       id: itemIndex,
-      name: purchaseItems[itemIndex].name || "（未命名票券）",
+      name: purchaseItems[itemIndex].name || t("untitledTicket"),
       amount: priceOf(itemIndex),
       // 與公開 API 一致：最後一段不販售（早鳥限定）就不顯示省多少
       fullAmount: isItemSoldInTier(prices, lastTierIndex >= 0 ? lastTierIndex : null)
@@ -112,7 +114,7 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
 
   const publicGroups: EventPurchaseItemGroup[] = groups.map((g, gi) => ({
     id: gi,
-    title: g.title || "（未命名區塊）",
+    title: g.title || t("untitledGroup"),
     selectionMode: g.selectionMode,
     required: g.required,
     sortOrder: gi,
@@ -152,16 +154,16 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
       <div>
         <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
           <Eye className="size-4 text-brand-strong" />
-          報名頁即時預覽
+          <span>{t("preview.title")}</span>
         </p>
         <p className="mt-0.5 text-xs text-gray-500">
-          這是報名者將看到的票券選擇畫面，可以實際點選試試。
+          {t("preview.description")}
         </p>
       </div>
 
       {priceTiers.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-gray-500">預覽票價時段：</span>
+          <span className="text-xs text-gray-500">{t("preview.tierLabel")}</span>
           {priceTiers.map((tier, i) => (
             <button
               key={tier.id ?? `draft-${i}`}
@@ -173,9 +175,9 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
                   : "border-gray-200 text-gray-500 hover:border-gray-300"
               }`}
             >
-              {tier.name || "（未命名）"}
+              <span>{tier.name || t("untitled")}</span>
               {i === autoActiveIndex && (
-                <span className="ml-1 text-[10px] text-gray-400">目前適用</span>
+                <span className="ml-1 text-[10px] text-gray-400">{t("currentTier")}</span>
               )}
             </button>
           ))}
@@ -203,18 +205,18 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
             {autoCalc ? (
               <>
                 <span className="text-gray-500">
-                  總金額（自動計算，{previewAttendees} 位參加者）
+                  {t("preview.autoTotal", { count: previewAttendees })}
                 </span>
                 <span className="font-semibold text-gray-900">${total}</span>
               </>
             ) : (
-              <span className="text-gray-500">報名者自行填寫金額</span>
+              <span className="text-gray-500">{t("preview.manualAmount")}</span>
             )}
           </div>
         </div>
       ) : (
         <p className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
-          新增票券後，這裡會即時顯示報名頁的樣子。
+          {t("preview.empty")}
         </p>
       )}
     </div>

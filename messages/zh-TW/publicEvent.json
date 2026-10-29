@@ -1,0 +1,111 @@
+{
+  "metadata": {
+    "notFoundTitle": "活動不存在"
+  },
+  "page": {
+    "loadFailed": "無法載入活動",
+    "notFound": "找不到活動",
+    "linkInvalid": "連結可能已失效或活動已刪除",
+    "draftPreview": "預覽模式 — 活動尚未發布，僅團隊成員看得到此頁"
+  },
+  "details": {
+    "navigate": "導航 >",
+    "ticketsHeading": "方案介紹",
+    "tierDeadline": "{tier}價至 {date} 止",
+    "organizerHeading": "主辦單位",
+    "noticesHeading": "報名須知",
+    "agreeToNotices": "我已閱讀並同意報名須知",
+    "register": "報名活動"
+  },
+  "saleStatus": {
+    "ended": "已截止",
+    "opensAt": "{tier}開賣",
+    "upcoming": "尚未開賣"
+  },
+  "priceLine": {
+    "perSeats": "/ {count} 人",
+    "tierPrice": "{tier}價 ${amount}",
+    "originalPrice": "原價 ${amount}",
+    "savings": "省 ${amount}"
+  },
+  "ticketPicker": {
+    "bundleBadge": "{seats} 人套票 · 需填 {seats} 位參加者",
+    "optional": "（選填）",
+    "lockedBy": "（已包含於「{group}」）",
+    "noneOption": "不需要",
+    "chooseTicket": "選擇方案"
+  },
+  "form": {
+    "title": "選擇方案 & 人數",
+    "contactHeading": "聯絡人資料",
+    "contactNameLabel": "姓名",
+    "contactNamePlaceholder": "請輸入姓名",
+    "phoneLabel": "電話",
+    "phonePlaceholder": "請輸入電話",
+    "emailLabel": "信箱",
+    "emailPlaceholder": "請輸入信箱",
+    "attendeesHeading": "參加者資料",
+    "bundleNotice": "你選擇了「<b>{name}</b>」，請填寫剛好 <num>{count}</num> 位參加者。",
+    "attendeeN": "參加者 {n}",
+    "attendeeNameLabel": "稱呼",
+    "attendeeNamePlaceholder": "請輸入姓名",
+    "roleLabel": "角色",
+    "roleNotSure": "還不確定",
+    "addAttendee": "增加參加者",
+    "seatCountMismatch": "「{item}」需填寫剛好 {required} 位參加者（目前 {actual} 位）",
+    "flaggedShortfall": "「{item}」需至少 {required} 位參加者勾選「{label}」",
+    "costHeading": "費用",
+    "totalAuto": "總金額（自動計算）",
+    "totalManual": "總金額（請自行計算）",
+    "totalPlaceholder": "請輸入總金額",
+    "couponLabel": "折扣碼",
+    "couponFixed": "折抵 NT${value}",
+    "couponPercent": "折扣 {value}%",
+    "removeCoupon": "移除折扣碼",
+    "couponPlaceholder": "輸入折扣碼（選填）",
+    "couponChecking": "驗證中…",
+    "couponApply": "套用",
+    "discountedTotal": "折扣後金額",
+    "checkingCoupon": "驗證折扣碼…",
+    "toPayment": "選擇付款方式"
+  },
+  "payment": {
+    "title": "選擇付款方式",
+    "summary": {
+      "time": "時間",
+      "venue": "地點",
+      "tickets": "選擇方案",
+      "planWithSeats": "{name} ${amount} / {seats} 人",
+      "contact": "聯絡人",
+      "attendees": "參加者",
+      "attendeeSeparator": "、",
+      "coupon": "折扣碼",
+      "total": "總金額"
+    },
+    "methodHeading": "付款方式",
+    "payRightAway": "請於確認報名後立即付款",
+    "methods": {
+      "linePay": "Line Pay",
+      "bankTransfer": "Bank Transfer",
+      "other": "Other"
+    },
+    "bankHeading": "匯款帳號",
+    "bank": "銀行",
+    "account": "帳號",
+    "copyAccount": "複製帳號",
+    "submit": "確認報名"
+  },
+  "linePayee": {
+    "heading": "LINE 付款",
+    "instructions": "加入好友後，透過 LINE Pay / LINE 轉帳付款，並傳送付款截圖。",
+    "addFriend": "加 LINE 好友",
+    "qrAlt": "LINE 加好友 QR code",
+    "scanWithPhone": "用手機掃描"
+  },
+  "errors": {
+    "couponCheckFailed": "驗證折扣碼失敗，請稍後再試",
+    "submitFailed": "報名失敗，請稍後再試",
+    "missingRegistrationKey": "報名成功，但無法取得報名編號",
+    "network": "網路錯誤，請稍後再試"
+  }
+}

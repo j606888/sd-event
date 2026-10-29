@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
 import { normalizeCouponCode, validateCouponFields } from "@/lib/coupon";
+import { apiError } from "@/lib/api-error";
 import { and, eq, ne } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string; couponId: string }> };
@@ -16,13 +17,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, couponId: couponIdStr } = await params;
   const eventId = Number(eventIdStr);
   const couponId = Number(couponIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(couponId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -34,7 +35,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .where(and(eq(eventCoupons.id, couponId), eq(eventCoupons.eventId, eventId)))
     .limit(1);
   if (!coupon) {
-    return NextResponse.json({ error: "找不到折扣碼" }, { status: 404 });
+    return apiError("eventApiErrors.coupons.notFound", 404);
   }
 
   const body = await request.json().catch(() => ({}));
@@ -42,10 +43,10 @@ export async function PATCH(request: Request, { params }: Params) {
   const code =
     typeof body.code === "string" ? normalizeCouponCode(body.code) : coupon.code;
   if (!code) {
-    return NextResponse.json({ error: "折扣碼不可為空" }, { status: 400 });
+    return apiError("eventApiErrors.coupons.codeEmpty", 400);
   }
   if (code.length > 50) {
-    return NextResponse.json({ error: "折扣碼長度不可超過 50 字" }, { status: 400 });
+    return apiError("eventApiErrors.coupons.codeTooLong", 400);
   }
   const discountType =
     "discountType" in body ? body.discountType : coupon.discountType;
@@ -59,13 +60,10 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const fieldError = validateCouponFields(discountType, value, usageLimit);
   if (fieldError) {
-    return NextResponse.json({ error: fieldError }, { status: 400 });
+    return apiError(`eventApiErrors.coupons.fields.${fieldError}`, 400);
   }
   if (usageLimit != null && usageLimit < coupon.usedCount) {
-    return NextResponse.json(
-      { error: "使用上限不可低於已使用次數" },
-      { status: 400 }
-    );
+    return apiError("eventApiErrors.coupons.usageLimitBelowUsed", 400);
   }
 
   if (code !== coupon.code) {
@@ -81,7 +79,7 @@ export async function PATCH(request: Request, { params }: Params) {
       )
       .limit(1);
     if (dup.length > 0) {
-      return NextResponse.json({ error: "折扣碼重複" }, { status: 409 });
+      return apiError("eventApiErrors.coupons.duplicate", 409);
     }
   }
 
@@ -93,13 +91,13 @@ export async function PATCH(request: Request, { params }: Params) {
       .returning();
 
     if (!updated) {
-      return NextResponse.json({ error: "找不到折扣碼" }, { status: 404 });
+      return apiError("eventApiErrors.coupons.notFound", 404);
     }
 
     return NextResponse.json({ coupon: updated });
   } catch (e) {
     if ((e as { code?: string })?.code === "23505") {
-      return NextResponse.json({ error: "折扣碼重複" }, { status: 409 });
+      return apiError("eventApiErrors.coupons.duplicate", 409);
     }
     throw e;
   }
@@ -111,13 +109,13 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { eventId: eventIdStr, couponId: couponIdStr } = await params;
   const eventId = Number(eventIdStr);
   const couponId = Number(couponIdStr);
   if (!Number.isInteger(eventId) || !Number.isInteger(couponId)) {
-    return NextResponse.json({ error: "無效的 id" }, { status: 400 });
+    return apiError("eventApiErrors.invalidId", 400);
   }
 
   const access = await requireEventAdmin(eventId, session.userId);
@@ -129,7 +127,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     .returning();
 
   if (!deleted) {
-    return NextResponse.json({ error: "找不到折扣碼" }, { status: 404 });
+    return apiError("eventApiErrors.coupons.notFound", 404);
   }
 
   return NextResponse.json({ ok: true });

@@ -51,6 +51,7 @@ export type RegistrationApiResponse = {
 /**
  * 依註冊金鑰取得報名資料（不需登入）
  * @returns 報名資料，404 時回傳 null，其他錯誤 throw
+ * （message 為伺服器回傳的 error；沒有時為空字串，由畫面顯示翻譯後的預設訊息）
  */
 export async function getRegistrationByKey(
   registrationKey: string
@@ -64,7 +65,8 @@ export async function getRegistrationByKey(
   }
 
   if (!res.ok) {
-    throw new Error("無法載入報名資料");
+    const data = await res.json().catch(() => null);
+    throw new Error(typeof data?.error === "string" ? data.error : "");
   }
 
   const data = await res.json();

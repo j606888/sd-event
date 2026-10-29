@@ -14,6 +14,7 @@ import {
   users,
 } from "@/db/schema";
 import { requireSuperAdmin } from "@/lib/api-auth";
+import { apiError, apiMessage } from "@/lib/api-error";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -25,7 +26,7 @@ export async function GET(_request: Request, { params }: Params) {
 
   const eventId = Number((await params).eventId);
   if (!Number.isInteger(eventId)) {
-    return NextResponse.json({ error: "無效的 eventId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "eventId" });
   }
 
   const [event] = await db
@@ -47,7 +48,7 @@ export async function GET(_request: Request, { params }: Params) {
     .limit(1);
 
   if (!event) {
-    return NextResponse.json({ error: "找不到活動" }, { status: 404 });
+    return apiError("apiErrors.common.eventNotFound", 404);
   }
 
   const [groups, items, tiers, registrations] = await Promise.all([
@@ -110,6 +111,7 @@ export async function GET(_request: Request, { params }: Params) {
   ]);
 
   const itemNameMap = new Map(items.map((i) => [i.id, i.name]));
+  const deletedItemName = await apiMessage("apiErrors.admin.deletedItem");
 
   const stats = {
     registrationCount: registrations.length,
@@ -151,7 +153,7 @@ export async function GET(_request: Request, { params }: Params) {
         .filter((i) => i.registrationId === r.id)
         .map((i) => ({
           ...i,
-          name: itemNameMap.get(i.purchaseItemId) ?? "（已刪除）",
+          name: itemNameMap.get(i.purchaseItemId) ?? deletedItemName,
         })),
     })),
   });

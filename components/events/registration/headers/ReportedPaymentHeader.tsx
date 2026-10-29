@@ -1,8 +1,10 @@
 "use client";
 
 import { Clock } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function ReportedPaymentHeader() {
+  const t = useTranslations("myRegistration.headers.reported");
   return (
     <div className="p-4 text-center">
       <div
@@ -25,15 +27,15 @@ export function ReportedPaymentHeader() {
 
         {/* 文字區域：優化級距與顏色 */}
         <h1 className="text-2xl font-extrabold text-amber-950 mb-3 tracking-tight">
-          付款資訊已回報
+          {t("title")}
         </h1>
         
         <div className="space-y-1 mb-6">
           <p className="text-[15px] font-medium text-amber-900/70">
-            我們已收到您回報的付款資訊
+            {t("received")}
           </p>
           <p className="text-[14px] text-amber-900/50">
-            主辦方將盡快為您確認，請稍候
+            {t("pleaseWait")}
           </p>
         </div>
 
@@ -43,7 +45,7 @@ export function ReportedPaymentHeader() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
-          <span className="text-sm font-bold text-amber-700">待主辦方確認</span>
+          <span className="text-sm font-bold text-amber-700">{t("badge")}</span>
         </div>
       </div>
     </div>

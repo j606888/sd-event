@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { bankInfos, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { eq, and } from "drizzle-orm";
 
 type Params = {
@@ -15,14 +16,17 @@ export async function PATCH(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const { teamId: teamIdStr, bankInfoId: bankInfoIdStr } = await params;
   const teamId = Number(teamIdStr);
   const bankInfoId = Number(bankInfoIdStr);
 
   if (!Number.isInteger(teamId) || !Number.isInteger(bankInfoId)) {
-    return NextResponse.json({ error: "無效的 teamId 或 bankInfoId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParamPair", 400, {
+      first: "teamId",
+      second: "bankInfoId",
+    });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -36,7 +40,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .limit(1);
 
   if (!existing) {
-    return NextResponse.json({ error: "找不到銀行資訊" }, { status: 404 });
+    return apiError("apiErrors.savedInfo.bankInfoNotFound", 404);
   }
 
   const body = await request.json().catch(() => ({}));
@@ -61,7 +65,7 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "沒有要更新的欄位" }, { status: 400 });
+    return apiError("apiErrors.common.noFieldsToUpdate", 400);
   }
 
   const [updated] = await db
@@ -71,7 +75,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .returning();
 
   if (!updated) {
-    return NextResponse.json({ error: "更新失敗" }, { status: 500 });
+    return apiError("apiErrors.common.updateFailed", 500);
   }
 
   return NextResponse.json({ bankInfo: updated });

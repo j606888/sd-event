@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { eventLocations, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
+import { apiError } from "@/lib/api-error";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -13,11 +14,11 @@ export async function GET(_request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -37,11 +38,11 @@ export async function POST(request: Request, { params }: Params) {
   if (authError) return authError;
 
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "未登入" }, { status: 401 });
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
 
   const teamId = Number((await params).teamId);
   if (!Number.isInteger(teamId)) {
-    return NextResponse.json({ error: "無效的 teamId" }, { status: 400 });
+    return apiError("apiErrors.common.invalidParam", 400, { param: "teamId" });
   }
 
   const forbidden = await requireTeamAdmin(teamId, session.userId);
@@ -50,7 +51,7 @@ export async function POST(request: Request, { params }: Params) {
   const body = await request.json().catch(() => ({}));
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name) {
-    return NextResponse.json({ error: "請提供名稱 name" }, { status: 400 });
+    return apiError("apiErrors.savedInfo.nameRequired", 400);
   }
 
   const googleMapUrl = typeof body.googleMapUrl === "string" ? body.googleMapUrl : null;
@@ -69,7 +70,7 @@ export async function POST(request: Request, { params }: Params) {
     .returning();
 
   if (!location) {
-    return NextResponse.json({ error: "新增失敗" }, { status: 500 });
+    return apiError("apiErrors.common.addFailed", 500);
   }
 
   return NextResponse.json({ location });

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronLeft, CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import { RoleBadge } from "./RoleBadge";
@@ -25,8 +26,10 @@ export function ScannedRegistrationDetail({
   canSeeMoney = true,
   onBack,
   onCheckIn,
-  backLabel = "返回 QR Code 掃描",
+  backLabel,
 }: ScannedRegistrationDetailProps) {
+  const t = useTranslations("registration");
+  const tCommon = useTranslations("common");
   const [checkingIn, setCheckingIn] = useState<number | null>(null);
   const [localAttendees, setLocalAttendees] = useState(registration.attendees);
 
@@ -56,9 +59,7 @@ export function ScannedRegistrationDetail({
 
   const requestCheckIn = async (attendeeId: number) => {
     if (registration.paymentStatus !== "confirmed") {
-      const shouldProceed = window.confirm(
-        "此報名付款尚未確認，仍要讓此參與者入場嗎？"
-      );
+      const shouldProceed = window.confirm(t("scan.unpaidConfirm"));
       if (!shouldProceed) return;
     }
     await handleCheckIn(attendeeId);
@@ -77,7 +78,7 @@ export function ScannedRegistrationDetail({
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="text-sm">{backLabel}</span>
+          <span className="text-sm">{backLabel ?? t("scan.backToScanner")}</span>
         </button>
       </div>
 
@@ -89,9 +90,12 @@ export function ScannedRegistrationDetail({
               {registration.contactName}
             </h2>
             <div className="text-sm text-gray-600 mt-1">
-              {attendeeCount}人
-              {canSeeMoney && registration.totalAmount != null &&
-                ` · NT $${registration.totalAmount.toLocaleString()}`}
+              {canSeeMoney && registration.totalAmount != null
+                ? t("scan.peopleWithAmount", {
+                    count: attendeeCount,
+                    amount: registration.totalAmount.toLocaleString(),
+                  })
+                : t("scan.people", { count: attendeeCount })}
             </div>
             <div className="mt-2">
               <PaymentStatusBadge status={registration.paymentStatus} />
@@ -100,7 +104,7 @@ export function ScannedRegistrationDetail({
           {allCheckedIn && (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">
               <CheckCircle2 className="w-3 h-3" />
-              <span>已全員入場</span>
+              <span>{t("scan.allCheckedIn")}</span>
             </div>
           )}
         </div>
@@ -108,21 +112,22 @@ export function ScannedRegistrationDetail({
 
       {refunded && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-          這筆報名已退款，QR 憑證已失效，請勿放行入場
+          {t("scan.refundedWarning")}
         </div>
       )}
 
       {/* Registration Item */}
       {(registration.purchaseItems && registration.purchaseItems.length > 0) || registration.purchaseItem ? (
         <div className="space-y-2">
-          <h3 className="font-semibold text-gray-900">報名項目</h3>
+          <h3 className="font-semibold text-gray-900">{t("itemsHeading")}</h3>
           {registration.purchaseItems && registration.purchaseItems.length > 0 ? (
             // Multiple purchase items
             <div className="space-y-1">
               {registration.purchaseItems.map((item) => (
                 <div key={item.id} className="text-sm text-gray-900">
-                  {item.name}
-                  {canSeeMoney && item.amount != null && ` $${item.amount}`}
+                  {canSeeMoney && item.amount != null
+                    ? `${item.name} $${item.amount}`
+                    : item.name}
                 </div>
               ))}
             </div>
@@ -137,7 +142,7 @@ export function ScannedRegistrationDetail({
 
       {/* Participants */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">參與者</h3>
+        <h3 className="font-semibold text-gray-900">{t("scan.attendeesHeading")}</h3>
         <div className="space-y-2">
           {localAttendees.map((attendee) => (
             <div
@@ -154,10 +159,10 @@ export function ScannedRegistrationDetail({
               {attendee.checkedIn ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 rounded-full text-xs font-medium text-green-700">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>已入場</span>
+                  <span>{t("checkedIn")}</span>
                 </div>
               ) : refunded ? (
-                <span className="text-xs text-muted-ink">已退款</span>
+                <span className="text-xs text-muted-ink">{t("refunded")}</span>
               ) : (
                 <Button
                   onClick={() => requestCheckIn(attendee.id)}
@@ -165,7 +170,7 @@ export function ScannedRegistrationDetail({
                   size="sm"
                   className="bg-brand text-ink hover:bg-brand-hover h-8 px-3 text-xs"
                 >
-                  {checkingIn === attendee.id ? "處理中…" : "入場"}
+                  {checkingIn === attendee.id ? tCommon("processing") : t("checkIn")}
                 </Button>
               )}
             </div>

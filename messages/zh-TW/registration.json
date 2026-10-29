@@ -1,0 +1,182 @@
+{
+  "itemsHeading": "報名項目",
+  "tierSuffix": "（{tier}）",
+  "checkIn": "入場",
+  "checkedIn": "已入場",
+  "refunded": "已退款",
+  "actionFailed": "操作失敗，請稍後再試",
+  "refundMethod": {
+    "bankTransfer": "銀行轉帳",
+    "linePay": "LINE Pay",
+    "cash": "現金"
+  },
+  "detail": {
+    "backToList": "返回列表",
+    "closeDetail": "關閉明細",
+    "previous": "上一筆",
+    "next": "下一筆",
+    "position": "第 {current} / {total} 筆",
+    "hidden": "已隱藏",
+    "summary": "{count} 人 · {source} {time}",
+    "summaryWithAmount": "{count} 人 · NT${amount} · {source} {time}",
+    "sourceWalkIn": "現場報名",
+    "sourceOnline": "線上報名",
+    "confirmPayment": "確認收款",
+    "moreActions": "更多操作",
+    "editRegistration": "編輯報名資料",
+    "resending": "寄送中…",
+    "resent": "已重寄",
+    "resendConfirmation": "重寄確認信",
+    "resendFailed": "重寄失敗",
+    "viewEntryPass": "檢視入場 QR 憑證",
+    "hide": "標記為隱藏",
+    "unhide": "取消隱藏",
+    "markRefunded": "標記為已退款…",
+    "rejectPayment": "拒絕這筆付款",
+    "refundRecord": {
+      "refundedAmount": "已退款 NT${amount}",
+      "date": "退款日期",
+      "method": "方式",
+      "handledBy": "處理人",
+      "note": "備註",
+      "excluded": "此筆不計入人數、L/F 與入帳金額",
+      "undo": "撤銷退款"
+    },
+    "contact": {
+      "heading": "聯絡人",
+      "copyPhone": "複製電話",
+      "copyEmail": "複製信箱",
+      "none": "沒有留下聯絡方式"
+    },
+    "attendees": {
+      "heading": "參與者",
+      "checkedInCount": "{checkedIn} / {total} 已入場",
+      "checkInAll": "全部入場",
+      "undoCheckIn": "取消入場",
+      "notCheckedIn": "未入場",
+      "refundedNoCheckIn": "已退款，無法入場",
+      "checkInFailed": "入場失敗，請重試",
+      "undoCheckInFailed": "取消入場失敗，請重試"
+    },
+    "items": {
+      "couponCode": "折扣碼",
+      "totalDue": "應收總額",
+      "netReceived": "實收"
+    },
+    "payment": {
+      "heading": "付款資料",
+      "method": "方式",
+      "cash": "現金",
+      "unspecified": "未指定",
+      "note": "備註",
+      "proofHeading": "付款證明",
+      "original": "原圖",
+      "screenshotAlt": "付款截圖"
+    },
+    "confirmPaymentDrawer": {
+      "title": "確認收款？",
+      "description": "這筆報名還沒有回報付款。確認後系統會寄出收款確認信，狀態改為「已確認收款」。",
+      "summary": "{name} · {count} 人",
+      "confirm": "仍要確認收款"
+    },
+    "rejectDrawer": {
+      "title": "拒絕這筆付款？",
+      "description": "狀態會改為「已拒絕」。報名者仍可從自己的報名連結重新回報付款。",
+      "confirm": "拒絕付款"
+    },
+    "undoRefundDrawer": {
+      "title": "撤銷退款？",
+      "description": "狀態會回到「已收款」，退款紀錄會被清除，這筆報名重新計入人數與入帳金額。不會寄信給報名者。",
+      "confirm": "撤銷退款"
+    },
+    "hiddenDrawer": {
+      "hideTitle": "標記為隱藏？",
+      "unhideTitle": "取消隱藏？",
+      "hideDescription": "隱藏後這筆報名不會出現在預設的報名者列表與統計裡，但資料仍然保留，之後可以取消隱藏。",
+      "unhideDescription": "這筆報名會重新出現在預設的報名者列表與統計中。"
+    },
+    "unpaidCheckInDrawer": {
+      "title": "尚未確認收款",
+      "description": "這筆報名的款項還沒確認。仍要讓參與者入場嗎？",
+      "confirm": "仍要入場"
+    }
+  },
+  "refund": {
+    "title": "把{name}標記為已退款？",
+    "intro": "這只是記錄，系統不會幫你轉帳。請先把錢退給對方，再回來按確認。",
+    "fullRefund": "全額退款 · {count} 人",
+    "method": "退款方式",
+    "note": "備註",
+    "noteHint": "（選填，只有主辦看得到）",
+    "notePlaceholder": "例如：臨時有事無法參加，全額退款",
+    "notify": "寄退款通知 Email 給 {email}",
+    "effectNotCounted": "· 不再計入報名人數、L/F 與已入帳金額",
+    "effectQrVoid": "· QR 憑證失效，掃碼時會顯示「已退款」",
+    "effectUndo": "· 之後可以從報名明細「撤銷退款」",
+    "confirm": "確認已退款 NT${amount}"
+  },
+  "scan": {
+    "title": "掃描 QR Code",
+    "loadFailed": "無法載入報名資料",
+    "wrongEvent": "此 QR code 不屬於當前活動",
+    "invalidData": "無效的報名資料",
+    "checkInFailed": "檢查入場失敗",
+    "attendeeFallback": "參加者",
+    "invalidQr": "無效的 QR code",
+    "cameraFailed": "無法啟動相機，請確認已授予相機權限",
+    "retry": "重試",
+    "aimHint": "請將 QR code 對準相機",
+    "walkIn": "現場報名",
+    "backToScanner": "返回 QR Code 掃描",
+    "unpaidConfirm": "此報名付款尚未確認，仍要讓此參與者入場嗎？",
+    "people": "{count}人",
+    "peopleWithAmount": "{count}人 · NT ${amount}",
+    "allCheckedIn": "已全員入場",
+    "refundedWarning": "這筆報名已退款，QR 憑證已失效，請勿放行入場",
+    "attendeesHeading": "參與者",
+    "invalidEventId": "無效的活動 ID",
+    "readOnlyTitle": "模擬檢視為唯讀模式",
+    "readOnlyBody": "無法使用掃碼報到功能"
+  },
+  "form": {
+    "attendeesHeading": "參加者",
+    "attendeeN": "參加者 {n}",
+    "removeAttendee": "移除參加者",
+    "namePlaceholder": "姓名",
+    "addAttendee": "增加參加者",
+    "amountPlaceholder": "金額",
+    "atLeastOneAttendee": "請至少填寫一位參加者的姓名與角色",
+    "seatCountMismatch": "「{item}」需填寫剛好 {required} 位參加者（目前 {actual} 位）",
+    "flaggedShortfall": "「{item}」需至少 {required} 位參加者勾選「{label}」"
+  },
+  "walkIn": {
+    "title": "現場報名",
+    "subtitle": "現金付款・即時報到",
+    "lockedBy": "（已包含於「{group}」）",
+    "priceForSeats": "${amount} / {seats} 人",
+    "noneOption": "不需要",
+    "bundleHint": "「{name}」需填剛好 {count} 位參加者。",
+    "bundleBadge": "{seats} 人套票",
+    "contactLabel": "聯絡人姓名（選填，預設用第一位參加者）",
+    "contactPlaceholder": "聯絡人姓名",
+    "amountLabelEditable": "收取金額（自動帶入，可修改）",
+    "amountLabelReadOnly": "應收金額",
+    "autoCheckIn": "建立後立即報到（標記為已入場）",
+    "submit": "確認報名（現金）",
+    "selectItem": "請選擇報名項目",
+    "failed": "現場報名失敗",
+    "missingRegistrationKey": "報名成功，但無法取得報名編號"
+  },
+  "edit": {
+    "title": "編輯報名",
+    "subtitle": "修改聯絡人、參加者與金額",
+    "contactHeading": "聯絡人",
+    "nameLabel": "姓名",
+    "phoneLabel": "電話",
+    "amountLabel": "總金額",
+    "contactNameRequired": "請填寫聯絡人姓名",
+    "invalidEmail": "請提供有效的 email",
+    "invalidAmount": "請填寫有效的總金額",
+    "failed": "更新失敗"
+  }
+}

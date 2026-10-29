@@ -4,20 +4,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Logo } from "@/components/brand/Logo";
 
-const registerSchema = z.object({
-  name: z.string().min(2, "名稱至少要 2 個字"),
-  email: z.string().email("請輸入有效的信箱"),
-  password: z.string().min(6, "密碼至少要 6 個字"),
-})
-type RegisterFormValues = z.infer<typeof registerSchema>;
+const NAME_MIN = 2;
+const PASSWORD_MIN = 6;
+
+// 驗證訊息要跟著語系，schema 在元件裡用翻譯好的字建立
+const createRegisterSchema = (messages: {
+  nameMin: string;
+  emailInvalid: string;
+  passwordMin: string;
+}) =>
+  z.object({
+    name: z.string().min(NAME_MIN, messages.nameMin),
+    email: z.string().email(messages.emailInvalid),
+    password: z.string().min(PASSWORD_MIN, messages.passwordMin),
+  });
+type RegisterFormValues = z.infer<ReturnType<typeof createRegisterSchema>>;
 
 const RegisterPage = () => {
   const router = useRouter();
+  const t = useTranslations("auth");
+  const registerSchema = useMemo(
+    () =>
+      createRegisterSchema({
+        nameMin: t("validation.nameMin", { min: NAME_MIN }),
+        emailInvalid: t("validation.emailInvalid"),
+        passwordMin: t("validation.passwordMin", { min: PASSWORD_MIN }),
+      }),
+    [t]
+  );
   const {
     register,
     handleSubmit,
@@ -40,7 +61,7 @@ const RegisterPage = () => {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError("root", { message: json.error || "註冊失敗" });
+      setError("root", { message: json.error || t("register.failed") });
       return;
     }
     router.push("/setup-team");
@@ -54,21 +75,21 @@ const RegisterPage = () => {
           <Logo />
         </h1>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col items-center justify-center w-full gap-6">
-        <h4 className="text-[20px] font-semibold text-gray-900text-center">建立新帳號</h4>
+        <h4 className="text-[20px] font-semibold text-gray-900text-center">{t("register.title")}</h4>
         <div className="flex flex-col gap-3 w-full">
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">名稱</label>
-            <Input {...register("name")} type="text" placeholder="輸入名稱" />
+            <label className="text-sm font-medium">{t("nameLabel")}</label>
+            <Input {...register("name")} type="text" placeholder={t("namePlaceholder")} />
             {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">信箱</label>
-            <Input {...register("email")} type="email" placeholder="輸入信箱" />
+            <label className="text-sm font-medium">{t("emailLabel")}</label>
+            <Input {...register("email")} type="email" placeholder={t("emailPlaceholder")} />
             {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">密碼</label>
-            <Input {...register("password")} type="password" placeholder="輸入密碼" />
+            <label className="text-sm font-medium">{t("passwordLabel")}</label>
+            <Input {...register("password")} type="password" placeholder={t("passwordPlaceholder")} />
             {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
           </div>
         </div>
@@ -77,12 +98,12 @@ const RegisterPage = () => {
             <p className="text-sm text-red-500">{errors.root.message}</p>
           )}
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            註冊帳號
+            {t("signUp")}
           </Button>
           <p className="text-gray-600 text-sm">
-            已經有帳號了?{" "}
+            <span>{t("hasAccount")}</span>{" "}
             <Link href="/login" className="text-brand-strong font-medium underline">
-              登入
+              {t("logIn")}
             </Link>
           </p>
         </div>
