@@ -185,5 +185,35 @@
     "checkInCount": "Check in {count}",
     "checkedIn": "In",
     "noCheckInNeeded": "No check-in needed"
+  },
+  "draftChecklist": {
+    "missingTitle": "{count, plural, one {# more thing} other {# more things}} before you can publish",
+    "readyTitle": "All set — ready to publish",
+    "missingDescription": "You skipped a few steps while creating the event. Finish them to share the registration link.",
+    "readyDescription": "Once you publish, you can share the registration link.",
+    "progress": "Needed to publish",
+    "progressValue": "{done} / {total}",
+    "optional": "Optional",
+    "location": {
+      "label": "Venue",
+      "missing": "The registration page has no venue yet",
+      "action": "Set venue"
+    },
+    "payment": {
+      "label": "Payment",
+      "missing": "Registrants don't know where to transfer yet",
+      "action": "Set payment"
+    },
+    "tickets": {
+      "label": "Tickets",
+      "missing": "There's nothing to buy yet",
+      "action": "Set up tickets"
+    },
+    "cover": {
+      "label": "Cover image",
+      "missing": "You can publish without one, but shared links stand out less",
+      "action": "Upload cover"
+    },
+    "publishBlocked": "{count, plural, one {# more thing} other {# more things}} to finish before publishing"
   }
 }

@@ -19,6 +19,7 @@ import apiErrors from "./apiErrors.json";
 import eventApiErrors from "./eventApiErrors.json";
 import emails from "./emails.json";
 import ticketWizard from "./ticketWizard.json";
+import createEvent from "./createEvent.json";
 
 const messages = {
   metadata,
@@ -42,6 +43,7 @@ const messages = {
   eventApiErrors,
   emails,
   ticketWizard,
+  createEvent,
 };
 
 export default messages;

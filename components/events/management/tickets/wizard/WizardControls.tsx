@@ -65,6 +65,7 @@ export function OptionCard({
   title,
   description,
   kind,
+  leading,
   children,
 }: {
   selected: boolean;
@@ -72,6 +73,8 @@ export function OptionCard({
   title: string;
   description: string;
   kind: "radio" | "checkbox";
+  /** 標題左邊的圖（例如主辦單位的頭像） */
+  leading?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
@@ -104,6 +107,7 @@ export function OptionCard({
         >
           {selected && kind === "checkbox" && <Check className="size-3.5" strokeWidth={3} />}
         </span>
+        {leading}
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="text-base font-bold">{title}</span>
           <span className="text-sm text-muted-ink">{description}</span>

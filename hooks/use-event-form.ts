@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUploadThing } from "@/lib/uploadthing";
 import {
   getEventTemplate,
@@ -109,6 +110,8 @@ export type EventFormInitialData = {
   allowMultiplePurchase: boolean;
   autoCalcAmount: boolean;
   attendeeFlagLabel?: string | null;
+  /** "draft" | "published"；草稿可以先缺地點與收款帳戶 */
+  status?: string;
 };
 
 type Location = { id: number; name: string };
@@ -301,6 +304,7 @@ export function useEventForm({
   const [serverPlanInSync, setServerPlanInSync] = useState(false);
 
   const initializedEventIdRef = useRef<number | null>(null);
+  const queryClient = useQueryClient();
 
   // 以 in-flight 計數器追蹤自動儲存中的請求；全部完成後顯示「已自動儲存」。
   // 每次開始新的自動儲存都先清掉上一次的錯誤 —— 否則一次失敗後，
@@ -316,6 +320,8 @@ export function useEventForm({
       if (autoSaveInFlightRef.current <= 0) {
         autoSaveInFlightRef.current = 0;
         setAutoSaveStatus("saved");
+        // 草稿活動頁的「發布」要看有沒有票（useDraftReadiness）
+        queryClient.invalidateQueries({ queryKey: ["eventPurchaseItems", eventId] });
       }
     }
   };
@@ -435,7 +441,7 @@ export function useEventForm({
     if (initialData.locationId != null && Number.isInteger(initialData.locationId)) {
       setLocationId(String(initialData.locationId));
     } else {
-      // setLocationId("");
+      setLocationId("");
     }
     if (initialData.organizerId != null && Number.isInteger(initialData.organizerId)) {
       setOrganizerId(String(initialData.organizerId));
@@ -716,27 +722,32 @@ export function useEventForm({
     }
   };
 
+  // 新增完直接選起來，並標成未儲存，提醒要按「儲存變更」
   const handleLocationSuccess = async (locationId: number) => {
     await fetchLocations();
-    // setLocationId(String(locationId));
+    setLocationId(String(locationId));
+    setBasicDirty(true);
     setDrawer(null);
   };
 
   const handleOrganizerSuccess = async (organizerId: number) => {
     await fetchOrganizers();
     setOrganizerId(String(organizerId));
+    setBasicDirty(true);
     setDrawer(null);
   };
 
   const handleBankInfoSuccess = async (bankInfoId: number) => {
     await fetchBankInfos();
     setBankInfoId(String(bankInfoId));
+    setBasicDirty(true);
     setDrawer(null);
   };
 
   const handleLinePayeeSuccess = async (linePayeeId: number) => {
     await fetchLinePayees();
     setLinePayeeId(String(linePayeeId));
+    setBasicDirty(true);
     setDrawer(null);
   };
 
@@ -1417,15 +1428,13 @@ export function useEventForm({
       setSaveError(t("validation.titleRequired"));
       return;
     }
-    if (!locationId || !locationId.trim()) {
+    // 草稿可以先缺地點與收款帳戶（建立時「之後再填」，發布前才要補）；主辦單位選填
+    const mustBeComplete = mode === "create" || initialData?.status === "published";
+    if (mustBeComplete && (!locationId || !locationId.trim())) {
       setSaveError(t("validation.locationRequired"));
       return;
     }
-    if (!organizerId || !organizerId.trim()) {
-      setSaveError(t("validation.organizerRequired"));
-      return;
-    }
-    if (!bankInfoId || !bankInfoId.trim()) {
+    if (mustBeComplete && (!bankInfoId || !bankInfoId.trim())) {
       setSaveError(t("validation.bankInfoRequired"));
       return;
     }
@@ -1469,9 +1478,9 @@ export function useEventForm({
             coverUrl: finalCoverUrl || null,
             startAt: datetimeLocalToISO(startAt),
             endAt: datetimeLocalToISO(endAt),
-            locationId: Number(locationId),
-            organizerId: Number(organizerId),
-            bankInfoId: Number(bankInfoId),
+            locationId: locationId ? Number(locationId) : null,
+            organizerId: organizerId ? Number(organizerId) : null,
+            bankInfoId: bankInfoId ? Number(bankInfoId) : null,
             linePayeeId: linePayeeId ? Number(linePayeeId) : null,
             allowMultiplePurchase: allowMultiple,
             autoCalcAmount: autoCalcAmount,

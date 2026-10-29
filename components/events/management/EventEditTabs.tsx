@@ -43,12 +43,11 @@ export function EventEditTabs({
     onSaveSuccess,
   });
 
-  const { title, locationId, organizerId, bankInfoId, saveError, saving, basicDirty, handleSubmit } =
-    form;
+  const { title, locationId, bankInfoId, saveError, saving, basicDirty, handleSubmit } = form;
 
   // 送出前若必填欄位缺漏，先切到含該欄位的分頁，讓使用者看得到錯誤
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (!title.trim() || !locationId || !organizerId || !bankInfoId) {
+    if (!title.trim() || !locationId || !bankInfoId) {
       setTab("basic");
     }
     handleSubmit(e);

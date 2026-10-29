@@ -37,7 +37,7 @@
     "photoUrlPlaceholder": "Image URL",
     "instagramPlaceholder": "Enter Instagram",
     "facebookPlaceholder": "Enter Facebook",
-    "selectLabel": "Organizer *",
+    "selectLabel": "Organizer",
     "selectPlaceholder": "Select an organizer",
     "noSocials": "No social links yet"
   },

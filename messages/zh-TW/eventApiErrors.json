@@ -14,7 +14,10 @@
     "createInvalid": "請提供有效的 teamId 與 title",
     "createFailed": "建立失敗",
     "deleteForbidden": "只有活動建立者或團隊擁有者可以刪除活動",
-    "publicKeyRequired": "請提供公開金鑰"
+    "publicKeyRequired": "請提供公開金鑰",
+    "publishNeedsLocation": "要先設定活動地點才能發布",
+    "publishNeedsBankInfo": "要先設定收款帳戶才能發布",
+    "publishNeedsTickets": "要先設定票券才能發布"
   },
   "coupons": {
     "codeRequired": "請提供折扣碼 code",

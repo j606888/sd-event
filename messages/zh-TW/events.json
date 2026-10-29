@@ -185,5 +185,35 @@
     "checkInCount": "入場 {count}",
     "checkedIn": "已入場",
     "noCheckInNeeded": "不需入場"
+  },
+  "draftChecklist": {
+    "missingTitle": "還差 {count} 件事就能發布",
+    "readyTitle": "都準備好了，可以發布",
+    "missingDescription": "建立時你跳過了幾步，補完就能把報名連結分享出去。",
+    "readyDescription": "按「發布」之後，就能把報名連結分享出去。",
+    "progress": "發布前要完成",
+    "progressValue": "{done} / {total}",
+    "optional": "選填",
+    "location": {
+      "label": "地點",
+      "missing": "報名頁還沒有活動地點",
+      "action": "設定地點"
+    },
+    "payment": {
+      "label": "收款方式",
+      "missing": "報名者還不知道要匯款到哪裡",
+      "action": "設定收款"
+    },
+    "tickets": {
+      "label": "票券",
+      "missing": "還沒有可以買的票",
+      "action": "設定票券"
+    },
+    "cover": {
+      "label": "封面",
+      "missing": "沒有封面也能發布，分享到 IG、LINE 時比較不顯眼",
+      "action": "上傳封面"
+    },
+    "publishBlocked": "還有 {count} 件事要完成才能發布"
   }
 }

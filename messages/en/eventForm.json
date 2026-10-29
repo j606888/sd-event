@@ -1,9 +1,4 @@
 {
-  "newEvent": {
-    "title": "Create event",
-    "chooseType": "Choose an event type and we'll prefill matching price tiers and tickets for you (you can change all of it later).",
-    "submit": "Create event"
-  },
   "typeDescriptions": {
     "Party": "A single entry ticket with early-bird price tiers.",
     "Workshop": "Full Pass or single classes, with an optional Party add-on and early-bird / door prices.",
@@ -92,7 +87,6 @@
   "validation": {
     "titleRequired": "Please enter a title",
     "locationRequired": "Please choose a venue",
-    "organizerRequired": "Please choose an organizer",
     "bankInfoRequired": "Please choose a bank account"
   },
   "errors": {
