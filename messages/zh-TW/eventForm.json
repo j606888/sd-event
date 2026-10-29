@@ -1,9 +1,4 @@
 {
-  "newEvent": {
-    "title": "建立新活動",
-    "chooseType": "選擇活動類型，我們會幫你預先填好對應的票價時段與購買項目範本（之後都可以調整）。",
-    "submit": "建立活動"
-  },
   "typeDescriptions": {
     "Party": "單一入場票，搭配早鳥優惠時段價。",
     "Workshop": "Full Pass 或單堂購買，可加購 Party，含早鳥／現場價。",
@@ -92,7 +87,6 @@
   "validation": {
     "titleRequired": "請輸入標題",
     "locationRequired": "請選擇活動地點",
-    "organizerRequired": "請選擇主辦單位",
     "bankInfoRequired": "請選擇銀行資訊"
   },
   "errors": {

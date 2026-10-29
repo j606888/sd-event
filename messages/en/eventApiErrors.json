@@ -14,7 +14,10 @@
     "createInvalid": "Please provide a valid teamId and title",
     "createFailed": "Couldn't create the event",
     "deleteForbidden": "Only the event's creator or the team owner can delete this event",
-    "publicKeyRequired": "Missing public key"
+    "publicKeyRequired": "Missing public key",
+    "publishNeedsLocation": "Set a venue before publishing",
+    "publishNeedsBankInfo": "Set a bank account before publishing",
+    "publishNeedsTickets": "Set up tickets before publishing"
   },
   "coupons": {
     "codeRequired": "Please provide a coupon code",

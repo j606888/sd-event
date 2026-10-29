@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { events, teamMembers } from "@/db/schema";
+import { eventPurchaseItems, events, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin, requireTeamMember } from "@/lib/api-auth";
 import { isEventType, type EventType } from "@/lib/event-templates";
 import { normalizeFlagLabel } from "@/lib/attendee-flag";
 import { apiError } from "@/lib/api-error";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -53,7 +53,12 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const rows = await db
-    .select({ teamId: events.teamId })
+    .select({
+      teamId: events.teamId,
+      status: events.status,
+      locationId: events.locationId,
+      bankInfoId: events.bankInfoId,
+    })
     .from(events)
     .where(eq(events.id, eventId))
     .limit(1);
@@ -100,6 +105,25 @@ export async function PATCH(request: Request, { params }: Params) {
       body.attendeeFlagLabel === null ? null : normalizeFlagLabel(String(body.attendeeFlagLabel));
   }
   if (body.status === "draft" || body.status === "published") updates.status = body.status;
+
+  // 草稿可以先缺地點、收款帳戶、票券（建立活動時「之後再填」），發布前要補齊；
+  // 已發布的活動也不能把地點或帳戶改成空的
+  const publishing = updates.status === "published" && existing.status !== "published";
+  if ((updates.status ?? existing.status) === "published") {
+    const locationId = "locationId" in updates ? updates.locationId : existing.locationId;
+    const bankInfoId = "bankInfoId" in updates ? updates.bankInfoId : existing.bankInfoId;
+    if (publishing || "locationId" in updates || "bankInfoId" in updates) {
+      if (locationId == null) return apiError("eventApiErrors.events.publishNeedsLocation", 400);
+      if (bankInfoId == null) return apiError("eventApiErrors.events.publishNeedsBankInfo", 400);
+    }
+  }
+  if (publishing) {
+    const [tickets] = await db
+      .select({ n: count() })
+      .from(eventPurchaseItems)
+      .where(and(eq(eventPurchaseItems.eventId, eventId), eq(eventPurchaseItems.hidden, false)));
+    if (!tickets || tickets.n === 0) return apiError("eventApiErrors.events.publishNeedsTickets", 400);
+  }
 
   if (Object.keys(updates).length === 0) {
     const [e] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);

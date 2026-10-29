@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { EventEditTabs } from "@/components/events/management/EventEditTabs";
 import { EventTabBar } from "@/components/events/management/EventTabBar";
 import { EventStats } from "@/components/events/management/EventStats";
+import { DraftChecklist, useDraftReadiness } from "@/components/events/management/DraftChecklist";
 import { WalkInDrawer } from "@/components/events/management/WalkInDrawer";
 import { RegistrationEditDrawer } from "@/components/events/management/RegistrationEditDrawer";
 import { RegistrationsList } from "@/components/events/registration/RegistrationsList";
@@ -112,11 +113,10 @@ function EventDetailPageInner() {
   const event = eventQuery.data;
 
   // 分頁狀態同步至網址 ?tab=，可深連結、重新整理不跳走。
-  // 開賣後進來是為了找人，所以預設落在報名者；還在草稿的活動才先帶到基本資訊。
-  const [activeTab, setTab] = useTabParam(
-    allowedTabs,
-    isAdmin && event?.status === "draft" ? "basic" : "registrations"
-  );
+  // 預設落在報名者：開賣後進來是為了找人；草稿活動的發布待辦清單也在這一頁。
+  const [activeTab, setTab] = useTabParam(allowedTabs, "registrations");
+  const readiness = useDraftReadiness(event, isAdmin);
+  const publishBlocked = (readiness.missing?.length ?? 0) > 0;
   // lg 以上明細開在名單右側；以下整頁切換
   const isWide = useMediaQuery("(min-width: 1024px)");
 
@@ -187,7 +187,10 @@ function EventDetailPageInner() {
         credentials: "include",
         body: JSON.stringify({ status: "published" }),
       });
-      if (!res.ok) throw new Error(t("publishFailed"));
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || t("publishFailed"));
+      }
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
     } catch (err) {
@@ -312,8 +315,14 @@ function EventDetailPageInner() {
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={publishing || readOnly}
-                title={readOnly ? tEvents("readOnly") : undefined}
+                disabled={publishing || readOnly || publishBlocked}
+                title={
+                  readOnly
+                    ? tEvents("readOnly")
+                    : publishBlocked
+                      ? tEvents("draftChecklist.publishBlocked", { count: readiness.missing?.length ?? 0 })
+                      : undefined
+                }
                 className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-butter px-4 text-sm font-bold text-ink transition-colors hover:bg-butter-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {publishing ? t("publishing") : t("publish")}
@@ -379,6 +388,13 @@ function EventDetailPageInner() {
         )}
         {activeTab === "registrations" && (
           <div className="space-y-4">
+            {isAdmin && event.status === "draft" && selectedRegistrationId === null && (
+              <DraftChecklist
+                event={event}
+                readiness={readiness}
+                onGoTab={(tab) => setTab(tab)}
+              />
+            )}
             {/* 明細開著時手機只看明細；桌機名單與數字列一直都在 */}
             <div className={cn(selectedRegistrationId !== null && "hidden lg:block")}>
               <EventNumbersStrip

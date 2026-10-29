@@ -1,0 +1,215 @@
+{
+  "header": {
+    "title": "建立新活動",
+    "leave": "離開建立活動",
+    "leaveConfirm": "還沒存的內容會不見，確定要離開嗎？",
+    "saveDraft": "存成草稿",
+    "preview": "預覽報名頁",
+    "progress": "{n} / {total} · {step}"
+  },
+  "rail": {
+    "label": "建立步驟",
+    "filling": "正在填",
+    "later": "之後再填",
+    "notYet": "還沒到"
+  },
+  "steps": {
+    "type": "活動類型",
+    "title": "活動名稱",
+    "dates": "日期時間",
+    "location": "地點",
+    "cover": "封面",
+    "description": "活動介紹",
+    "organizer": "主辦單位",
+    "payment": "收款方式",
+    "tickets": "票券",
+    "review": "完成"
+  },
+  "stepOf": "步驟 {n} / {total}",
+  "kind": {
+    "required": "必填",
+    "publish": "可之後再填 · 發布前要補",
+    "optional": "選填"
+  },
+  "nav": {
+    "back": "上一步",
+    "skip": "之後再填",
+    "next": "下一步：{step}",
+    "saveDraft": "存成草稿",
+    "publish": "發布活動",
+    "saving": "儲存中…",
+    "publishing": "發布中…",
+    "publishHint": "還有 {count} 項要完成才能發布"
+  },
+  "type": {
+    "title": "要辦什麼樣的活動？",
+    "description": "選了之後，日期和票券會先幫你帶入常見的設定，都還能改。",
+    "switchConfirm": "換活動類型會清掉已經設定好的票券，確定要換嗎？",
+    "required": "要先選活動類型，才能存成草稿",
+    "options": {
+      "Party": {
+        "title": "純 Party",
+        "description": "單晚，只賣入場票"
+      },
+      "Workshop": {
+        "title": "Workshop",
+        "description": "有課程，晚上通常接 Party"
+      },
+      "Festival": {
+        "title": "Festival",
+        "description": "多天、多位老師、多場 Party"
+      }
+    }
+  },
+  "title": {
+    "title": "活動要叫什麼名字？",
+    "description": "會顯示在報名頁、分享連結和報名確認信上。",
+    "label": "活動名稱",
+    "placeholder": "例如：週末 Zouk 工作坊",
+    "count": "{count} / {max}",
+    "ideasLabel": "沒靈感？",
+    "required": "要先有活動名稱，才能存成草稿",
+    "ideas": {
+      "Party": {
+        "a": "Bachata Social Night",
+        "b": "週五 Salsa Party"
+      },
+      "Workshop": {
+        "a": "週末 Zouk 工作坊",
+        "b": "Bachata Sensual Weekend"
+      },
+      "Festival": {
+        "a": "Zouk Festival Taipei",
+        "b": "三天兩夜 Kizomba Festival"
+      }
+    }
+  },
+  "dates": {
+    "title": "什麼時候？",
+    "description": "台灣時間。選一個常見的，再微調就好。",
+    "presetsLabel": "常見的時間",
+    "presets": {
+      "night": "單晚 Party 20:00–24:00",
+      "weekend": "週末兩天（六日）",
+      "three": "三天（五～日）"
+    },
+    "start": "開始",
+    "end": "結束",
+    "startDate": "開始日期",
+    "startTime": "開始時間",
+    "endDate": "結束日期",
+    "endTime": "結束時間",
+    "overnight": "單晚",
+    "days": "共 {count} 天",
+    "summary": "{start} {startTime} → {end} {endTime} · {span}",
+    "invalid": "結束時間要晚於開始時間",
+    "hint": "日期也會用來帶入 Day Pass 和早鳥截止日。"
+  },
+  "location": {
+    "title": "在哪裡辦？",
+    "description": "選一個存過的地點，或新增一個。還沒訂好場地也沒關係，可以之後再填。",
+    "noAddress": "還沒填地址",
+    "add": "新增地點",
+    "addDescription": "名稱、地址、Google Map 連結",
+    "savedHint": "會存進「常用資訊」，下次辦活動直接選。",
+    "skipped": "這一步先跳過了。發布前要補上地點，完成頁和活動頁都會提醒你。"
+  },
+  "cover": {
+    "title": "放一張封面圖？",
+    "description": "分享到 IG、LINE 時會顯示這張。沒有也可以發布。",
+    "choose": "選一張圖片",
+    "hint": "建議 16:9 · 4MB 以內 · 也可以直接拖進來",
+    "change": "更換圖片",
+    "remove": "移除",
+    "alt": "活動封面"
+  },
+  "description": {
+    "title": "介紹一下這個活動",
+    "description": "不知道寫什麼？點下面的段落，會幫你放好格式再改字就好。",
+    "snippetsLabel": "加入段落",
+    "snippets": {
+      "schedule": {
+        "label": "課表",
+        "text": "## 課表\n- Day 1 14:00 [課名]\n- Day 2 13:00 [課名]"
+      },
+      "teachers": {
+        "label": "老師介紹",
+        "text": "## 老師\n[老師名字] — [一兩句介紹]"
+      },
+      "notices": {
+        "label": "注意事項",
+        "text": "## 注意事項\n- 請穿好跳的鞋\n- 報名後恕不退費，可轉讓"
+      },
+      "transport": {
+        "label": "交通方式",
+        "text": "## 交通\n[最近的捷運站] 出口步行 [幾] 分鐘"
+      }
+    }
+  },
+  "organizer": {
+    "title": "誰主辦的？",
+    "description": "報名頁會顯示主辦單位和 IG，大家有問題知道找誰。",
+    "noSocials": "還沒填社群",
+    "add": "新增主辦單位",
+    "addDescription": "名稱、照片、IG／Facebook"
+  },
+  "payment": {
+    "title": "報名者要怎麼付款？",
+    "description": "報名者匯款後上傳截圖，你在後台確認，系統就會寄確認信給對方。",
+    "bankQuestion": "匯款到哪個帳戶？",
+    "addBank": "新增銀行帳戶",
+    "addBankDescription": "銀行、代碼、帳號",
+    "lineQuestion": "也開放 LINE Pay 嗎？",
+    "lineYes": "要，加 LINE 好友付款",
+    "lineNo": "不用，只收轉帳",
+    "linePayeeQuestion": "收款的 LINE 好友",
+    "addLinePayee": "新增 LINE 付款好友",
+    "addLinePayeeDescription": "名稱、LINE ID 或加好友連結",
+    "skipped": "這一步先跳過了。發布前要設定收款帳戶，不然報名者不知道要匯到哪裡。"
+  },
+  "tickets": {
+    "title": "要賣哪些票？",
+    "description": "用售票精靈一問一答設定 Full Pass、Day Pass、單堂課和早鳥價，大約 2 分鐘。",
+    "emptyTitle": "還沒有票券",
+    "emptyDescription": "已依「{type}」和日期帶好預設答案，你只要確認價格。",
+    "start": "開始售票精靈",
+    "doneTitle": "已設定 {count} 種票",
+    "edit": "修改",
+    "from": "{price} 起",
+    "editLater": "建立之後，在活動的「票券設定」也能隨時回來改。",
+    "skipped": "這一步先跳過了。發布前要設定票券，報名者才有票可以買。"
+  },
+  "review": {
+    "readyTitle": "都準備好了",
+    "readyDescription": "可以直接發布，或先存成草稿給團隊看過。",
+    "missingTitle": "差一點就能發布了",
+    "missingDescription": "可以先存成草稿，等場地、帳戶這些確定了再回來補。",
+    "missingHeading": "發布前還要完成",
+    "doneHeading": "已完成",
+    "optionalHeading": "選填，之後隨時可以補",
+    "fill": "去填"
+  },
+  "answers": {
+    "cover": "已選圖片",
+    "description": "已填寫",
+    "withLinePay": "{bank} · LINE Pay",
+    "tickets": "{count} 種票 · {price} 起"
+  },
+  "preview": {
+    "title": "報名頁預覽",
+    "subtitle": "填到哪，這裡就長到哪",
+    "noCover": "沒有封面",
+    "noLocation": "地點未定",
+    "noOrganizer": "主辦單位未填",
+    "bankTransfer": "銀行轉帳",
+    "bankAndLine": "銀行轉帳 · LINE Pay",
+    "noPayment": "付款方式未設定",
+    "noTickets": "票券尚未開賣",
+    "register": "報名"
+  },
+  "errors": {
+    "saveFailed": "儲存失敗，請再試一次",
+    "ticketsFailed": "活動已經存好了，但票券沒存成功，請再按一次",
+    "publishFailed": "活動已經存成草稿，但沒有發布成功，請再按一次"
+  }
+}

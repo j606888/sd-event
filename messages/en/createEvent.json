@@ -1,0 +1,215 @@
+{
+  "header": {
+    "title": "Create event",
+    "leave": "Leave event setup",
+    "leaveConfirm": "Anything you haven't saved will be lost. Leave anyway?",
+    "saveDraft": "Save draft",
+    "preview": "Preview registration page",
+    "progress": "{n} / {total} · {step}"
+  },
+  "rail": {
+    "label": "Setup steps",
+    "filling": "In progress",
+    "later": "Fill in later",
+    "notYet": "Not yet"
+  },
+  "steps": {
+    "type": "Event type",
+    "title": "Event name",
+    "dates": "Date & time",
+    "location": "Venue",
+    "cover": "Cover image",
+    "description": "Description",
+    "organizer": "Organizer",
+    "payment": "Payment",
+    "tickets": "Tickets",
+    "review": "Finish"
+  },
+  "stepOf": "Step {n} of {total}",
+  "kind": {
+    "required": "Required",
+    "publish": "Can wait · needed to publish",
+    "optional": "Optional"
+  },
+  "nav": {
+    "back": "Back",
+    "skip": "Fill in later",
+    "next": "Next: {step}",
+    "saveDraft": "Save draft",
+    "publish": "Publish event",
+    "saving": "Saving…",
+    "publishing": "Publishing…",
+    "publishHint": "{count, plural, one {# more thing} other {# more things}} to finish before publishing"
+  },
+  "type": {
+    "title": "What kind of event is it?",
+    "description": "We'll fill in typical dates and tickets for it. You can change all of them.",
+    "switchConfirm": "Changing the event type clears the tickets you've set up. Change it anyway?",
+    "required": "Pick an event type before saving a draft",
+    "options": {
+      "Party": {
+        "title": "Party",
+        "description": "One night, entry tickets only"
+      },
+      "Workshop": {
+        "title": "Workshop",
+        "description": "Classes, usually with a party at night"
+      },
+      "Festival": {
+        "title": "Festival",
+        "description": "Several days, teachers and parties"
+      }
+    }
+  },
+  "title": {
+    "title": "What's the event called?",
+    "description": "Shown on the registration page, the share link and the confirmation email.",
+    "label": "Event name",
+    "placeholder": "e.g. Weekend Zouk Workshop",
+    "count": "{count} / {max}",
+    "ideasLabel": "Need an idea?",
+    "required": "Give the event a name before saving a draft",
+    "ideas": {
+      "Party": {
+        "a": "Bachata Social Night",
+        "b": "Friday Salsa Party"
+      },
+      "Workshop": {
+        "a": "Weekend Zouk Workshop",
+        "b": "Bachata Sensual Weekend"
+      },
+      "Festival": {
+        "a": "Zouk Festival Taipei",
+        "b": "Kizomba Festival Weekend"
+      }
+    }
+  },
+  "dates": {
+    "title": "When is it?",
+    "description": "Taiwan time. Pick a common one, then adjust.",
+    "presetsLabel": "Common times",
+    "presets": {
+      "night": "One-night party 20:00–24:00",
+      "weekend": "Weekend (Sat–Sun)",
+      "three": "Three days (Fri–Sun)"
+    },
+    "start": "Starts",
+    "end": "Ends",
+    "startDate": "Start date",
+    "startTime": "Start time",
+    "endDate": "End date",
+    "endTime": "End time",
+    "overnight": "One night",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "summary": "{start} {startTime} → {end} {endTime} · {span}",
+    "invalid": "The end has to be after the start",
+    "hint": "The dates are also used to fill in Day Passes and early-bird deadlines."
+  },
+  "location": {
+    "title": "Where is it?",
+    "description": "Pick a saved venue or add a new one. Haven't booked one yet? You can fill this in later.",
+    "noAddress": "No address yet",
+    "add": "Add venue",
+    "addDescription": "Name, address, Google Map link",
+    "savedHint": "Saved to your saved info, so you can pick it next time.",
+    "skipped": "You skipped this step. Add a venue before publishing — the finish step and the event page will remind you."
+  },
+  "cover": {
+    "title": "Add a cover image?",
+    "description": "Shown when the link is shared on Instagram or LINE. You can publish without one.",
+    "choose": "Choose an image",
+    "hint": "16:9 recommended · up to 4MB · or drag it here",
+    "change": "Change image",
+    "remove": "Remove",
+    "alt": "Event cover image"
+  },
+  "description": {
+    "title": "Tell people about the event",
+    "description": "Not sure what to write? Tap a section below — it's formatted for you, just change the words.",
+    "snippetsLabel": "Add a section",
+    "snippets": {
+      "schedule": {
+        "label": "Schedule",
+        "text": "## Schedule\n- Day 1 14:00 [Class name]\n- Day 2 13:00 [Class name]"
+      },
+      "teachers": {
+        "label": "Teachers",
+        "text": "## Teachers\n[Teacher name] — [a line or two about them]"
+      },
+      "notices": {
+        "label": "Notices",
+        "text": "## Notices\n- Bring dance shoes\n- No refunds after registering, but tickets can be transferred"
+      },
+      "transport": {
+        "label": "Getting there",
+        "text": "## Getting there\n[Nearest MRT station], [n] minutes on foot"
+      }
+    }
+  },
+  "organizer": {
+    "title": "Who's organizing it?",
+    "description": "The registration page shows the organizer and their Instagram, so people know who to ask.",
+    "noSocials": "No socials yet",
+    "add": "Add organizer",
+    "addDescription": "Name, photo, Instagram / Facebook"
+  },
+  "payment": {
+    "title": "How do registrants pay?",
+    "description": "Registrants upload a screenshot after transferring, you confirm it in the dashboard, and they get a confirmation email.",
+    "bankQuestion": "Which account do they transfer to?",
+    "addBank": "Add bank account",
+    "addBankDescription": "Bank, code, account number",
+    "lineQuestion": "Accept LINE Pay too?",
+    "lineYes": "Yes, pay a LINE friend",
+    "lineNo": "No, bank transfer only",
+    "linePayeeQuestion": "LINE Pay payee",
+    "addLinePayee": "Add LINE Pay payee",
+    "addLinePayeeDescription": "Name, LINE ID or add-friend link",
+    "skipped": "You skipped this step. Set a bank account before publishing, or registrants won't know where to pay."
+  },
+  "tickets": {
+    "title": "Which tickets will you sell?",
+    "description": "The ticket wizard sets up Full Passes, Day Passes, single classes and early-bird prices, one question at a time. About 2 minutes.",
+    "emptyTitle": "No tickets yet",
+    "emptyDescription": "Answers are pre-filled for a {type} on these dates — you just check the prices.",
+    "start": "Start ticket wizard",
+    "doneTitle": "{count, plural, one {# ticket type set up} other {# ticket types set up}}",
+    "edit": "Edit",
+    "from": "from {price}",
+    "editLater": "After creating the event you can change them any time under Tickets.",
+    "skipped": "You skipped this step. Set up tickets before publishing so registrants have something to buy."
+  },
+  "review": {
+    "readyTitle": "All set",
+    "readyDescription": "Publish now, or save a draft for your team to look over first.",
+    "missingTitle": "Almost ready to publish",
+    "missingDescription": "Save a draft for now and come back once the venue and account are settled.",
+    "missingHeading": "Needed before publishing",
+    "doneHeading": "Done",
+    "optionalHeading": "Optional — add any time",
+    "fill": "Fill in"
+  },
+  "answers": {
+    "cover": "Image chosen",
+    "description": "Written",
+    "withLinePay": "{bank} · LINE Pay",
+    "tickets": "{count, plural, one {# ticket} other {# tickets}} · from {price}"
+  },
+  "preview": {
+    "title": "Registration page preview",
+    "subtitle": "Grows as you fill it in",
+    "noCover": "No cover image",
+    "noLocation": "Venue to be announced",
+    "noOrganizer": "No organizer yet",
+    "bankTransfer": "Bank transfer",
+    "bankAndLine": "Bank transfer · LINE Pay",
+    "noPayment": "No payment method yet",
+    "noTickets": "Tickets not on sale yet",
+    "register": "Register"
+  },
+  "errors": {
+    "saveFailed": "Couldn't save. Please try again",
+    "ticketsFailed": "The event was saved, but the tickets weren't. Please try again",
+    "publishFailed": "The event was saved as a draft but not published. Please try again"
+  }
+}
