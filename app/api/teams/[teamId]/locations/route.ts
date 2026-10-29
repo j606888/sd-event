@@ -4,6 +4,7 @@ import { eventLocations, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { apiError } from "@/lib/api-error";
+import { findUsingEvents } from "@/lib/saved-info-usage";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -29,7 +30,10 @@ export async function GET(_request: Request, { params }: Params) {
     .from(eventLocations)
     .where(eq(eventLocations.teamId, teamId));
 
-  return NextResponse.json({ locations: list });
+  const usage = await findUsingEvents("location", list.map((row) => row.id));
+  return NextResponse.json({
+    locations: list.map((row) => ({ ...row, usedBy: usage.get(row.id) ?? [] })),
+  });
 }
 
 /** 新增活動地點 */

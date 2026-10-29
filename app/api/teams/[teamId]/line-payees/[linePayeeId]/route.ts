@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { lineIdInputError } from "@/lib/line";
 import { apiError } from "@/lib/api-error";
+import { deleteSavedInfo } from "@/lib/saved-info-usage";
 import { eq, and } from "drizzle-orm";
 
 type Params = {
@@ -73,4 +74,29 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   return NextResponse.json({ linePayee: updated });
+}
+
+/** 刪除LINE 付款好友；用到它的活動會清空這個欄位（外鍵 set null） */
+export async function DELETE(_request: Request, { params }: Params) {
+  const authError = await requireAuth();
+  if (authError) return authError;
+
+  const session = await getSession();
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
+
+  const { teamId: teamIdStr, linePayeeId: linePayeeIdStr } = await params;
+  const teamId = Number(teamIdStr);
+  const linePayeeId = Number(linePayeeIdStr);
+
+  if (!Number.isInteger(teamId) || !Number.isInteger(linePayeeId)) {
+    return apiError("apiErrors.common.invalidParamPair", 400, {
+      first: "teamId",
+      second: "linePayeeId",
+    });
+  }
+
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
+  if (forbidden) return forbidden;
+
+  return deleteSavedInfo("linePayee", teamId, linePayeeId);
 }

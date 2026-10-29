@@ -4,6 +4,7 @@ import { bankInfos, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { apiError } from "@/lib/api-error";
+import { findUsingEvents } from "@/lib/saved-info-usage";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -29,7 +30,10 @@ export async function GET(_request: Request, { params }: Params) {
     .from(bankInfos)
     .where(eq(bankInfos.teamId, teamId));
 
-  return NextResponse.json({ bankInfos: list });
+  const usage = await findUsingEvents("bankInfo", list.map((row) => row.id));
+  return NextResponse.json({
+    bankInfos: list.map((row) => ({ ...row, usedBy: usage.get(row.id) ?? [] })),
+  });
 }
 
 /** 新增銀行資訊 */

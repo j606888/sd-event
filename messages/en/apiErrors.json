@@ -62,7 +62,8 @@
     "bankInfoRequired": "Please provide a bank name (bankName) and bank code (bankCode)",
     "bankInfoNotFound": "Bank account not found",
     "linePayeeLabelRequired": "Please provide a name or note (label)",
-    "linePayeeNotFound": "LINE Pay payee not found"
+    "linePayeeNotFound": "LINE Pay payee not found",
+    "inUseByOnSaleEvent": "An event that’s still taking registrations uses this. Switch that event to another one first."
   },
   "checkIn": {
     "attendeeNotFound": "Attendee not found",

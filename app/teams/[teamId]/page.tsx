@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
+import { ConfirmActionDrawer } from "@/components/events/registration/ConfirmActionDrawer";
 import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
 import {
   ASSIGNABLE_TEAM_ROLES,
@@ -62,6 +63,7 @@ export default function TeamDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<number | null>(null);
+  const [revoking, setRevoking] = useState<TeamInvitation | null>(null);
   // 邀請／重寄後的結果，主要是讓管理員知道信有沒有寄出去
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [formEmail, setFormEmail] = useState("");
@@ -218,6 +220,20 @@ export default function TeamDetailPage() {
     } finally {
       setResendingId(null);
     }
+  };
+
+  // 失敗時丟出錯誤，讓 ConfirmActionDrawer 留在畫面上顯示原因
+  const handleRevokeInvitation = async (invitation: TeamInvitation) => {
+    const res = await fetch(`/api/teams/${teamId}/invitations/${invitation.id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || t("notice.revokeFailed"));
+    }
+    setInvitations((prev) => prev.filter((inv) => inv.id !== invitation.id));
+    setNotice({ tone: "success", text: t("notice.revoked", { email: invitation.email }) });
   };
 
   const handleRemoveMember = async (userId: number) => {
@@ -455,16 +471,26 @@ export default function TeamDetailPage() {
                   </p>
                 </div>
                 {isTeamAdmin(currentUserRole) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={resendingId === invitation.id}
-                    onClick={() => void handleResendInvitation(invitation)}
-                    className="shrink-0"
-                  >
-                    {resendingId === invitation.id ? t("invitations.resending") : t("invitations.resend")}
-                  </Button>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={resendingId === invitation.id}
+                      onClick={() => void handleResendInvitation(invitation)}
+                    >
+                      {resendingId === invitation.id ? t("invitations.resending") : t("invitations.resend")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => setRevoking(invitation)}
+                    >
+                      {t("invitations.revoke")}
+                    </Button>
+                  </div>
                 )}
               </li>
             ))}
@@ -536,6 +562,19 @@ export default function TeamDetailPage() {
           </div>
         </form>
       </Drawer>
+
+      {revoking && (
+        <ConfirmActionDrawer
+          open
+          onClose={() => setRevoking(null)}
+          title={t("invitations.revokeTitle", { email: revoking.email })}
+          description={t("invitations.revokeDescription")}
+          confirmLabel={t("invitations.revoke")}
+          pendingLabel={t("invitations.revoking")}
+          destructive
+          onConfirm={() => handleRevokeInvitation(revoking)}
+        />
+      )}
     </div>
   );
 }

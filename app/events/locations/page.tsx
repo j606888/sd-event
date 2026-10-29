@@ -7,8 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
+import { DeleteSavedInfoDrawer } from "@/components/events/management/DeleteSavedInfoDrawer";
+import {
+  SavedInfoRowActions,
+  SavedInfoUsageBadge,
+} from "@/components/events/management/SavedInfoRowActions";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
+import type { UsingEvent } from "@/lib/saved-info";
 
 type Location = {
   id: number;
@@ -19,6 +25,7 @@ type Location = {
   remark: string | null;
   createdAt: string;
   updatedAt: string;
+  usedBy: UsingEvent<string>[];
 };
 
 export default function EventLocationsPage() {
@@ -36,6 +43,7 @@ export default function EventLocationsPage() {
   const [formGoogleMap, setFormGoogleMap] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formRemark, setFormRemark] = useState("");
+  const [deleting, setDeleting] = useState<Location | null>(null);
 
   const fetchLocations = useCallback(async () => {
     if (teamId == null) return;
@@ -175,6 +183,12 @@ export default function EventLocationsPage() {
                   <p className="text-sm text-gray-500">{loc.address}</p>
                 )}
               </div>
+              <SavedInfoUsageBadge count={loc.usedBy.length} />
+              <SavedInfoRowActions
+                name={loc.name}
+                onEdit={() => openEditDrawer(loc)}
+                onDelete={() => setDeleting(loc)}
+              />
             </li>
           ))}
         </ul>
@@ -236,6 +250,18 @@ export default function EventLocationsPage() {
           </div>
         </form>
       </Drawer>
+
+      {deleting && (
+        <DeleteSavedInfoDrawer
+          open
+          onClose={() => setDeleting(null)}
+          kind="location"
+          name={deleting.name}
+          usedBy={deleting.usedBy}
+          deleteUrl={`/api/teams/${teamId}/locations/${deleting.id}`}
+          onDeleted={fetchLocations}
+        />
+      )}
     </div>
   );
 }

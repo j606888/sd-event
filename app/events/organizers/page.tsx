@@ -9,9 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
 import { UploadDropzone } from "@/lib/uploadthing";
+import { DeleteSavedInfoDrawer } from "@/components/events/management/DeleteSavedInfoDrawer";
+import {
+  SavedInfoRowActions,
+  SavedInfoUsageBadge,
+} from "@/components/events/management/SavedInfoRowActions";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import { isRenderableImageSrc } from "@/lib/utils";
 import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
+import type { UsingEvent } from "@/lib/saved-info";
 
 type Organizer = {
   id: number;
@@ -22,6 +28,7 @@ type Organizer = {
   facebook: string | null;
   createdAt: string;
   updatedAt: string;
+  usedBy: UsingEvent<string>[];
 };
 
 export default function EventOrganizersPage() {
@@ -39,6 +46,7 @@ export default function EventOrganizersPage() {
   const [formName, setFormName] = useState("");
   const [formInstagram, setFormInstagram] = useState("");
   const [formFacebook, setFormFacebook] = useState("");
+  const [deleting, setDeleting] = useState<Organizer | null>(null);
 
   const fetchOrganizers = useCallback(async () => {
     if (teamId == null) return;
@@ -186,11 +194,17 @@ export default function EventOrganizersPage() {
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900">{org.name}</p>
                 {(org.instagram || org.facebook) && (
-                  <p className="text-sm text-gray-500">
+                  <p className="truncate text-sm text-gray-500">
                     {[org.instagram, org.facebook].filter(Boolean).join(" · ")}
                   </p>
                 )}
               </div>
+              <SavedInfoUsageBadge count={org.usedBy.length} />
+              <SavedInfoRowActions
+                name={org.name}
+                onEdit={() => openEditDrawer(org)}
+                onDelete={() => setDeleting(org)}
+              />
             </li>
           ))}
         </ul>
@@ -291,6 +305,18 @@ export default function EventOrganizersPage() {
           </div>
         </form>
       </Drawer>
+
+      {deleting && (
+        <DeleteSavedInfoDrawer
+          open
+          onClose={() => setDeleting(null)}
+          kind="organizer"
+          name={deleting.name}
+          usedBy={deleting.usedBy}
+          deleteUrl={`/api/teams/${teamId}/organizers/${deleting.id}`}
+          onDeleted={fetchOrganizers}
+        />
+      )}
     </div>
   );
 }

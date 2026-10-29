@@ -17,7 +17,11 @@
     "pendingSignup": "Awaiting sign-up",
     "sentAt": "Invited on {date}",
     "resend": "Resend invitation",
-    "resending": "Sending…"
+    "resending": "Sending…",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke the invitation to {email}?",
+    "revokeDescription": "They won’t join the team automatically when they sign up with this email. You can invite them again later.",
+    "revoking": "Revoking…"
   },
   "notice": {
     "memberAdded": "Added {email} to the team and emailed them",
@@ -25,7 +29,9 @@
     "invited": "Sent an invitation to {email}. They'll join the team once they sign up with this email.",
     "invitedEmailFailed": "Invitation created, but the email wasn't sent. You can resend it under \"Pending invitations\" below.",
     "resent": "Resent the invitation to {email}",
-    "resendFailed": "Couldn't send the invitation email. Please try again later."
+    "resendFailed": "Couldn't send the invitation email. Please try again later.",
+    "revoked": "Revoked the invitation to {email}",
+    "revokeFailed": "Couldn’t revoke"
   },
   "inviteForm": {
     "emailPlaceholder": "Enter the member's email",

@@ -101,5 +101,42 @@
       "invalidUrl": "That link isn't valid",
       "hasWhitespace": "A LINE ID can't contain spaces"
     }
+  },
+  "usage": {
+    "count": "Used in {count, plural, one {# event} other {# events}}",
+    "none": "Not used"
+  },
+  "rowMenu": {
+    "moreAria": "More actions for {name}",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "delete": {
+    "title": "Delete “{name}”?",
+    "blockedTitle": "Can’t delete “{name}” yet",
+    "usedBy": "Used in {count, plural, one {# event} other {# events}}:",
+    "unused": "No event uses this. This can’t be undone.",
+    "irreversible": "Registrations aren’t affected. This can’t be undone.",
+    "confirm": "Delete",
+    "deleting": "Deleting…",
+    "failed": "Couldn’t delete",
+    "gotIt": "Got it",
+    "goChange": "Switch it",
+    "status": {
+      "onSale": "Open",
+      "draft": "Draft",
+      "ended": "Ended"
+    },
+    "effect": {
+      "location": "These event pages will no longer show a venue.",
+      "organizer": "These event pages will no longer show an organizer.",
+      "bankInfo": "These events’ payment pages will no longer show a bank account.",
+      "linePayee": "These events will no longer offer LINE Pay."
+    },
+    "blocked": {
+      "bankInfo": "The events below are taking registrations and attendees pay into this account. Switch them to another account first, then delete this one.",
+      "linePayee": "The events below are taking registrations and attendees add this contact to pay. Switch them to someone else first, then delete this one."
+    },
+    "blockedHint": "Ended and draft events don’t block deleting."
   }
 }

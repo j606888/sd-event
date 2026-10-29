@@ -7,8 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Drawer } from "@/components/ui/drawer";
+import { DeleteSavedInfoDrawer } from "@/components/events/management/DeleteSavedInfoDrawer";
+import {
+  SavedInfoRowActions,
+  SavedInfoUsageBadge,
+} from "@/components/events/management/SavedInfoRowActions";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
+import type { UsingEvent } from "@/lib/saved-info";
 
 type BankInfo = {
   id: number;
@@ -19,6 +25,7 @@ type BankInfo = {
   account: string | null;
   createdAt: string;
   updatedAt: string;
+  usedBy: UsingEvent<string>[];
 };
 
 export default function EventBankPage() {
@@ -36,6 +43,7 @@ export default function EventBankPage() {
   const [formBankName, setFormBankName] = useState("");
   const [formBankCode, setFormBankCode] = useState("");
   const [formAccount, setFormAccount] = useState("");
+  const [deleting, setDeleting] = useState<BankInfo | null>(null);
 
   const fetchBankInfos = useCallback(async () => {
     if (teamId == null) return;
@@ -179,6 +187,12 @@ export default function EventBankPage() {
                     .join(" · ")}
                 </p>
               </div>
+              <SavedInfoUsageBadge count={bank.usedBy.length} />
+              <SavedInfoRowActions
+                name={bank.label || bank.bankName}
+                onEdit={() => openEditDrawer(bank)}
+                onDelete={() => setDeleting(bank)}
+              />
             </li>
           ))}
         </ul>
@@ -241,6 +255,18 @@ export default function EventBankPage() {
           </div>
         </form>
       </Drawer>
+
+      {deleting && (
+        <DeleteSavedInfoDrawer
+          open
+          onClose={() => setDeleting(null)}
+          kind="bankInfo"
+          name={deleting.label || deleting.bankName}
+          usedBy={deleting.usedBy}
+          deleteUrl={`/api/teams/${teamId}/bank-infos/${deleting.id}`}
+          onDeleted={fetchBankInfos}
+        />
+      )}
     </div>
   );
 }

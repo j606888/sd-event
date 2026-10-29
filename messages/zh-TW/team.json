@@ -17,7 +17,11 @@
     "pendingSignup": "待註冊",
     "sentAt": "邀請於 {date} 送出",
     "resend": "重寄邀請信",
-    "resending": "寄送中…"
+    "resending": "寄送中…",
+    "revoke": "撤回",
+    "revokeTitle": "撤回給 {email} 的邀請？",
+    "revokeDescription": "撤回後，對方用這個信箱註冊不會再自動加入團隊。之後想邀請可以再寄一次。",
+    "revoking": "撤回中…"
   },
   "notice": {
     "memberAdded": "已把 {email} 加入團隊，並寄信通知對方",
@@ -25,7 +29,9 @@
     "invited": "已寄出邀請信給 {email}，對方用這個信箱註冊後就會加入團隊",
     "invitedEmailFailed": "已建立邀請，但邀請信沒寄出去，可以在下方「待處理邀請」重寄",
     "resent": "已重新寄出邀請信給 {email}",
-    "resendFailed": "邀請信寄送失敗，請稍後再試"
+    "resendFailed": "邀請信寄送失敗，請稍後再試",
+    "revoked": "已撤回給 {email} 的邀請",
+    "revokeFailed": "撤回失敗"
   },
   "inviteForm": {
     "emailPlaceholder": "輸入成員 email",
