@@ -62,7 +62,8 @@
     "bankInfoRequired": "請提供銀行名稱 bankName 與銀行代碼 bankCode",
     "bankInfoNotFound": "找不到銀行資訊",
     "linePayeeLabelRequired": "請提供名稱／備註 label",
-    "linePayeeNotFound": "找不到 LINE 付款好友"
+    "linePayeeNotFound": "找不到 LINE 付款好友",
+    "inUseByOnSaleEvent": "有正在報名的活動在用，請先幫活動換掉再刪除"
   },
   "checkIn": {
     "attendeeNotFound": "找不到參加者記錄",

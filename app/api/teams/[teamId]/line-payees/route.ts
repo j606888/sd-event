@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { lineIdInputError } from "@/lib/line";
 import { apiError } from "@/lib/api-error";
+import { findUsingEvents } from "@/lib/saved-info-usage";
 import { eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ teamId: string }> };
@@ -30,7 +31,10 @@ export async function GET(_request: Request, { params }: Params) {
     .from(linePayees)
     .where(eq(linePayees.teamId, teamId));
 
-  return NextResponse.json({ linePayees: list });
+  const usage = await findUsingEvents("linePayee", list.map((row) => row.id));
+  return NextResponse.json({
+    linePayees: list.map((row) => ({ ...row, usedBy: usage.get(row.id) ?? [] })),
+  });
 }
 
 /** 新增 LINE 付款好友 */

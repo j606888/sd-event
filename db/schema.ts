@@ -10,6 +10,7 @@ import {
   foreignKey,
   index,
   unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 // ============ Enums ============
@@ -185,6 +186,13 @@ export const events = pgTable("events", {
    * 搭配 eventPurchaseItems.minFlagged 可要求某票券至少勾幾位。
    */
   attendeeFlagLabel: text("attendee_flag_label"),
+  /**
+   * 售票精靈的答案（lib/ticket-plan.ts 的 TicketPlan，含 key → 實際 id 對照）。
+   * null = 票券是在進階模式手動設定的。後台依它照精靈的步驟呈現票券、回到某一步修改。
+   */
+  ticketPlan: jsonb("ticket_plan"),
+  /** 套用精靈當下的票券設定指紋；跟目前算出來的不同 = 之後在進階模式手動改過 */
+  ticketPlanFingerprint: text("ticket_plan_fingerprint"),
   status: eventStatusEnum("status").notNull().default("published"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

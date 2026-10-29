@@ -8,9 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { LinePayeeFields } from "@/components/events/management/LinePayeeFields";
+import { DeleteSavedInfoDrawer } from "@/components/events/management/DeleteSavedInfoDrawer";
+import {
+  SavedInfoRowActions,
+  SavedInfoUsageBadge,
+} from "@/components/events/management/SavedInfoRowActions";
 import { useCurrentTeam } from "@/hooks/use-current-team";
 import { useRequireTeamAdmin } from "@/hooks/use-require-team-admin";
 import { lineIdInputError } from "@/lib/line";
+import type { UsingEvent } from "@/lib/saved-info";
 
 type LinePayee = {
   id: number;
@@ -19,6 +25,7 @@ type LinePayee = {
   lineId: string;
   createdAt: string;
   updatedAt: string;
+  usedBy: UsingEvent<string>[];
 };
 
 export default function EventLinePayeesPage() {
@@ -34,6 +41,7 @@ export default function EventLinePayeesPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formLabel, setFormLabel] = useState("");
   const [formLineId, setFormLineId] = useState("");
+  const [deleting, setDeleting] = useState<LinePayee | null>(null);
 
   const fetchLinePayees = useCallback(async () => {
     if (teamId == null) return;
@@ -170,6 +178,12 @@ export default function EventLinePayeesPage() {
                 <p className="font-medium text-gray-900">{payee.label}</p>
                 <p className="truncate text-sm text-gray-500">{payee.lineId}</p>
               </div>
+              <SavedInfoUsageBadge count={payee.usedBy.length} />
+              <SavedInfoRowActions
+                name={payee.label}
+                onEdit={() => openEditDrawer(payee)}
+                onDelete={() => setDeleting(payee)}
+              />
             </li>
           ))}
         </ul>
@@ -201,6 +215,18 @@ export default function EventLinePayeesPage() {
           </div>
         </form>
       </Drawer>
+
+      {deleting && (
+        <DeleteSavedInfoDrawer
+          open
+          onClose={() => setDeleting(null)}
+          kind="linePayee"
+          name={deleting.label}
+          usedBy={deleting.usedBy}
+          deleteUrl={`/api/teams/${teamId}/line-payees/${deleting.id}`}
+          onDeleted={fetchLinePayees}
+        />
+      )}
     </div>
   );
 }

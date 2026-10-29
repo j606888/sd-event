@@ -4,6 +4,7 @@ import { bankInfos, teamMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { requireAuth, requireTeamAdmin } from "@/lib/api-auth";
 import { apiError } from "@/lib/api-error";
+import { deleteSavedInfo } from "@/lib/saved-info-usage";
 import { eq, and } from "drizzle-orm";
 
 type Params = {
@@ -79,4 +80,29 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   return NextResponse.json({ bankInfo: updated });
+}
+
+/** 刪除銀行資訊；用到它的活動會清空這個欄位（外鍵 set null） */
+export async function DELETE(_request: Request, { params }: Params) {
+  const authError = await requireAuth();
+  if (authError) return authError;
+
+  const session = await getSession();
+  if (!session) return apiError("apiErrors.common.notLoggedIn", 401);
+
+  const { teamId: teamIdStr, bankInfoId: bankInfoIdStr } = await params;
+  const teamId = Number(teamIdStr);
+  const bankInfoId = Number(bankInfoIdStr);
+
+  if (!Number.isInteger(teamId) || !Number.isInteger(bankInfoId)) {
+    return apiError("apiErrors.common.invalidParamPair", 400, {
+      first: "teamId",
+      second: "bankInfoId",
+    });
+  }
+
+  const forbidden = await requireTeamAdmin(teamId, session.userId);
+  if (forbidden) return forbidden;
+
+  return deleteSavedInfo("bankInfo", teamId, bankInfoId);
 }

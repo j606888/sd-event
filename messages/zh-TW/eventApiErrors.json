@@ -124,5 +124,8 @@
     "checkedIn": "已入場",
     "notCheckedIn": "未入場",
     "flagged": "是"
+  },
+  "ticketPlan": {
+    "invalid": "售票設定不完整，請檢查每一步的票名、價格與日期"
   }
 }

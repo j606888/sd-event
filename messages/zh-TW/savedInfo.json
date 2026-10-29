@@ -101,5 +101,42 @@
       "invalidUrl": "連結格式不正確",
       "hasWhitespace": "LINE ID 不能包含空白"
     }
+  },
+  "usage": {
+    "count": "用在 {count} 個活動",
+    "none": "沒有活動在用"
+  },
+  "rowMenu": {
+    "moreAria": "{name} 更多操作",
+    "edit": "編輯",
+    "delete": "刪除"
+  },
+  "delete": {
+    "title": "刪除「{name}」？",
+    "blockedTitle": "還不能刪除「{name}」",
+    "usedBy": "用在 {count} 個活動：",
+    "unused": "沒有活動在用這筆資料。刪除後無法復原。",
+    "irreversible": "報名資料不受影響。刪除後無法復原。",
+    "confirm": "刪除",
+    "deleting": "刪除中…",
+    "failed": "刪除失敗",
+    "gotIt": "知道了",
+    "goChange": "去更換",
+    "status": {
+      "onSale": "報名中",
+      "draft": "草稿",
+      "ended": "已結束"
+    },
+    "effect": {
+      "location": "刪除後，這些活動頁不會再顯示活動地點。",
+      "organizer": "刪除後，這些活動頁不會再顯示主辦單位。",
+      "bankInfo": "刪除後，這些活動的付款頁不會再顯示匯款帳號。",
+      "linePayee": "刪除後，這些活動不再提供 LINE Pay 付款。"
+    },
+    "blocked": {
+      "bankInfo": "下面的活動正在報名，報名者要匯款到這個帳戶。先幫活動換一個帳戶，再回來刪除。",
+      "linePayee": "下面的活動正在報名，報名者要加這位好友付款。先幫活動換一個人，再回來刪除。"
+    },
+    "blockedHint": "已結束或還是草稿的活動不會擋住刪除。"
   }
 }

@@ -124,5 +124,8 @@
     "checkedIn": "Checked in",
     "notCheckedIn": "Not checked in",
     "flagged": "Yes"
+  },
+  "ticketPlan": {
+    "invalid": "The ticket setup is incomplete. Check each step’s ticket names, prices and dates."
   }
 }
