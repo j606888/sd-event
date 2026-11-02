@@ -181,4 +181,14 @@ describe("parseTicketPlan", () => {
     plan.classes.tickets[0].name = "  ";
     expect(parseTicketPlan(plan)).toBeNull();
   });
+
+  it("drops untitled tickets left in a section that was switched back to 不賣", () => {
+    const plan = workshop();
+    plan.classes = { ...plan.classes, enabled: false, tickets: [{ key: "c-blank", name: "", note: "", prices: [800] }] };
+    plan.parties = { ...plan.parties, enabled: false, tickets: [{ key: "p-blank", name: "", note: "", prices: [500] }] };
+    const parsed = parseTicketPlan(JSON.parse(JSON.stringify(plan)));
+    expect(parsed).not.toBeNull();
+    expect(parsed!.classes.tickets).toEqual([]);
+    expect(parsed!.parties.tickets).toEqual([]);
+  });
 });

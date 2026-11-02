@@ -491,6 +491,12 @@ function parseTicket(raw: unknown, priceCount: number | null): PlanTicket | null
   return { key, name, note, prices: prices as number[], ...(day != null ? { day } : {}) };
 }
 
+/** 區塊關閉時，拿掉還沒取名的票（開啟時照常驗證，空白票名要擋下） */
+function dropBlankIfOff(raw: unknown, enabled: boolean): unknown {
+  if (enabled || !Array.isArray(raw)) return raw;
+  return raw.filter((t) => !(isObj(t) && typeof t.name === "string" && !t.name.trim()));
+}
+
 function parseTickets(raw: unknown, priceCount: number | null, max: number) {
   if (!Array.isArray(raw) || raw.length > max) return null;
   const list = raw.map((t) => parseTicket(t, priceCount));
@@ -576,8 +582,10 @@ export function parseTicketPlan(raw: unknown): TicketPlan | null {
   ) {
     return null;
   }
-  const classTickets = parseTickets(c.tickets, classesTiered ? tierCount : 1, 40);
-  const partyTickets = parseTickets(p.tickets, partiesTiered ? tierCount : 1, 10);
+  // 精靈切到「賣」會先放一張空白票；再切回「不賣」時那張票還留在答案裡。
+  // 關閉的區塊不會建立任何票，所以空白票直接丟掉，不要因此擋下整份設定。
+  const classTickets = parseTickets(dropBlankIfOff(c.tickets, classesEnabled), classesTiered ? tierCount : 1, 40);
+  const partyTickets = parseTickets(dropBlankIfOff(p.tickets, partiesEnabled), partiesTiered ? tierCount : 1, 10);
   const entryTickets = parseTickets(e.tickets, tierCount, 6);
   if (!classTickets || !partyTickets || !entryTickets) return null;
   if (kind === "party" && entryTickets.length === 0) return null;
