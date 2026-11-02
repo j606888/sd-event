@@ -71,7 +71,9 @@ export function Sidebar({ open, onClose, team, teams, onTeamChange, changeTeam }
       if (!Number.isInteger(teamIdNum)) return;
 
       changeTeam(teamIdNum);
-      router.push(`/teams/${teamId}`);
+      // 切換團隊後回到活動列表；停在舊團隊的活動頁或團隊頁都沒有意義
+      onClose();
+      router.push("/events");
       router.refresh();
     }
   };
