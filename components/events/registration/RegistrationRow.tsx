@@ -31,8 +31,11 @@ export function getRowAction(reg: Registration, canManage: boolean): RowAction {
       .sort();
     return { kind: "entered", at: times[times.length - 1] ?? null };
   }
+  // 還沒收到錢時，管理員的下一步是確認收款，不是入場（入場鈕放這裡太容易誤按）。
   // 驗票人員不能改付款狀態，待確認的單在他們眼中就是「還沒確認」
-  if (canManage && reg.paymentStatus === "reported") return { kind: "confirm_payment" };
+  if (canManage && (reg.paymentStatus === "pending" || reg.paymentStatus === "reported")) {
+    return { kind: "confirm_payment" };
+  }
   if (reg.paymentStatus === "confirmed") return { kind: "check_in", count: remaining };
   return { kind: "check_in_unpaid", count: remaining };
 }
