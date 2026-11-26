@@ -33,6 +33,7 @@ export async function PATCH(request: Request, { params }: Params) {
     title?: string;
     selectionMode?: string;
     required?: boolean;
+    comboPricing?: boolean;
     sortOrder?: number;
     updatedAt: Date;
   } = { updatedAt: new Date() };
@@ -46,6 +47,8 @@ export async function PATCH(request: Request, { params }: Params) {
   }
   if (body.selectionMode === "single" || body.selectionMode === "multiple") {
     updates.selectionMode = body.selectionMode;
+    // 組合價只適用可複選區塊；改成擇一就關掉（價目表保留）
+    if (body.selectionMode === "single") updates.comboPricing = false;
   }
   if (typeof body.required === "boolean") {
     updates.required = body.required;

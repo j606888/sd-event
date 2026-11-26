@@ -61,7 +61,7 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
       event={event}
       formData={form.formData}
       selectedPlan={form.selectedPlan}
-      selectedPlans={form.selectedPlans}
+      selectedPlans={form.summaryPlans}
       discountAmount={form.discountAmount}
       finalAmount={form.finalAmount}
       copiedText={form.copiedText}

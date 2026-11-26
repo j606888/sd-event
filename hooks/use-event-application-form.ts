@@ -19,6 +19,7 @@ import {
   isBundleItem,
   requiredAttendeeCount,
 } from "@/lib/seat-count";
+import { mergeComboItems, priceGroupSelection } from "@/lib/combo-pricing";
 import {
   findFlaggedShortfall,
   normalizeFlagLabel,
@@ -37,6 +38,7 @@ export type EventApplicationFormState = {
 export function useEventApplicationForm(event: PublicEventData) {
   const router = useRouter();
   const t = useTranslations("publicEvent.errors");
+  const tPicker = useTranslations("publicEvent.ticketPicker");
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -83,6 +85,32 @@ export function useEventApplicationForm(event: PublicEventData) {
           ? [selectedPlan]
           : [],
     [useGroups, event.allowMultiplePurchase, selectedPlans, selectedPlan]
+  );
+
+  // 收費明細：套用組合價（勾幾項算幾項的價）與附贈票，與伺服器 priceRegistrationLines 一致
+  const pricedLines = useMemo(
+    () =>
+      priceGroupSelection(
+        event.groups,
+        chosenItems.map((i) => i.id),
+        event.purchaseItems
+      ).lines,
+    [event.groups, event.purchaseItems, chosenItems]
+  );
+  // 確認頁摘要：組合價項目合併成「Full Pass（A、B、C）」，金額為組合價
+  const summaryPlans = useMemo<EventPurchaseItem[]>(
+    () =>
+      mergeComboItems(
+        pricedLines.map((l) => ({
+          ...l.item,
+          amount: l.unitPrice,
+          seatCount: l.comboTitle != null || l.isGift ? 1 : l.item.seatCount,
+          comboTitle: l.comboTitle,
+        })),
+        (title, names) =>
+          tPicker("comboLabel", { title, items: names.join(tPicker("itemSeparator")) })
+      ),
+    [pricedLines, tPicker]
   );
 
   // 選了套票（如雙人票）→ 參加者人數固定為套票人數
@@ -192,10 +220,7 @@ export function useEventApplicationForm(event: PublicEventData) {
     if (!useGroups && !event.autoCalcAmount) return;
 
     // 一般票：當下時段價 × 參加者人數；套票：整組價（與伺服器 computeItemsTotal 一致）
-    const total = computeItemsTotal(
-      chosenItems.map((item) => ({ unitPrice: item.amount, seatCount: item.seatCount })),
-      formData.participants.length
-    );
+    const total = computeItemsTotal(pricedLines, formData.participants.length);
 
     // 群組模式即使歸零也要同步（清空選取時）；無群組沿用「僅 >0 才回填」舊行為
     if (total > 0 || useGroups) {
@@ -205,7 +230,7 @@ export function useEventApplicationForm(event: PublicEventData) {
           : { ...prev, totalAmount: String(total) }
       );
     }
-  }, [useGroups, event.autoCalcAmount, formData.participants.length, chosenItems]);
+  }, [useGroups, event.autoCalcAmount, formData.participants.length, pricedLines]);
 
   // 折扣預覽：totalAmount 維持折扣前 base，折後金額另行導出，與伺服器計算一致
   const baseAmount = Number(formData.totalAmount) || 0;
@@ -259,7 +284,11 @@ export function useEventApplicationForm(event: PublicEventData) {
   // 群組模式：逐群組驗證 required / selectionMode
   const groupsSatisfied = event.groups.every((g) => {
     if (isGroupLocked(g)) return true;
-    const sel = formData.selectedByGroup[g.id] ?? [];
+    // 組合價附贈的票也算這個區塊有選
+    const gifted = pricedLines
+      .filter((l) => l.isGift && g.items.some((it) => it.id === l.itemId))
+      .map((l) => l.itemId);
+    const sel = Array.from(new Set([...(formData.selectedByGroup[g.id] ?? []), ...gifted]));
     if (g.required) {
       return g.selectionMode === "single" ? sel.length === 1 : sel.length >= 1;
     }
@@ -350,6 +379,7 @@ export function useEventApplicationForm(event: PublicEventData) {
     submitError,
     selectedPlan,
     selectedPlans,
+    summaryPlans,
     requiredParticipants,
     bundleItem,
     seatMismatch,

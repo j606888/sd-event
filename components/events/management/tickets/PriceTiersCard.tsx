@@ -56,7 +56,14 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
     persistPriceTier,
     removePriceTier,
     openPurchaseItemEditor,
+    groups,
   } = form;
+  // 組合價區塊的票不各自計價（價格在區塊的價目表），不算缺價
+  const comboGroupIds = new Set(
+    groups
+      .filter((g) => g.id != null && g.selectionMode === "multiple" && g.comboPricing)
+      .map((g) => g.id!)
+  );
   const t = useTranslations("tickets");
   const locale = useLocale();
 
@@ -114,6 +121,7 @@ export function PriceTiersCard({ form }: { form: UseEventFormReturn }) {
   const itemsMissingPrice = (tier: PriceTierDraft, tierIndex: number) =>
     purchaseItems
       .map((item, index) => ({ item, index }))
+      .filter(({ item }) => !(item.groupId != null && comboGroupIds.has(item.groupId)))
       .filter(({ item }) => !hasPriceForTier(item.prices, tier, tierIndex));
 
   return (

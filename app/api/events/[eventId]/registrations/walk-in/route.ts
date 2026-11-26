@@ -17,6 +17,7 @@ import { getTeamRole, requireAuth, requireTeamMember } from "@/lib/api-auth";
 import { isTeamAdmin } from "@/lib/team-roles";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { computeItemsTotal, findSeatCountMismatch } from "@/lib/seat-count";
+import { priceRegistrationLines } from "@/lib/combo-data";
 import { normalizeFlagLabel, findFlaggedShortfall } from "@/lib/attendee-flag";
 import { apiError } from "@/lib/api-error";
 import { eq, and, inArray, asc } from "drizzle-orm";
@@ -190,6 +191,7 @@ export async function POST(request: Request, { params }: Params) {
               amount: eventPurchaseItems.amount,
               seatCount: eventPurchaseItems.seatCount,
               minFlagged: eventPurchaseItems.minFlagged,
+              groupId: eventPurchaseItems.groupId,
             })
             .from(eventPurchaseItems)
             .where(inArray(eventPurchaseItems.id, selectedIds))
@@ -200,6 +202,7 @@ export async function POST(request: Request, { params }: Params) {
               amount: number;
               seatCount: number;
               minFlagged: number;
+              groupId: number | null;
             }[]
           ),
       db
@@ -246,13 +249,14 @@ export async function POST(request: Request, { params }: Params) {
       return apiError("eventApiErrors.registration.flaggedShortfall", 400, flagShortfall);
     }
 
-    const computedTotal = computeItemsTotal(
-      selectedItems.map((item) => ({
-        unitPrice: unitPriceById.get(item.id) ?? 0,
-        seatCount: item.seatCount,
-      })),
-      validAttendees.length
+    // 組合價與附贈票的算法與公開報名一致
+    const pricedLines = await priceRegistrationLines(
+      groups,
+      selectedItems,
+      unitPriceById,
+      activeTier?.id ?? null
     );
+    const computedTotal = computeItemsTotal(pricedLines, validAttendees.length);
 
     // 管理員可覆寫金額：body.totalAmount 為正整數時以其為準，否則用系統算出的值。
     // 驗票人員一律使用依時段價算出的金額，忽略 body.totalAmount。
@@ -293,14 +297,16 @@ export async function POST(request: Request, { params }: Params) {
       if (!reg) throw new Error("建立報名失敗");
 
       // 單選也寫入，保留收費當下的單價快照（見公開報名 route 的說明）
-      if (selectedIds.length > 0) {
+      if (pricedLines.length > 0) {
         await tx.insert(eventRegistrationPurchaseItems).values(
-          selectedIds.map((itemId: number) => ({
+          pricedLines.map((line) => ({
             registrationId: reg.id,
-            purchaseItemId: itemId,
+            purchaseItemId: line.itemId,
             quantity: 1,
-            unitAmount: unitPriceById.get(itemId) ?? null,
+            unitAmount: line.unitPrice,
             tierName: activeTier?.name ?? null,
+            comboTitle: line.comboTitle,
+            isGift: line.isGift,
           }))
         );
       }

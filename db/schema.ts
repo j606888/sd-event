@@ -211,11 +211,55 @@ export const eventPurchaseItemGroups = pgTable("event_purchase_item_groups", {
   selectionMode: text("selection_mode").notNull().default("single"),
   /** 是否必須從此群組選至少一項 */
   required: boolean("required").notNull().default(true),
+  /**
+   * 組合價（僅 multiple 群組）：為 true 時價格看「勾了幾項」而不是各票單價，
+   * 依 eventGroupCombos 的「選 N 項 = 多少錢」計價。見 lib/combo-pricing.ts。
+   */
+  comboPricing: boolean("combo_pricing").notNull().default(false),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [
   index("idx_purchase_item_groups_event_id").on(t.eventId),
+]);
+
+// ============ Event Group Combos (組合價：群組內「選 N 項」的總價) ============
+export const eventGroupCombos = pgTable("event_group_combos", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id")
+    .notNull()
+    .references(() => eventPurchaseItemGroups.id, { onDelete: "cascade" }),
+  /** 勾選數量（1..群組票數） */
+  count: integer("count").notNull(),
+  /** 顯示名稱（選填，如「Full Pass」）；報名明細顯示為「Full Pass（A、B、C）」 */
+  title: text("title"),
+  /** fallback 價（無時段時用；有時段時 = 最後一段價格），同 eventPurchaseItems.amount */
+  amount: integer("amount").notNull(),
+  /** 達到此數量時附贈的票（其他群組的票，金額 0）；null = 無附贈 */
+  giftItemId: integer("gift_item_id").references(() => eventPurchaseItems.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique("uniq_group_combo_count").on(t.groupId, t.count),
+  index("idx_group_combos_group_id").on(t.groupId),
+]);
+
+// ============ Event Group Combo Prices (組合價於各時段的價格) ============
+export const eventGroupComboPrices = pgTable("event_group_combo_prices", {
+  id: serial("id").primaryKey(),
+  comboId: integer("combo_id")
+    .notNull()
+    .references(() => eventGroupCombos.id, { onDelete: "cascade" }),
+  tierId: integer("tier_id")
+    .notNull()
+    .references(() => eventPriceTiers.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique("uniq_combo_tier").on(t.comboId, t.tierId),
+  index("idx_combo_prices_combo_id").on(t.comboId),
 ]);
 
 // ============ Event Purchase Items (購買項目) ============
@@ -405,6 +449,10 @@ export const eventRegistrationPurchaseItems = pgTable(
     unitAmount: integer("unit_amount"),
     /** 報名當下生效的時段名稱（純記錄用）；無時段或舊資料為 null */
     tierName: text("tier_name"),
+    /** 組合價的顯示名稱快照（如「Full Pass」）；同名的列在明細合併顯示。非組合價為 null */
+    comboTitle: text("combo_title"),
+    /** 組合價附贈的票（金額 0） */
+    isGift: boolean("is_gift").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [

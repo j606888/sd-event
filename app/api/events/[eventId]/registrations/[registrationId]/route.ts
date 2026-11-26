@@ -21,6 +21,7 @@ import {
 } from "@/lib/registration-email";
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
+import { mergeComboItemsLocalized } from "@/lib/combo-data";
 import { apiError } from "@/lib/api-error";
 
 type Params = {
@@ -126,6 +127,7 @@ export async function GET(_request: Request, { params }: Params) {
       amount: eventPurchaseItems.amount,
       unitAmount: eventRegistrationPurchaseItems.unitAmount,
       tierName: eventRegistrationPurchaseItems.tierName,
+      comboTitle: eventRegistrationPurchaseItems.comboTitle,
     })
     .from(eventRegistrationPurchaseItems)
     .innerJoin(
@@ -133,13 +135,16 @@ export async function GET(_request: Request, { params }: Params) {
       eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
     )
     .where(eq(eventRegistrationPurchaseItems.registrationId, registrationId))
+    .orderBy(asc(eventRegistrationPurchaseItems.id))
     .then((rows) =>
       rows.map(({ unitAmount, tierName, ...row }) => ({
         ...row,
         amount: unitAmount ?? row.amount,
         tierName,
       }))
-    );
+    )
+    // 組合價項目合併成「Full Pass（A、B、C）」一行，金額相加
+    .then(mergeComboItemsLocalized);
 
   const purchaseItems = registrationPurchaseItems.length > 0
     ? registrationPurchaseItems

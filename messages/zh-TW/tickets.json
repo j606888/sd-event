@@ -57,7 +57,31 @@
     "emptyGroup": "此區塊還沒有票券。",
     "ungroupedTitle": "尚未指定區塊的票券",
     "ungroupedHint": "這些票券不會出現在報名表上，請先把它們移到一個區塊。",
-    "addGroup": "新增票券區塊"
+    "addGroup": "新增票券區塊",
+    "combo": {
+      "title": "依勾選數量計價（組合價）",
+      "description": "開啟後，價格看「勾了幾項」，不看勾了哪一項。適合「單堂 500、兩堂 900、全修 1,200」這種賣法。",
+      "toggleAria": "切換組合價",
+      "needsSavedEvent": "活動建立後即可設定組合價。",
+      "needsItems": "先在這個區塊新增票券，才能設定組合價。",
+      "countLabel": "勾選數量",
+      "rowLabel": "選 {count} 項",
+      "rowLabelAll": "全選（{count} 項）",
+      "nameLabel": "顯示名稱（選填）",
+      "namePlaceholder": "例如 Full Pass",
+      "priceLabel": "總價",
+      "tierPriceLabel": "{tier}",
+      "giftLabel": "附贈（選填）",
+      "giftNone": "不附贈",
+      "avg": "平均每項 ${amount}",
+      "hint": "每一格都必填。附贈的票會在選到這個數量時自動送出（金額 0），報到和人數統計都算得到。",
+      "missingPrice": "請填寫每一格的價格（0 以上的整數）",
+      "save": "儲存組合價",
+      "saving": "儲存中…",
+      "saved": "已儲存",
+      "itemPriceIgnored": "組合價開啟中：這個區塊的票不再各自計價。",
+      "byCombo": "依組合價"
+    }
   },
   "item": {
     "bundle": "{count} 人套票",

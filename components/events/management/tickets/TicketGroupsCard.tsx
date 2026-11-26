@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { ComboPricingPanel } from "./ComboPricingPanel";
 import type {
   PurchaseItemDraft,
   PurchaseItemGroupDraft,
@@ -93,6 +94,8 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
     updateGroup,
     persistGroup,
     removeGroup,
+    saveGroupCombos,
+    canEditCombos,
   } = form;
   const t = useTranslations("tickets");
   const tRules = useTranslations("tickets.groups.rules");
@@ -124,7 +127,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   const renderItemRow = (
     item: PurchaseItemDraft,
     i: number,
-    options?: { showAssignSelect?: boolean }
+    options?: { showAssignSelect?: boolean; comboPriced?: boolean }
   ) => {
     const sold = item.soldCount ?? 0;
     const canDelete = sold === 0;
@@ -156,7 +159,9 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
           <span className="ml-2 text-xs text-gray-400">{t("item.hiddenOnForm")}</span>
         ) : null}
         <span className="block text-xs text-gray-500 sm:ml-2 sm:inline">
-          {tierPriceLabel || `$${item.amount.toLocaleString()}`}
+          {options?.comboPriced
+            ? t("groups.combo.byCombo")
+            : tierPriceLabel || `$${item.amount.toLocaleString()}`}
         </span>
       </>
     );
@@ -340,6 +345,8 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                       const next = parseRuleKey(e.target.value as RuleKey);
                       updateGroup(gi, "selectionMode", next.selectionMode);
                       updateGroup(gi, "required", next.required);
+                      // 組合價只適用可複選；改成擇一時後端會關掉，這裡同步
+                      if (next.selectionMode === "single") updateGroup(gi, "comboPricing", false);
                       persistGroup(gi, next);
                     }}
                   >
@@ -360,9 +367,30 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
                     </span>
                   </p>
                 )}
+                {group.selectionMode === "multiple" && (
+                  <ComboPricingPanel
+                    group={group}
+                    groupItems={groupItems.map(({ item }) => item).filter((item) => !item.hidden)}
+                    priceTiers={priceTiers}
+                    giftCandidates={purchaseItems
+                      .filter(
+                        (item) =>
+                          item.id != null &&
+                          !item.hidden &&
+                          itemGroupKey(item) !== groupKeyOf(group, gi)
+                      )
+                      .map((item) => ({ id: item.id!, name: item.name }))}
+                    canEdit={canEditCombos && group.id != null}
+                    onSave={(payload) => saveGroupCombos(gi, payload)}
+                  />
+                )}
                 {groupItems.length > 0 ? (
                   <ul className="flex flex-col divide-y divide-hairline">
-                    {groupItems.map(({ item, index }) => renderItemRow(item, index))}
+                    {groupItems.map(({ item, index }) =>
+                      renderItemRow(item, index, {
+                        comboPriced: group.selectionMode === "multiple" && !!group.comboPricing,
+                      })
+                    )}
                   </ul>
                 ) : (
                   <p className="text-xs text-gray-400">{t("groups.emptyGroup")}</p>

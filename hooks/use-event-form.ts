@@ -60,6 +60,15 @@ export type PurchaseItemDraft = {
   minFlagged?: number;
 };
 
+/** 組合價的一列（「選 count 項 = 多少錢」）；prices 為各時段價，amount 為 fallback / 最後一段價 */
+export type GroupComboDraft = {
+  count: number;
+  title: string | null;
+  amount: number;
+  giftItemId: number | null;
+  prices: { tierId: number; amount: number }[];
+};
+
 /** 票種群組草稿 */
 export type PurchaseItemGroupDraft = {
   id?: number;
@@ -67,6 +76,9 @@ export type PurchaseItemGroupDraft = {
   selectionMode: "single" | "multiple";
   required: boolean;
   sortOrder: number;
+  /** 組合價（僅可複選區塊、已儲存的活動可設定） */
+  comboPricing?: boolean;
+  combos?: GroupComboDraft[];
 };
 
 /** 票價時段草稿；endsAt 為 "YYYY-MM-DD"（空 = fallback 段，永不過期） */
@@ -536,12 +548,22 @@ export function useEventForm({
           selectionMode: string;
           required: boolean;
           sortOrder: number;
+          comboPricing?: boolean;
+          combos?: GroupComboDraft[];
         }) => ({
           id: g.id,
           title: g.title,
           selectionMode: g.selectionMode === "multiple" ? "multiple" : "single",
           required: Boolean(g.required),
           sortOrder: g.sortOrder,
+          comboPricing: Boolean(g.comboPricing),
+          combos: (g.combos ?? []).map((c) => ({
+            count: c.count,
+            title: c.title ?? null,
+            amount: c.amount,
+            giftItemId: c.giftItemId ?? null,
+            prices: (c.prices ?? []).map((p) => ({ tierId: p.tierId, amount: p.amount })),
+          })),
         })
       );
       const exclusions = (eData?.exclusions ?? []).map(
@@ -1219,6 +1241,53 @@ export function useEventForm({
     }
   };
 
+  /**
+   * edit 模式：儲存某區塊的組合價（開關 + 價目表）。成功回傳 null 並更新草稿，失敗回傳錯誤訊息。
+   */
+  const saveGroupCombos = async (
+    index: number,
+    payload: { comboPricing: boolean; combos: GroupComboDraft[] }
+  ): Promise<string | null> => {
+    const group = groups[index];
+    if (mode !== "edit" || eventId == null || group?.id == null) {
+      return t("errors.updateGroupFailed");
+    }
+    try {
+      const res = await fetch(
+        `/api/events/${eventId}/purchase-item-groups/${group.id}/combos`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return data.error || t("errors.updateGroupFailed");
+      const saved = data.group as { comboPricing: boolean; combos: GroupComboDraft[] };
+      setGroups((prev) =>
+        prev.map((g, i) =>
+          i === index
+            ? {
+                ...g,
+                comboPricing: saved.comboPricing,
+                combos: saved.combos.map((c) => ({
+                  count: c.count,
+                  title: c.title ?? null,
+                  amount: c.amount,
+                  giftItemId: c.giftItemId ?? null,
+                  prices: c.prices.map((p) => ({ tierId: p.tierId, amount: p.amount })),
+                })),
+              }
+            : g
+        )
+      );
+      return null;
+    } catch {
+      return t("errors.updateGroupFailed");
+    }
+  };
+
   const removeGroup = async (index: number) => {
     const group = groups[index];
     if (mode === "edit" && eventId != null && group?.id != null) {
@@ -1754,6 +1823,9 @@ export function useEventForm({
     addGroup: withAutoSave(addGroup),
     updateGroup,
     persistGroup: withAutoSave(persistGroup),
+    saveGroupCombos: withAutoSave(saveGroupCombos),
+    /** 組合價設定需要活動已存在（edit 模式） */
+    canEditCombos: mode === "edit" && eventId != null,
     removeGroup: withAutoSave(removeGroup),
     isGroupExcluded,
     toggleGroupExclusion,

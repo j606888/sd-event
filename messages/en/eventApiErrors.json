@@ -75,7 +75,8 @@
     "exclusive": "“{groupA}” and “{groupB}” can't be selected together"
   },
   "registrationList": {
-    "itemSeparator": ", "
+    "itemSeparator": ", ",
+    "comboLabel": "{title} ({items})"
   },
   "registrationEdit": {
     "refundedLocked": "This registration has been refunded. Undo the refund before changing its payment status.",
@@ -130,5 +131,13 @@
   },
   "ticketPlan": {
     "invalid": "The ticket setup is incomplete. Check each step’s ticket names, prices and dates."
+  },
+  "combos": {
+    "notMultiple": "Combo pricing only works on multi-select ticket sections",
+    "noItems": "Add tickets to this section before setting combo prices",
+    "bundleItem": "“{item}” is a multi-person bundle; combo sections can only hold regular tickets",
+    "missingCount": "Please enter a price for picking {count}",
+    "invalidAmount": "The price for picking {count} must be a whole number of 0 or more",
+    "invalidGift": "The free ticket for picking {count} is invalid; please choose again"
   }
 }

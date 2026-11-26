@@ -57,7 +57,31 @@
     "emptyGroup": "No tickets in this group yet.",
     "ungroupedTitle": "Tickets without a group",
     "ungroupedHint": "These tickets won't appear on the registration form. Move them into a group first.",
-    "addGroup": "Add ticket group"
+    "addGroup": "Add ticket group",
+    "combo": {
+      "title": "Price by how many are picked (combo pricing)",
+      "description": "When on, the price depends on how many tickets are picked, not which ones. Great for “1 class 500, 2 classes 900, all 3 for 1,200”.",
+      "toggleAria": "Toggle combo pricing",
+      "needsSavedEvent": "You can set combo prices once the event has been created.",
+      "needsItems": "Add tickets to this section before setting combo prices.",
+      "countLabel": "Picked",
+      "rowLabel": "{count, plural, one {# pick} other {# picks}}",
+      "rowLabelAll": "All ({count})",
+      "nameLabel": "Display name (optional)",
+      "namePlaceholder": "e.g. Full Pass",
+      "priceLabel": "Total",
+      "tierPriceLabel": "{tier}",
+      "giftLabel": "Free extra (optional)",
+      "giftNone": "None",
+      "avg": "${amount} each on average",
+      "hint": "Every price is required. The free extra is added automatically at that count (at $0) and shows up in check-in and headcounts.",
+      "missingPrice": "Please fill in every price (a whole number of 0 or more)",
+      "save": "Save combo prices",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "itemPriceIgnored": "Combo pricing is on: tickets in this section aren't priced individually.",
+      "byCombo": "Combo price"
+    }
   },
   "item": {
     "bundle": "{count}-person bundle",

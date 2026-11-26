@@ -22,6 +22,11 @@ import { isTeamAdmin } from "@/lib/team-roles";
 import { applyRegistrationVisibility } from "@/lib/registration-visibility";
 import { validateGroupSelection, resolveUnitPrices } from "@/lib/registration-pricing";
 import { computeItemsTotal, findSeatCountMismatch } from "@/lib/seat-count";
+import {
+  priceRegistrationLines,
+  mergeComboItemsLocalized,
+  lineItemNames,
+} from "@/lib/combo-data";
 import { normalizeFlagLabel, findFlaggedShortfall } from "@/lib/attendee-flag";
 import { normalizeCouponCode, computeCouponDiscount } from "@/lib/coupon";
 import { parsePurchaseItemIdParam, registrationHasPurchaseItem } from "@/lib/registration-item-filter";
@@ -191,6 +196,7 @@ export async function GET(request: Request, { params }: Params) {
             registrationId: eventRegistrationPurchaseItems.registrationId,
             purchaseItemId: eventRegistrationPurchaseItems.purchaseItemId,
             quantity: eventRegistrationPurchaseItems.quantity,
+            comboTitle: eventRegistrationPurchaseItems.comboTitle,
           })
           .from(eventRegistrationPurchaseItems)
           .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds))
@@ -217,13 +223,22 @@ export async function GET(request: Request, { params }: Params) {
     if (!name) return null;
     return quantity > 1 ? `${name} × ${quantity}` : name;
   };
-  const itemLabelsByRegistration = new Map<number, string[]>();
+  const itemEntriesByRegistration = new Map<number, { name: string; comboTitle: string | null }[]>();
   for (const row of itemRows) {
     const label = itemLabel(row.purchaseItemId, row.quantity);
     if (!label) continue;
-    const list = itemLabelsByRegistration.get(row.registrationId);
-    if (list) list.push(label);
-    else itemLabelsByRegistration.set(row.registrationId, [label]);
+    const entry = { name: label, comboTitle: row.comboTitle };
+    const list = itemEntriesByRegistration.get(row.registrationId);
+    if (list) list.push(entry);
+    else itemEntriesByRegistration.set(row.registrationId, [entry]);
+  }
+  // 組合價項目合併成「Full Pass（A、B、C）」
+  const itemLabelsByRegistration = new Map<number, string[]>();
+  for (const [registrationId, entries] of itemEntriesByRegistration) {
+    itemLabelsByRegistration.set(
+      registrationId,
+      (await mergeComboItemsLocalized(entries)).map((e) => e.name)
+    );
   }
 
   // 組合結果
@@ -428,6 +443,7 @@ export async function POST(request: Request, { params }: Params) {
               amount: eventPurchaseItems.amount,
               seatCount: eventPurchaseItems.seatCount,
               minFlagged: eventPurchaseItems.minFlagged,
+              groupId: eventPurchaseItems.groupId,
             })
             .from(eventPurchaseItems)
             .where(inArray(eventPurchaseItems.id, selectedIds))
@@ -438,6 +454,7 @@ export async function POST(request: Request, { params }: Params) {
               amount: number;
               seatCount: number;
               minFlagged: number;
+              groupId: number | null;
             }[]
           ),
       db
@@ -482,15 +499,17 @@ export async function POST(request: Request, { params }: Params) {
       return apiError("eventApiErrors.registration.flaggedShortfall", 400, flagShortfall);
     }
 
+    // 組合價區塊：價格看勾了幾項，並可能附贈其他區塊的票（金額 0）
+    const pricedLines = await priceRegistrationLines(
+      groups,
+      selectedItems,
+      unitPriceById,
+      activeTier?.id ?? null
+    );
+
     // autoCalc（或群組活動）時以伺服器解析價為準（一般票 單價 × 參加者數、套票 整組價），
     // 避免顯示價/收費價不一致或被竄改
-    const computedTotal = computeItemsTotal(
-      selectedItems.map((item) => ({
-        unitPrice: unitPriceById.get(item.id) ?? 0,
-        seatCount: item.seatCount,
-      })),
-      validAttendees.length
-    );
+    const computedTotal = computeItemsTotal(pricedLines, validAttendees.length);
 
     // 折扣碼：僅權威模式生效，伺服器重新驗證並計算折抵（client 僅預覽）
     let coupon: typeof eventCoupons.$inferSelect | null = null;
@@ -601,13 +620,15 @@ export async function POST(request: Request, { params }: Params) {
 
       // 建立購買項目關聯。單選也要寫入，才會留下收費當下的單價快照（unitAmount）；
       // 否則之後統計只能退回項目定價（fallback 段），早鳥報名會被算成現場價。
-      if (selectedIds.length > 0) {
-        const registrationPurchaseItemValues = selectedIds.map((itemId: number) => ({
+      if (pricedLines.length > 0) {
+        const registrationPurchaseItemValues = pricedLines.map((line) => ({
           registrationId: reg.id,
-          purchaseItemId: itemId,
+          purchaseItemId: line.itemId,
           quantity: 1, // Default quantity, can be extended later
-          unitAmount: unitPriceById.get(itemId) ?? null,
+          unitAmount: line.unitPrice,
           tierName: activeTier?.name ?? null,
+          comboTitle: line.comboTitle,
+          isGift: line.isGift,
         }));
         await tx.insert(eventRegistrationPurchaseItems).values(registrationPurchaseItemValues);
       }
@@ -659,7 +680,14 @@ export async function POST(request: Request, { params }: Params) {
               contactPhone: registration.contactPhone,
               contactEmail: registration.contactEmail,
               attendees: validAttendees.map((a: { name: string; role: string }) => ({ name: a.name.trim(), role: a.role })),
-              itemNames: selectedItems.map((item) => item.name),
+              itemNames: (
+                await mergeComboItemsLocalized(
+                  await lineItemNames(
+                    pricedLines,
+                    new Map(selectedItems.map((item) => [item.id, item.name]))
+                  )
+                )
+              ).map((item) => item.name),
               tierName: activeTier?.name ?? null,
               paymentMethod: registration.paymentMethod,
               totalAmount: registration.totalAmount,

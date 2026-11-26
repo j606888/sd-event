@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
 import { apiError } from "@/lib/api-error";
+import { loadGroupCombos } from "@/lib/combo-data";
 import { asc, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ eventId: string }> };
@@ -32,7 +33,11 @@ export async function GET(_request: Request, { params }: Params) {
     .where(eq(eventPurchaseItemGroups.eventId, eventId))
     .orderBy(asc(eventPurchaseItemGroups.sortOrder));
 
-  return NextResponse.json({ groups: list });
+  // 組合價（含各時段價）一併帶回，供後台編輯
+  const combosByGroup = await loadGroupCombos(list.map((g) => g.id));
+  return NextResponse.json({
+    groups: list.map((g) => ({ ...g, combos: combosByGroup.get(g.id) ?? [] })),
+  });
 }
 
 /** 新增票種群組 */
