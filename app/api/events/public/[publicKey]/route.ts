@@ -24,6 +24,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { requireTeamMember } from "@/lib/api-auth";
 import { apiError } from "@/lib/api-error";
+import { loadGroupCombos, resolveCombosForTier } from "@/lib/combo-data";
 
 type Params = { params: Promise<{ publicKey: string }> };
 
@@ -204,6 +205,10 @@ export async function GET(_request: Request, { params }: Params) {
     excludesByGroup.get(groupAId)!.add(groupBId);
     excludesByGroup.get(groupBId)!.add(groupAId);
   }
+  // 組合價：依當下時段解析每一列的總價（顯示價 = 收費價）
+  const combosByGroup = await loadGroupCombos(
+    groups.filter((g) => g.comboPricing).map((g) => g.id)
+  );
   const groupsWithItems = groups.map((g) => ({
     id: g.id,
     title: g.title,
@@ -212,6 +217,11 @@ export async function GET(_request: Request, { params }: Params) {
     sortOrder: g.sortOrder,
     items: itemsByGroup.get(g.id) ?? [],
     excludesGroupIds: Array.from(excludesByGroup.get(g.id) ?? []),
+    comboPricing: g.comboPricing && g.selectionMode === "multiple",
+    combos:
+      g.comboPricing && g.selectionMode === "multiple"
+        ? resolveCombosForTier(combosByGroup.get(g.id) ?? [], activeTier?.id ?? null)
+        : [],
   }));
 
   // 售票精靈的答案只給主辦方看（裡面有折扣碼），公開頁不帶

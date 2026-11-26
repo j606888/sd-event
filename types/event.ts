@@ -64,6 +64,17 @@ export type EventPurchaseItemGroup = {
   items: EventPurchaseItem[];
   /** 與此群組互斥的群組 id（對稱、雙向展開）；選了任一方即鎖住另一方 */
   excludesGroupIds?: number[];
+  /** 組合價：價格看勾了幾項（見 lib/combo-pricing.ts）；未帶 = 否 */
+  comboPricing?: boolean;
+  /** 組合價價目表（已依當下時段解析），依 count 升冪 */
+  combos?: EventGroupCombo[];
+};
+
+export type EventGroupCombo = {
+  count: number;
+  title: string | null;
+  amount: number;
+  giftItemId: number | null;
 };
 
 export type EventNoticeItem = {

@@ -9,7 +9,9 @@ import { Markdown } from "@/components/ui/markdown";
 import { getEventDateLabel, getEventTimeRange, formatTierDeadline } from "@/lib/format-event-date";
 import { TicketPriceLine, useSaleStatusLabel } from "../TicketPriceLine";
 import { isItemOnSale } from "@/lib/pricing";
-import type { EventPurchaseItem, PublicEventData } from "@/types/event";
+import { isComboGroup } from "@/lib/combo-pricing";
+import { ComboLadder } from "../ComboLadder";
+import type { EventPurchaseItem, EventPurchaseItemGroup, PublicEventData } from "@/types/event";
 import { Clock, MapPin, Disc3 } from "lucide-react";
 import { siInstagram, siFacebook } from "simple-icons";
 import { isRenderableImageSrc } from "@/lib/utils";
@@ -37,7 +39,13 @@ export function EventDetailsStep({
 
   // 方案介紹依票券區塊分段，讓報名者先看懂「有哪幾類方案」再進報名步驟。
   // 未使用區塊的活動（groups 為空）維持單一無標題清單。
-  const introSections: { key: string; title: string | null; items: EventPurchaseItem[] }[] =
+  const introSections: {
+    key: string;
+    title: string | null;
+    items: EventPurchaseItem[];
+    /** 組合價區塊：顯示價目階梯，票券本身不標價 */
+    comboGroup?: EventPurchaseItemGroup;
+  }[] =
     event.groups.length > 0
       ? [
           ...event.groups
@@ -46,6 +54,7 @@ export function EventDetailsStep({
               key: `group-${group.id}`,
               title: group.title,
               items: group.items,
+              comboGroup: isComboGroup(group) ? group : undefined,
             })),
           // 區塊被刪除後 group_id 會變成 null，這些孤兒票券仍要列出來
           ...(() => {
@@ -164,6 +173,14 @@ export function EventDetailsStep({
                         <span>{section.title}</span>
                       </h3>
                     )}
+                    {section.comboGroup && (
+                      <ComboLadder
+                        group={section.comboGroup}
+                        giftName={(id) =>
+                          event.purchaseItems.find((i) => i.id === id)?.name ?? null
+                        }
+                      />
+                    )}
                     <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-3">
                       {section.items.map((item) => (
                         <Fragment key={item.id}>
@@ -179,14 +196,18 @@ export function EventDetailsStep({
                               </div>
                             )}
                           </div>
-                          <TicketPriceLine
-                            variant="intro"
-                            amount={item.amount}
-                            fullAmount={item.fullAmount}
-                            fullTierName={event.fullPriceTierName}
-                            seatCount={item.seatCount}
-                            unavailableLabel={saleStatusLabel(item)}
-                          />
+                          {section.comboGroup ? (
+                            <span aria-hidden />
+                          ) : (
+                            <TicketPriceLine
+                              variant="intro"
+                              amount={item.amount}
+                              fullAmount={item.fullAmount}
+                              fullTierName={event.fullPriceTierName}
+                              seatCount={item.seatCount}
+                              unavailableLabel={saleStatusLabel(item)}
+                            />
+                          )}
                         </Fragment>
                       ))}
                     </div>

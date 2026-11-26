@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import { eq, asc, inArray } from "drizzle-orm";
 import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
+import { mergeComboItemsLocalized } from "@/lib/combo-data";
 import { apiError } from "@/lib/api-error";
 
 type Params = { params: Promise<{ registrationKey: string }> };
@@ -115,6 +116,7 @@ export async function GET(_request: Request, { params }: Params) {
           name: eventPurchaseItems.name,
           amount: eventPurchaseItems.amount,
           unitAmount: eventRegistrationPurchaseItems.unitAmount,
+          comboTitle: eventRegistrationPurchaseItems.comboTitle,
         })
         .from(eventRegistrationPurchaseItems)
         .innerJoin(
@@ -122,13 +124,16 @@ export async function GET(_request: Request, { params }: Params) {
           eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
         )
         .where(eq(eventRegistrationPurchaseItems.registrationId, registration.id))
+        .orderBy(asc(eventRegistrationPurchaseItems.id))
         // 金額優先用報名當下的單價快照（含時段價），舊資料退回項目定價
         .then((rows) =>
           rows.map(({ unitAmount, ...row }) => ({
             ...row,
             amount: unitAmount ?? row.amount,
           }))
-        ),
+        )
+        // 組合價項目合併成「Full Pass（A、B、C）」一行，金額相加
+        .then(mergeComboItemsLocalized),
     ]);
 
     // 單選舊資料沒有單價快照，以報名時間回推當時生效的時段價

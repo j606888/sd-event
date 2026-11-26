@@ -75,7 +75,8 @@
     "exclusive": "「{groupA}」與「{groupB}」不可同時選擇"
   },
   "registrationList": {
-    "itemSeparator": "、"
+    "itemSeparator": "、",
+    "comboLabel": "{title}（{items}）"
   },
   "registrationEdit": {
     "refundedLocked": "這筆報名已退款，請先撤銷退款再改付款狀態",
@@ -130,5 +131,13 @@
   },
   "ticketPlan": {
     "invalid": "售票設定不完整，請檢查每一步的票名、價格與日期"
+  },
+  "combos": {
+    "notMultiple": "組合價只能用在「可複選」的票券區塊",
+    "noItems": "這個區塊還沒有票券，無法設定組合價",
+    "bundleItem": "「{item}」是多人套票，組合價區塊只能放一般票",
+    "missingCount": "請填寫「選 {count} 項」的價格",
+    "invalidAmount": "「選 {count} 項」的價格需為 0 以上的整數",
+    "invalidGift": "「選 {count} 項」的附贈票券無效，請重新選擇"
   }
 }

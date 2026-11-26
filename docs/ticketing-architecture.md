@@ -305,3 +305,19 @@ Party 群組）若無此規則，使用者可**同時**勾「全餐雙日 $2800�
 6. `npm run lint` 與 `npm run build` 通過。
 </content>
 </invoke>
+
+### Phase 2.10 — 組合價（依勾選數量計價）✅ 已完成
+
+> 「單堂 500、兩堂 900、全選 = Full Pass 1,200（含 Mini Social）」這種買越多越便宜的賣法。
+
+- **Schema**：`eventPurchaseItemGroups.comboPricing`；新表 `eventGroupCombos`（`groupId` / `count` / `title` /
+  `amount`（fallback = 最後一段價）/ `giftItemId`，`unique(groupId, count)`）與 `eventGroupComboPrices`（各時段價，
+  形狀同 `eventPurchaseItemPrices`）；`eventRegistrationPurchaseItems` 加 `comboTitle`、`isGift` 快照。
+- **規則**（`lib/combo-pricing.ts`，前後端共用）：只限可複選區塊；勾 n 項收「選 n 項」那列的價，平均拆成各項
+  `unitAmount`（整數、加總不變）；該列有附贈時把附贈票以 0 元加入（報名者自己也勾了同樣改 0）；組合價區塊內的票
+  一律以每位參加者一份計價。價目表 1..票數 每列必填（`validateComboConfig`），缺列時退回各票單價加總。
+- **API**：`PUT /api/events/[eventId]/purchase-item-groups/[groupId]/combos`（replace-all，關閉只關開關、保留價目表）；
+  群組 GET 帶 `combos`；公開活動 API 回傳依當下時段解析好的 `combos`；公開／現場報名都經
+  `priceRegistrationLines()`（`lib/combo-data.ts`）。
+- **顯示**：同一 `comboTitle` 的項目在列表、明細、憑證、匯出、通知信合併為「Full Pass（A、B、C）」（`mergeComboItems`）。
+- **介面**：後台 `ComboPricingPanel`（僅已建立的活動）；報名頁 / 現場報名 / 後台預覽用 `ComboLadder` + `ComboHint`。

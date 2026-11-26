@@ -1,3 +1,4 @@
+import { mergeComboItemsLocalized } from "@/lib/combo-data";
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
@@ -122,6 +123,7 @@ export async function GET(request: Request, { params }: Params) {
           .select({
             registrationId: eventRegistrationPurchaseItems.registrationId,
             name: eventPurchaseItems.name,
+            comboTitle: eventRegistrationPurchaseItems.comboTitle,
           })
           .from(eventRegistrationPurchaseItems)
           .innerJoin(
@@ -129,6 +131,7 @@ export async function GET(request: Request, { params }: Params) {
             eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
           )
           .where(inArray(eventRegistrationPurchaseItems.registrationId, registrationIds))
+          .orderBy(asc(eventRegistrationPurchaseItems.id))
       : [];
 
   // 舊單選模型 fallback：registration.purchaseItemId
@@ -156,11 +159,19 @@ export async function GET(request: Request, { params }: Params) {
     attendeesByReg.set(a.registrationId, list);
   }
 
-  const itemNamesByReg = new Map<number, string[]>();
+  const itemEntriesByReg = new Map<number, { name: string; comboTitle: string | null }[]>();
   for (const row of multiItems) {
-    const list = itemNamesByReg.get(row.registrationId) ?? [];
-    list.push(row.name);
-    itemNamesByReg.set(row.registrationId, list);
+    const list = itemEntriesByReg.get(row.registrationId) ?? [];
+    list.push({ name: row.name, comboTitle: row.comboTitle });
+    itemEntriesByReg.set(row.registrationId, list);
+  }
+  // 組合價項目合併成「Full Pass（A、B、C）」
+  const itemNamesByReg = new Map<number, string[]>();
+  for (const [registrationId, entries] of itemEntriesByReg) {
+    itemNamesByReg.set(
+      registrationId,
+      (await mergeComboItemsLocalized(entries)).map((e) => e.name)
+    );
   }
 
   // 欄位標題與狀態文字跟著請求者的介面語言；資料本身照存的值輸出

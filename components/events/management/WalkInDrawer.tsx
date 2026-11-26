@@ -21,6 +21,8 @@ import {
 } from "@/lib/seat-count";
 import { findFlaggedShortfall, normalizeFlagLabel } from "@/lib/attendee-flag";
 import { isItemOnSale } from "@/lib/pricing";
+import { isComboGroup, priceGroupSelection } from "@/lib/combo-pricing";
+import { ComboLadder } from "@/components/events/registration/ComboLadder";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
 
@@ -114,10 +116,17 @@ export function WalkInDrawer({
     .filter((it): it is EventPurchaseItem => it != null);
 
   // 一般票 單價 × 人數、套票 整組價（與伺服器一致）
+  // 組合價（勾幾項算幾項的價）與附贈票，與伺服器一致
   const computedAmount = computeItemsTotal(
-    selectedItems.map((it) => ({ unitPrice: it.amount, seatCount: it.seatCount })),
+    event
+      ? priceGroupSelection(event.groups, selectedItemIds(), event.purchaseItems).lines
+      : [],
     participants.length
   );
+  const itemNameById = new Map(
+    (event?.purchaseItems ?? []).map((it) => [it.id, it.name] as const)
+  );
+  const giftName = (itemId: number) => itemNameById.get(itemId) ?? null;
 
   // 選了套票 → 參加者人數固定為套票人數
   const requiredParticipants = requiredAttendeeCount(selectedItems);
@@ -276,6 +285,13 @@ export function WalkInDrawer({
                         </span>
                       )}
                     </p>
+                    {isComboGroup(group) && !locked && (
+                      <ComboLadder
+                        group={group}
+                        activeCount={selected.length}
+                        giftName={giftName}
+                      />
+                    )}
                     {/* 時段限定票（如早鳥限定已截止）現場不販售，伺服器也會擋 */}
                     {group.items.filter(isItemOnSale).map((item) => {
                       const isSelected = selected.includes(item.id);
@@ -305,7 +321,9 @@ export function WalkInDrawer({
                           />
                           <WalkInItemName item={item} />
                           <span className="text-sm text-gray-600">
-                            {seatCountOf(item) > 1
+                            {isComboGroup(group)
+                              ? null
+                              : seatCountOf(item) > 1
                               ? t("walkIn.priceForSeats", {
                                   amount: String(item.amount),
                                   seats: seatCountOf(item),

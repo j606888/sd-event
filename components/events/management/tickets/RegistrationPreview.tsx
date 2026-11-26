@@ -5,6 +5,7 @@ import { Eye } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { GroupTicketPicker } from "@/components/events/registration/GroupTicketPicker";
 import { computeItemsTotal, requiredAttendeeCount } from "@/lib/seat-count";
+import { priceGroupSelection } from "@/lib/combo-pricing";
 import {
   endOfDayFromDateInput,
   getItemUnitPrice,
@@ -120,6 +121,32 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
     sortOrder: gi,
     items: visibleIndexes.filter((i) => itemGroupIndex(i) === gi).map(toPublicItem),
     excludesGroupIds: excludesByGroupIndex.get(gi) ?? [],
+    // 組合價：時段價換成預覽時段、附贈票換成預覽用的 index id
+    comboPricing: g.selectionMode === "multiple" && !!g.comboPricing,
+    combos:
+      g.selectionMode === "multiple" && g.comboPricing
+        ? (g.combos ?? []).map((c) => {
+            const giftIndex =
+              c.giftItemId != null
+                ? purchaseItems.findIndex((it) => it.id === c.giftItemId)
+                : -1;
+            return {
+              count: c.count,
+              title: c.title,
+              amount: getItemUnitPrice(
+                c.amount,
+                c.prices
+                  .map((p) => ({
+                    tierId: priceTiers.findIndex((tier) => tier.id === p.tierId),
+                    amount: p.amount,
+                  }))
+                  .filter((p) => p.tierId >= 0),
+                tierIndex >= 0 ? tierIndex : null
+              ),
+              giftItemId: giftIndex >= 0 ? giftIndex : null,
+            };
+          })
+        : [],
   }));
 
   const publicFlatItems: EventPurchaseItem[] = visibleIndexes.map(toPublicItem);
@@ -144,7 +171,15 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
       unitPrice: priceOf(i),
     }));
   const previewAttendees = requiredAttendeeCount(selectedItems) ?? 1;
-  const total = computeItemsTotal(selectedItems, previewAttendees);
+  // 與報名頁同一套算法（含組合價、附贈票）
+  const total = computeItemsTotal(
+    priceGroupSelection(
+      publicGroups,
+      selectedItemIndexes.filter((i) => purchaseItems[i]),
+      publicFlatItems
+    ).lines,
+    previewAttendees
+  );
   const autoCalc = groups.length > 0 || autoCalcAmount;
 
   const hasAnythingToShow = visibleIndexes.length > 0 || groups.length > 0;
