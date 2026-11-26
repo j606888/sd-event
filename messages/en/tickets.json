@@ -181,6 +181,18 @@
     "baseEarly": "“{tier}” is the last tier this ticket is sold in and sets its base price; in later tiers the registration page shows “Sales closed” and no “You save” amount.",
     "amountLabel": "Amount *",
     "amountLabelBundle": "Amount (for {count, plural, one {# person} other {# people}}) *",
-    "amountPlaceholder": "Enter an amount"
+    "amountPlaceholder": "Enter an amount",
+    "scheduleLabel": "Class time & venue (optional)",
+    "scheduleDate": "Date",
+    "scheduleStart": "Start",
+    "scheduleEnd": "End",
+    "scheduleLocation": "Venue",
+    "scheduleLocationEvent": "Same as event ({name})",
+    "scheduleLocationNone": "Same as event",
+    "scheduleHint": "Fill this in when classes are on different days or at different venues; otherwise the event's time and venue are used. Add new venues under Location in Basic info.",
+    "scheduleCopyPrevious": "Copy time & venue from “{name}”",
+    "scheduleClear": "Clear",
+    "scheduleIncomplete": "Please fill in the date, start time and end time",
+    "scheduleEndBeforeStart": "End time must be after the start time"
   }
 }

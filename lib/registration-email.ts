@@ -1,6 +1,13 @@
 import { db } from "@/db";
-import { eventLocations } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import {
+  eventLocations,
+  eventPurchaseItems,
+  eventRegistrationPurchaseItems,
+  eventRegistrations,
+} from "@/db/schema";
+import { asc, eq } from "drizzle-orm";
+import type { SchedulableItem } from "@/lib/item-schedule";
+import { loadLocationsById } from "@/lib/item-schedule-data";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
 import { asLocale } from "@/lib/locale";
 
@@ -17,7 +24,7 @@ export type ConfirmationEmailContext = {
   title?: string;
   startAt?: string;
   endAt?: string;
-  location: { name: string; googleMapUrl: string | null } | null;
+  location: { id: number; name: string; googleMapUrl: string | null } | null;
 };
 
 /**
@@ -27,11 +34,12 @@ export type ConfirmationEmailContext = {
 export async function loadConfirmationEmailContext(
   event: ConfirmationEmailEvent
 ): Promise<ConfirmationEmailContext> {
-  let location: { name: string; googleMapUrl: string | null } | null = null;
+  let location: ConfirmationEmailContext["location"] = null;
 
   if (event.locationId) {
     const [loc] = await db
       .select({
+        id: eventLocations.id,
         name: eventLocations.name,
         googleMapUrl: eventLocations.googleMapUrl,
       })
@@ -39,7 +47,7 @@ export async function loadConfirmationEmailContext(
       .where(eq(eventLocations.id, event.locationId))
       .limit(1);
     if (loc) {
-      location = { name: loc.name, googleMapUrl: loc.googleMapUrl ?? null };
+      location = { id: loc.id, name: loc.name, googleMapUrl: loc.googleMapUrl ?? null };
     }
   }
 
@@ -49,6 +57,31 @@ export async function loadConfirmationEmailContext(
     endAt: event.endAt ? new Date(event.endAt).toISOString() : undefined,
     location,
   };
+}
+
+/** 這筆報名買到的票各自的上課時間與場地（確認信「你的課程」用） */
+async function loadRegistrationSchedule(registrationKey: string): Promise<SchedulableItem[]> {
+  const rows = await db
+    .select({
+      id: eventPurchaseItems.id,
+      name: eventPurchaseItems.name,
+      startAt: eventPurchaseItems.startAt,
+      endAt: eventPurchaseItems.endAt,
+      locationId: eventPurchaseItems.locationId,
+    })
+    .from(eventRegistrationPurchaseItems)
+    .innerJoin(eventRegistrations, eq(eventRegistrationPurchaseItems.registrationId, eventRegistrations.id))
+    .innerJoin(eventPurchaseItems, eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id))
+    .where(eq(eventRegistrations.registrationKey, registrationKey))
+    .orderBy(asc(eventRegistrationPurchaseItems.id));
+  const locations = await loadLocationsById(rows.map((r) => r.locationId));
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    startAt: r.startAt,
+    endAt: r.endAt,
+    location: r.locationId != null ? locations.get(r.locationId) ?? null : null,
+  }));
 }
 
 /**
@@ -70,6 +103,7 @@ export async function sendConfirmationEmail(
       eventStartAt: ctx.startAt,
       eventEndAt: ctx.endAt,
       eventLocation: ctx.location,
+      scheduleItems: await loadRegistrationSchedule(registrationKey),
     });
   } catch (e) {
     const error = e instanceof Error ? e.message : "寄信失敗";

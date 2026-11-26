@@ -8,20 +8,30 @@ import { seatCountOf } from "@/lib/seat-count";
 import { isItemOnSale } from "@/lib/pricing";
 import { isComboGroup, priceGroupSelection } from "@/lib/combo-pricing";
 import { ComboHint, ComboLadder } from "./ComboLadder";
+import { ItemSessionLine } from "./ItemSchedule";
 
 /** 票券名稱下方的資訊：套票人數提示、票券說明、目前時段 */
 function TicketItemInfo({
   item,
   activeTierName,
+  venue,
 }: {
   item: EventPurchaseItem;
   activeTierName: string | null;
+  /** showVenue：活動有多個場地時每張票都標場地；differs：跟先勾的票不同場地 */
+  venue?: { showVenue: boolean; differs: boolean };
 }) {
   const t = useTranslations("publicEvent.ticketPicker");
   const seats = seatCountOf(item);
   return (
     <div className="min-w-0">
       <div className="font-medium text-gray-900">{item.name}</div>
+      <ItemSessionLine item={item} showVenue={venue?.showVenue ?? false} className="mt-0.5 text-xs text-gray-600" />
+      {venue?.differs && (
+        <div className="mt-1 inline-flex rounded bg-orange-50 px-1.5 py-0.5 text-xs font-medium text-orange-800">
+          {t("differentVenue")}
+        </div>
+      )}
       {seats > 1 && (
         <div className="mt-1 inline-flex items-center gap-1 rounded bg-brand/10 px-1.5 py-0.5 text-xs font-medium text-brand-strong">
           <Users className="size-3" />
@@ -77,6 +87,32 @@ export function GroupTicketPicker({
 }: GroupTicketPickerProps) {
   const t = useTranslations("publicEvent.ticketPicker");
   const saleStatusLabel = useSaleStatusLabel();
+
+  // 不同堂課在不同場地：每張票標場地，跟第一張勾選的票不同場地的票標「不同場地」提醒
+  const allItems = groups.length > 0 ? groups.flatMap((g) => g.items) : purchaseItems;
+  const venueKeyOf = (item: EventPurchaseItem) => item.location?.id ?? "event";
+  const multiVenue = new Set(allItems.map(venueKeyOf)).size > 1;
+  const selectedIds = new Set<number>(
+    groups.length > 0
+      ? Object.values(selectedByGroup).flat()
+      : [...selectedPlanIds, ...(selectedPlanId != null ? [selectedPlanId] : [])]
+  );
+  const firstSelected = allItems.find((i) => selectedIds.has(i.id));
+  // 只提醒「會一起買」的票：單選區塊裡已經有選的話，改選其他票是取代，不是多買一堂
+  const canAddAlongside = (item: EventPurchaseItem) => {
+    if (groups.length === 0) return allowMultiplePurchase;
+    const group = item.groupId != null ? groupById.get(item.groupId) : undefined;
+    if (!group || group.selectionMode === "multiple") return true;
+    return (selectedByGroup[group.id] ?? []).length === 0;
+  };
+  const venueOf = (item: EventPurchaseItem) => ({
+    showVenue: multiVenue,
+    differs:
+      multiVenue &&
+      firstSelected != null &&
+      canAddAlongside(item) &&
+      venueKeyOf(item) !== venueKeyOf(firstSelected),
+  });
   const groupById = new Map(groups.map((g) => [g.id, g]));
   // 若某互斥群組已有選取，回傳「鎖住本群組的那個群組」，否則 null
   const getLockingGroup = (group: EventPurchaseItemGroup) => {
@@ -192,6 +228,7 @@ export function GroupTicketPicker({
                           <TicketItemInfo
                             item={item}
                             activeTierName={isComboGroup(group) ? null : activeTierName}
+                            venue={venueOf(item)}
                           />
                           {gifted && (
                             <div className="mt-1 inline-flex rounded bg-butter-soft px-1.5 py-0.5 text-xs font-medium text-butter-ink">
@@ -286,7 +323,7 @@ export function GroupTicketPicker({
                 className="w-4 h-4 text-brand-strong border-gray-300 focus:ring-brand"
               />
               <div className="flex flex-1 items-start justify-between gap-3">
-                <TicketItemInfo item={item} activeTierName={activeTierName} />
+                <TicketItemInfo item={item} activeTierName={activeTierName} venue={venueOf(item)} />
                 <TicketPriceLine
                   variant="picker"
                   amount={item.amount}

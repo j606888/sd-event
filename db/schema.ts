@@ -283,6 +283,16 @@ export const eventPurchaseItems = pgTable("event_purchase_items", {
   description: text("description"),
   /** 選了此票的報名至少要有幾位參加者勾選活動的 attendeeFlagLabel；0 = 不要求 */
   minFlagged: integer("min_flagged").notNull().default(0),
+  /**
+   * 這張票的上課時間（選填）：同一活動不同堂課在不同日期／時段時用。
+   * 兩者同時有值或同時為 null；null = 沿用活動的時間。
+   */
+  startAt: timestamp("start_at", { withTimezone: true }),
+  endAt: timestamp("end_at", { withTimezone: true }),
+  /** 這張票的場地（選填，團隊場地清單）；null = 沿用活動的場地 */
+  locationId: integer("location_id").references(() => eventLocations.id, {
+    onDelete: "set null",
+  }),
   /** 為 true 時不顯示於公開報名表，仍保留於後台與既有報名紀錄 */
   hidden: boolean("hidden").default(false).notNull(),
   sortOrder: integer("sort_order").default(0),

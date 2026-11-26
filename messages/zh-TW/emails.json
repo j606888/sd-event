@@ -22,7 +22,10 @@
     "infoTitle": "活動資訊：",
     "time": "時間：{time}",
     "location": "地點：{location}",
-    "contact": "如果有任何問題，歡迎直接回覆此郵件與我們聯繫。"
+    "contact": "如果有任何問題，歡迎直接回覆此郵件與我們聯繫。",
+    "scheduleTitle": "你的課程：",
+    "scheduleUndated": "其他",
+    "scheduleSeparator": "、"
   },
   "refunded": {
     "subject": "[已退款] 活動報名已退款：{event}",

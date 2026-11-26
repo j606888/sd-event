@@ -217,3 +217,24 @@ export function formatClockTime(isoString: string): string {
   const { hour, minute } = getTimePartsInTz(new Date(isoString));
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
+
+/** ISO 時間 → time input 的 "HH:mm"（Asia/Taipei） */
+export function taipeiTimeInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const { hour, minute } = getTimePartsInTz(d);
+  return `${pad2(hour)}:${pad2(minute)}`;
+}
+
+/** 票券上課日（Asia/Taipei）：11/29（日）｜Sun, Nov 29 */
+export function formatSessionDay(iso: string, locale: Locale = "zh-TW"): string {
+  const p = getDatePartsInTz(new Date(iso));
+  if (locale === "en") return fmtDayEn(p);
+  return `${p.month}/${p.day}（${WEEKDAY[p.weekday]}）`;
+}
+
+/** 票券上課時段（Asia/Taipei）：14:00–15:30 */
+export function formatSessionTimeRange(startAt: string, endAt: string): string {
+  return `${formatClockTime(startAt)}–${formatClockTime(endAt)}`;
+}

@@ -56,7 +56,10 @@
     "minFlaggedInvalid": "至少勾選人數需為 0–{max} 的整數",
     "seatCountLocked": "已有人報名此票券，無法修改每張票人數（可隱藏後另開新票券）",
     "deleteInUse": "已有人報名此項目，無法刪除（可改為隱藏）",
-    "notFound": "找不到購買項目"
+    "notFound": "找不到購買項目",
+    "scheduleIncomplete": "上課時間需同時填日期、開始與結束時間",
+    "scheduleEndBeforeStart": "結束時間要晚於開始時間",
+    "locationInvalid": "找不到這個場地"
   },
   "registration": {
     "notOpen": "此活動尚未開放報名",

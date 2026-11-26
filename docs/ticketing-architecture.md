@@ -321,3 +321,12 @@ Party 群組）若無此規則，使用者可**同時**勾「全餐雙日 $2800�
   `priceRegistrationLines()`（`lib/combo-data.ts`）。
 - **顯示**：同一 `comboTitle` 的項目在列表、明細、憑證、匯出、通知信合併為「Full Pass（A、B、C）」（`mergeComboItems`）。
 - **介面**：後台 `ComboPricingPanel`（僅已建立的活動）；報名頁 / 現場報名 / 後台預覽用 `ComboLadder` + `ComboHint`。
+
+## Phase 2.11 — 票券的上課時間與場地
+
+同一個活動的不同堂課可能在不同日期、不同場地（例如週日在台南、週一在別的教室）。
+
+- `eventPurchaseItems.startAt / endAt`（選填，同時有值或同時為 null）與 `locationId`（選填，團隊場地清單，FK set null）。沒填就沿用活動的時間與場地。
+- API：`POST/PATCH /purchase-items` 接受 `startAt`、`endAt`、`locationId`，由 `parseItemScheduleInput`（`lib/item-schedule.ts`）驗證：時間要成對、結束晚於開始、場地屬於同團隊。
+- 公開 API 每張票帶 `location`；`/api/registrations/[registrationKey]` 帶 `scheduleItems`（買到的票，不合併組合價）。
+- 顯示：`buildItemSchedule` 依「日期 → 場地」分組，方案介紹（課程時間與地點）、報名成功頁、入場憑證、收款確認信共用。活動用到兩個以上場地時，活動資訊改顯示「N 個場地」，每張票標場地；勾選後跟第一張勾選的票不同場地、且會一起買的票標「不同場地」。

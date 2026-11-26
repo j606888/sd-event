@@ -5,6 +5,7 @@ import type {
   EventLinePayee,
   EventPurchaseItem,
 } from "@/types/event";
+import type { SchedulableItem } from "@/lib/item-schedule";
 
 export type RegistrationApiResponse = {
   registration: {
@@ -39,6 +40,8 @@ export type RegistrationApiResponse = {
   };
   purchaseItem: EventPurchaseItem | null; // For backward compatibility
   purchaseItems: EventPurchaseItem[]; // Array of purchase items (for multiple selection)
+  /** 買到的票各自的上課時間與場地（不合併組合價） */
+  scheduleItems?: SchedulableItem[];
   attendees: Array<{
     id: number;
     name: string;

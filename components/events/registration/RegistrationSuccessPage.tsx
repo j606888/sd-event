@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { SimpleIcon } from "@/components/ui/simple-icon";
 import { PublicLanguageBar } from "@/components/layout/PublicLanguageBar";
 import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
+import { ItemSchedule } from "./ItemSchedule";
+import { hasItemSchedule } from "@/lib/item-schedule";
 import { isRenderableImageSrc } from "@/lib/utils";
 import { siInstagram, siFacebook } from "simple-icons";
 import { PendingPaymentHeader } from "./headers/PendingPaymentHeader";
@@ -72,8 +74,12 @@ export function RegistrationSuccessPage({
               </div>
             </div>
 
-            {/* Location */}
-            {event.location && (
+            {/* 每張票都有自己的場地時，活動場地不適用，改看下方「你的課程」 */}
+            {event.location &&
+              !(
+                (event.scheduleItems?.length ?? 0) > 0 &&
+                event.scheduleItems!.every((i) => i.location != null)
+              ) && (
               <div className="flex items-center gap-4">
                 <MapPin className="w-6 h-6 text-gray-500 " />
                 <div className="flex-1">
@@ -94,6 +100,13 @@ export function RegistrationSuccessPage({
                     {t("directions")}
                   </a>
                 )}
+              </div>
+            )}
+
+            {hasItemSchedule(event.scheduleItems ?? []) && (
+              <div className="space-y-2 rounded-lg border border-gray-100 p-3">
+                <div className="text-sm text-gray-500">{t("yourClasses")}</div>
+                <ItemSchedule items={event.scheduleItems ?? []} eventLocation={event.location} />
               </div>
             )}
 

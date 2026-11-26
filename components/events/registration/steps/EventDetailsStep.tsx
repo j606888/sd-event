@@ -11,6 +11,8 @@ import { TicketPriceLine, useSaleStatusLabel } from "../TicketPriceLine";
 import { isItemOnSale } from "@/lib/pricing";
 import { isComboGroup } from "@/lib/combo-pricing";
 import { ComboLadder } from "../ComboLadder";
+import { ItemSchedule, ItemSessionLine } from "../ItemSchedule";
+import { distinctVenues, hasItemSchedule } from "@/lib/item-schedule";
 import type { EventPurchaseItem, EventPurchaseItemGroup, PublicEventData } from "@/types/event";
 import { Clock, MapPin, Disc3 } from "lucide-react";
 import { siInstagram, siFacebook } from "simple-icons";
@@ -36,6 +38,10 @@ export function EventDetailsStep({
   const locale = useLocale();
   const saleStatusLabel = useSaleStatusLabel();
   const hasCover = isRenderableImageSrc(event.coverUrl);
+  // 票券各自設了時間／場地（如週日台南、週一別的教室）時，多一段「課程時間與地點」
+  const showSchedule = hasItemSchedule(event.purchaseItems);
+  const venues = distinctVenues(event.purchaseItems, event.location);
+  const multiVenue = venues.length > 1;
 
   // 方案介紹依票券區塊分段，讓報名者先看懂「有哪幾類方案」再進報名步驟。
   // 未使用區塊的活動（groups 為空）維持單一無標題清單。
@@ -108,7 +114,18 @@ export function EventDetailsStep({
                 </span>
               </div>
             </div>
-            {event.location && (
+            {multiVenue && (
+              <div className="flex items-center gap-4">
+                <MapPin className="w-6 h-6 text-gray-500 shrink-0" />
+                <div className="flex-1 text-gray-900 text-[15px]">
+                  {t("venueCount", { count: venues.length })}
+                </div>
+                <a href="#schedule" className="text-sm text-brand-strong">
+                  {t("venueCountLink")}
+                </a>
+              </div>
+            )}
+            {!multiVenue && event.location && (
               <div className="flex items-center gap-4">
                 <MapPin className="w-6 h-6 text-gray-500 shrink-0" />
                 <div className="flex-1 flex flex-col">
@@ -138,6 +155,15 @@ export function EventDetailsStep({
               <Markdown className="text-[15px] leading-relaxed text-gray-800">
                 {event.description}
               </Markdown>
+            </div>
+          )}
+
+          {showSchedule && (
+            <div id="schedule" className="scroll-mt-4 space-y-3 border-b border-gray-200 pb-6">
+              <h2 className="font-display text-base font-semibold text-ink">
+                {t("scheduleHeading")}
+              </h2>
+              <ItemSchedule items={event.purchaseItems} eventLocation={event.location} />
             </div>
           )}
 
@@ -190,6 +216,11 @@ export function EventDetailsStep({
                             }`}
                           >
                             <span>{item.name}</span>
+                            <ItemSessionLine
+                              item={item}
+                              showVenue={multiVenue}
+                              className="mt-0.5 text-xs text-gray-500"
+                            />
                             {item.description && (
                               <div className="mt-0.5 whitespace-pre-line text-xs text-gray-500">
                                 {item.description}

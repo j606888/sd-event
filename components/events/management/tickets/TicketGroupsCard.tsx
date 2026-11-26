@@ -11,7 +11,9 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import type { Locale } from "@/lib/locale";
+import { formatSessionDay, formatSessionTimeRange } from "@/lib/format-event-date";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -100,6 +102,7 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
   const t = useTranslations("tickets");
   const tRules = useTranslations("tickets.groups.rules");
   const tCommon = useTranslations("common");
+  const locale = useLocale() as Locale;
 
   const useGroups = groups.length > 0;
   const indexedItems = purchaseItems.map((item, index) => ({ item, index }));
@@ -147,6 +150,20 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
       .filter((label): label is string => label !== null)
       .join(" → ");
 
+    // 這張票自己的上課時間／場地（沒設就不顯示，沿用活動的）
+    const locationName =
+      item.locationId != null
+        ? form.locations.find((l) => l.id === item.locationId)?.name ?? null
+        : null;
+    const scheduleLabel = [
+      item.startAt && item.endAt
+        ? `${formatSessionDay(item.startAt, locale)} ${formatSessionTimeRange(item.startAt, item.endAt)}`
+        : null,
+      locationName,
+    ]
+      .filter(Boolean)
+      .join("・");
+
     const itemBody = (
       <>
         {item.name}
@@ -163,6 +180,9 @@ export function TicketGroupsCard({ form }: { form: UseEventFormReturn }) {
             ? t("groups.combo.byCombo")
             : tierPriceLabel || `$${item.amount.toLocaleString()}`}
         </span>
+        {scheduleLabel && (
+          <span className="block text-xs text-gray-500">{scheduleLabel}</span>
+        )}
       </>
     );
     return (

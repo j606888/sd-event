@@ -25,6 +25,7 @@ import { getSession } from "@/lib/auth";
 import { requireTeamMember } from "@/lib/api-auth";
 import { apiError } from "@/lib/api-error";
 import { loadGroupCombos, resolveCombosForTier } from "@/lib/combo-data";
+import { loadLocationsById } from "@/lib/item-schedule-data";
 
 type Params = { params: Promise<{ publicKey: string }> };
 
@@ -173,6 +174,8 @@ export async function GET(_request: Request, { params }: Params) {
     arr.push({ tierId: row.tierId, amount: row.amount, available: row.available });
     pricesByItem.set(row.purchaseItemId, arr);
   }
+  // 票券自己的場地（不同堂課在不同場地時）；null = 沿用活動場地
+  const itemLocations = await loadLocationsById(purchaseItems.map((i) => i.locationId));
   const itemsWithPrice = purchaseItems.map((item) => {
     const prices = pricesByItem.get(item.id) ?? [];
     // 時段限定票（如早鳥限定）不在目前時段販售時仍列出，由報名頁顯示「已截止／尚未開賣」並停用
@@ -184,6 +187,7 @@ export async function GET(_request: Request, { params }: Params) {
       fullAmount: isItemSoldInTier(prices, lastTier?.id ?? null)
         ? getItemUnitPrice(item.amount, prices, lastTier?.id ?? null)
         : undefined,
+      location: item.locationId != null ? itemLocations.get(item.locationId) ?? null : null,
       saleStatus: sale.status,
       opensTierName: sale.status === "upcoming" ? sale.opensTierName : null,
     };
