@@ -49,7 +49,8 @@
     "totalDue": "Total due",
     "reportAgain": "Report again",
     "reportPayment": "Report payment",
-    "organizer": "Organizer"
+    "organizer": "Organizer",
+    "yourClasses": "Your classes"
   },
   "reportPayment": {
     "title": "Report payment",
@@ -84,6 +85,7 @@
     "notCheckedIn": "Not checked in",
     "directions": "Directions >",
     "ticket": "Ticket",
-    "amountDue": "Amount due"
+    "amountDue": "Amount due",
+    "yourClasses": "Your classes"
   }
 }

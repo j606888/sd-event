@@ -22,7 +22,10 @@
     "infoTitle": "Event details:",
     "time": "Time: {time}",
     "location": "Venue: {location}",
-    "contact": "If you have any questions, just reply to this email."
+    "contact": "If you have any questions, just reply to this email.",
+    "scheduleTitle": "Your classes:",
+    "scheduleUndated": "Other",
+    "scheduleSeparator": ", "
   },
   "refunded": {
     "subject": "[Refunded] Your registration for {event} has been refunded",

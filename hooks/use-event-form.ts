@@ -58,6 +58,11 @@ export type PurchaseItemDraft = {
   description?: string | null;
   /** 選了此票的報名至少要有幾位參加者勾選活動的勾選項目；未定義 = 0 */
   minFlagged?: number;
+  /** 上課時間（ISO）；兩者同時有值或同時為 null，null = 沿用活動時間 */
+  startAt?: string | null;
+  endAt?: string | null;
+  /** 場地（團隊場地清單）；null = 沿用活動場地 */
+  locationId?: number | null;
 };
 
 /** 組合價的一列（「選 count 項 = 多少錢」）；prices 為各時段價，amount 為 fallback / 最後一段價 */
@@ -214,6 +219,9 @@ function ticketDraftsSignature(d: TicketDrafts): string {
       i.seatCount ?? 1,
       i.description ?? null,
       i.minFlagged ?? 0,
+      i.startAt ?? null,
+      i.endAt ?? null,
+      i.locationId ?? null,
       (i.prices ?? []).map((p) => [p.tierDraftIndex ?? p.tierId, p.amount, p.available !== false]),
     ]),
     exclusions: d.groupExclusions.map(([a, b]) => [a, b].sort()).sort(),
@@ -509,6 +517,9 @@ export function useEventForm({
           seatCount?: number;
           description?: string | null;
           minFlagged?: number;
+          startAt?: string | null;
+          endAt?: string | null;
+          locationId?: number | null;
           prices?: { tierId: number; amount: number; available?: boolean }[];
         }) => ({
           id: i.id,
@@ -519,6 +530,9 @@ export function useEventForm({
           seatCount: i.seatCount ?? 1,
           description: i.description ?? null,
           minFlagged: i.minFlagged ?? 0,
+          startAt: i.startAt ?? null,
+          endAt: i.endAt ?? null,
+          locationId: i.locationId ?? null,
           soldCount: i.soldCount ?? 0,
           prices: (i.prices ?? []).map((p) => ({
             tierId: p.tierId,
@@ -1710,6 +1724,9 @@ export function useEventForm({
                 seatCount: item.seatCount ?? 1,
                 description: item.description ?? null,
                 minFlagged: item.minFlagged ?? 0,
+                startAt: item.startAt ?? null,
+                endAt: item.endAt ?? null,
+                locationId: item.locationId ?? null,
                 prices,
               }),
             });

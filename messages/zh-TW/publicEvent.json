@@ -15,7 +15,10 @@
     "organizerHeading": "主辦單位",
     "noticesHeading": "報名須知",
     "agreeToNotices": "我已閱讀並同意報名須知",
-    "register": "報名活動"
+    "register": "報名活動",
+    "scheduleHeading": "課程時間與地點",
+    "venueCount": "{count} 個場地",
+    "venueCountLink": "看各堂地點"
   },
   "saleStatus": {
     "ended": "已截止",
@@ -49,7 +52,8 @@
     "comboIncludesGift": "已含「{gift}」",
     "giftIncluded": "已含於「{title}」",
     "giftIncludedUntitled": "組合價已含",
-    "giftFree": "已含"
+    "giftFree": "已含",
+    "differentVenue": "不同場地"
   },
   "form": {
     "title": "選擇方案 & 人數",
@@ -123,5 +127,9 @@
     "submitFailed": "報名失敗，請稍後再試",
     "missingRegistrationKey": "報名成功，但無法取得報名編號",
     "network": "網路錯誤，請稍後再試"
+  },
+  "schedule": {
+    "undated": "其他",
+    "map": "地圖"
   }
 }

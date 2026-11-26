@@ -15,7 +15,10 @@
     "organizerHeading": "Organizer",
     "noticesHeading": "Registration notices",
     "agreeToNotices": "I've read and agree to the registration notices",
-    "register": "Register"
+    "register": "Register",
+    "scheduleHeading": "Class times & venues",
+    "venueCount": "{count} venues",
+    "venueCountLink": "See venues"
   },
   "saleStatus": {
     "ended": "Sales ended",
@@ -49,7 +52,8 @@
     "comboIncludesGift": "Includes “{gift}”",
     "giftIncluded": "Included in “{title}”",
     "giftIncludedUntitled": "Included in your combo",
-    "giftFree": "Included"
+    "giftFree": "Included",
+    "differentVenue": "Different venue"
   },
   "form": {
     "title": "Tickets & attendees",
@@ -123,5 +127,9 @@
     "submitFailed": "Registration failed. Please try again later.",
     "missingRegistrationKey": "You're registered, but we couldn't get your registration number.",
     "network": "Network error. Please try again later."
+  },
+  "schedule": {
+    "undated": "Other",
+    "map": "Map"
   }
 }

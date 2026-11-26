@@ -56,7 +56,10 @@
     "minFlaggedInvalid": "The minimum number of ticked attendees must be a whole number from 0 to {max}",
     "seatCountLocked": "People have already registered with this ticket, so the number of people per ticket can't be changed. Hide it and create a new ticket instead.",
     "deleteInUse": "People have already registered with this ticket, so it can't be deleted. Hide it instead.",
-    "notFound": "Ticket not found"
+    "notFound": "Ticket not found",
+    "scheduleIncomplete": "Class time needs a date, a start time and an end time",
+    "scheduleEndBeforeStart": "End time must be after the start time",
+    "locationInvalid": "Venue not found"
   },
   "registration": {
     "notOpen": "Registration for this event isn't open yet",

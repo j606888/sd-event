@@ -1,6 +1,12 @@
 import { Resend } from "resend";
 import { createTranslator } from "next-intl";
-import { getEventDateLabel, getEventTimeRange } from "@/lib/format-event-date";
+import {
+  formatSessionDay,
+  formatSessionTimeRange,
+  getEventDateLabel,
+  getEventTimeRange,
+} from "@/lib/format-event-date";
+import { buildItemSchedule, hasItemSchedule, type SchedulableItem } from "@/lib/item-schedule";
 import type { Locale } from "@/lib/locale";
 import type { AssignableTeamRole } from "@/lib/team-roles";
 import zhTW from "@/messages/zh-TW";
@@ -98,6 +104,7 @@ export async function sendPaymentConfirmedEmail({
   eventStartAt,
   eventEndAt,
   eventLocation,
+  scheduleItems = [],
 }: {
   to: string;
   registrationKey: string;
@@ -105,7 +112,9 @@ export async function sendPaymentConfirmedEmail({
   eventTitle?: string;
   eventStartAt?: string;
   eventEndAt?: string;
-  eventLocation?: { name: string; googleMapUrl: string | null } | null;
+  eventLocation?: { id?: number; name: string; googleMapUrl: string | null } | null;
+  /** 這筆報名買到的票各自的上課時間與場地；有設時多一段「你的課程」 */
+  scheduleItems?: SchedulableItem[];
 }): Promise<{ ok: boolean; error?: string }> {
   if (!resend) {
     console.warn("RESEND_API_KEY not set, skipping payment confirmed email");
@@ -130,6 +139,12 @@ export async function sendPaymentConfirmedEmail({
       : e(eventLocation.name)
     : "";
 
+  const scheduleHtml = renderScheduleHtml(scheduleItems, eventLocation ?? null, locale, t);
+  // 每張票都有自己的場地時，活動場地不適用，只列「你的課程」
+  const showEventLocation =
+    !!eventLocation &&
+    !(scheduleItems.length > 0 && scheduleItems.every((i) => i.location != null));
+
   const html = `
     <p>${t("emails.greeting")}</p>
     <p>${t("emails.paymentConfirmed.body")}</p>
@@ -139,9 +154,10 @@ export async function sendPaymentConfirmedEmail({
     <p><strong>${t("emails.paymentConfirmed.infoTitle")}</strong></p>
     <ul>
       ${eventTimeText ? `<li>${t("emails.paymentConfirmed.time", { time: eventTimeText })}</li>` : ""}
-      ${eventLocation ? `<li>${t("emails.paymentConfirmed.location", { location: locationHtml })}</li>` : ""}
+      ${showEventLocation ? `<li>${t("emails.paymentConfirmed.location", { location: locationHtml })}</li>` : ""}
     </ul>
     ` : ""}
+    ${scheduleHtml}
     <p>${t("emails.paymentConfirmed.contact")}</p>
     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
     <p style="color: #666; font-size: 12px;">${t("emails.signature")}</p>
@@ -159,6 +175,44 @@ export async function sendPaymentConfirmedEmail({
     return { ok: false, error: String(error.message) };
   }
   return { ok: true };
+}
+
+/** 確認信的「你的課程」：依日期分組，每天列各堂與場地（附地圖連結） */
+function renderScheduleHtml(
+  items: SchedulableItem[],
+  eventLocation: { id?: number; name: string; googleMapUrl: string | null } | null,
+  locale: Locale,
+  t: ReturnType<typeof emailTranslator>
+): string {
+  if (!hasItemSchedule(items)) return "";
+  const e = escapeHtml;
+  const fallback =
+    eventLocation && eventLocation.id != null
+      ? { id: eventLocation.id, name: eventLocation.name, address: null, googleMapUrl: eventLocation.googleMapUrl }
+      : null;
+  const days = buildItemSchedule(items, fallback);
+  const rows = days
+    .flatMap((day) =>
+      day.venues.map((venue) => {
+        const dayLabel = day.startAt
+          ? formatSessionDay(day.startAt, locale)
+          : t("emails.paymentConfirmed.scheduleUndated");
+        const classes = venue.entries
+          .map((entry) =>
+            entry.startAt && entry.endAt
+              ? `${formatSessionTimeRange(entry.startAt, entry.endAt)} ${e(entry.name)}`
+              : e(entry.name)
+          )
+          .join(t("emails.paymentConfirmed.scheduleSeparator"));
+        const loc = venue.location;
+        const venueHtml = loc
+          ? `・${loc.googleMapUrl ? `<a href="${e(loc.googleMapUrl)}">${e(loc.name)}</a>` : e(loc.name)}`
+          : "";
+        return `<li><strong>${e(dayLabel)}</strong> ${classes}${venueHtml}</li>`;
+      })
+    )
+    .join("");
+  return `<p><strong>${t("emails.paymentConfirmed.scheduleTitle")}</strong></p><ul>${rows}</ul>`;
 }
 
 function escapeHtml(value: string): string {

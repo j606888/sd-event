@@ -16,6 +16,7 @@ import {
 import { eq, asc, inArray } from "drizzle-orm";
 import { createHistoricalPriceResolver } from "@/lib/registration-pricing";
 import { mergeComboItemsLocalized } from "@/lib/combo-data";
+import { loadLocationsById } from "@/lib/item-schedule-data";
 import { apiError } from "@/lib/api-error";
 
 type Params = { params: Promise<{ registrationKey: string }> };
@@ -158,6 +159,37 @@ export async function GET(_request: Request, { params }: Params) {
       legacyPurchaseItem = { ...purchaseItem, amount };
     }
 
+    // 這筆報名買到的票各自的上課時間與場地（不合併組合價，憑證逐堂列出）
+    const scheduleRows = await db
+      .select({
+        id: eventPurchaseItems.id,
+        name: eventPurchaseItems.name,
+        startAt: eventPurchaseItems.startAt,
+        endAt: eventPurchaseItems.endAt,
+        locationId: eventPurchaseItems.locationId,
+      })
+      .from(eventRegistrationPurchaseItems)
+      .innerJoin(
+        eventPurchaseItems,
+        eq(eventRegistrationPurchaseItems.purchaseItemId, eventPurchaseItems.id)
+      )
+      .where(eq(eventRegistrationPurchaseItems.registrationId, registration.id))
+      .orderBy(asc(eventRegistrationPurchaseItems.id));
+    const scheduleSource =
+      scheduleRows.length > 0
+        ? scheduleRows
+        : purchaseItem
+          ? [purchaseItem]
+          : [];
+    const scheduleLocations = await loadLocationsById(scheduleSource.map((r) => r.locationId));
+    const scheduleItems = scheduleSource.map((r) => ({
+      id: r.id,
+      name: r.name,
+      startAt: r.startAt,
+      endAt: r.endAt,
+      location: r.locationId != null ? scheduleLocations.get(r.locationId) ?? null : null,
+    }));
+
     // Get purchase items (single or multiple)
     const purchaseItems = registrationPurchaseItems.length > 0
       ? registrationPurchaseItems
@@ -197,6 +229,7 @@ export async function GET(_request: Request, { params }: Params) {
         linePayee,
         attendeeFlagLabel: event.attendeeFlagLabel,
       },
+      scheduleItems,
       purchaseItem, // For backward compatibility
       purchaseItems, // Array of purchase items (for multiple selection)
       attendees: attendees.map((a) => ({

@@ -1,3 +1,4 @@
+import type { SchedulableItem } from "@/lib/item-schedule";
 import type {
   EventLocation,
   EventOrganizer,
@@ -17,6 +18,8 @@ export type RegistrationSuccessEventData = {
   location: EventLocation | null;
   organizer: EventOrganizer | null;
   purchaseItems: EventPurchaseItem[];
+  /** 買到的票各自的上課時間與場地 */
+  scheduleItems?: SchedulableItem[];
 };
 
 export type RegistrationSuccessRegistrationData = {
@@ -66,6 +69,8 @@ export type EntryVoucherEventData = {
   startAt: string;
   endAt: string;
   location: EventLocation | null;
+  /** 買到的票各自的上課時間與場地 */
+  scheduleItems?: SchedulableItem[];
 };
 
 export type EntryVoucherRegistrationData = {

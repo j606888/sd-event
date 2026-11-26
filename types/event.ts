@@ -46,6 +46,11 @@ export type EventPurchaseItem = {
   description?: string | null;
   /** 選了此票的報名至少要有幾位參加者勾選活動的 attendeeFlagLabel；未帶 = 0 */
   minFlagged?: number;
+  /** 這張票的上課時間（ISO）；null = 沿用活動時間 */
+  startAt?: string | null;
+  endAt?: string | null;
+  /** 這張票的場地；null = 沿用活動場地 */
+  location?: EventLocation | null;
   /**
    * 目前時段的販售狀態；未帶 = 可購買。
    * "ended"＝只在之前時段販售（如早鳥限定，已截止）；"upcoming"＝之後的時段才開賣。

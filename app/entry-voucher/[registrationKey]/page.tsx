@@ -10,6 +10,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { PublicLanguageBar } from "@/components/layout/PublicLanguageBar";
 import { getRegistrationByKey } from "@/lib/api/registration";
 import { formatEventDateShort } from "@/lib/format-event-date";
+import { ItemSchedule } from "@/components/events/registration/ItemSchedule";
+import { hasItemSchedule } from "@/lib/item-schedule";
 import type { EntryVoucherPageData } from "@/types/registration";
 
 function getRoleBadge(role: string) {
@@ -61,6 +63,7 @@ export default function EntryVoucherPage() {
           startAt: responseData.event.startAt,
           endAt: responseData.event.endAt,
           location: responseData.event.location,
+          scheduleItems: responseData.scheduleItems ?? [],
         },
         registration: {
           selectedPlan: responseData.purchaseItem
@@ -261,8 +264,12 @@ export default function EntryVoucherPage() {
               </span>
             </div>
 
-            {/* Location */}
-            {data.event.location && (
+            {/* 每張票都有自己的場地時，活動場地不適用，改看下方「你的課程」 */}
+            {data.event.location &&
+              !(
+                (data.event.scheduleItems?.length ?? 0) > 0 &&
+                data.event.scheduleItems!.every((i) => i.location != null)
+              ) && (
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
                 <div className="flex-1">
@@ -283,6 +290,16 @@ export default function EntryVoucherPage() {
                     </a>
                   )}
                 </div>
+              </div>
+            )}
+
+            {hasItemSchedule(data.event.scheduleItems ?? []) && (
+              <div className="space-y-2 rounded-lg border border-gray-100 p-3">
+                <div className="text-xs text-gray-500">{t("yourClasses")}</div>
+                <ItemSchedule
+                  items={data.event.scheduleItems ?? []}
+                  eventLocation={data.event.location}
+                />
               </div>
             )}
 

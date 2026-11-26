@@ -11,6 +11,8 @@ import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
 import { MAX_MIN_FLAGGED, parseMinFlagged } from "@/lib/attendee-flag";
 import { apiError } from "@/lib/api-error";
+import { parseItemScheduleInput } from "@/lib/item-schedule";
+import { teamLocationIds } from "@/lib/item-schedule-data";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 /** 從 request body 取出合法的時段價陣列 [{ tierId, amount }] */
@@ -191,10 +193,26 @@ export async function POST(request: Request, { params }: Params) {
     return apiError("eventApiErrors.purchaseItems.minFlaggedInvalid", 400, { max: MAX_MIN_FLAGGED });
   }
 
+  const schedule = parseItemScheduleInput(body, await teamLocationIds(access.event.teamId));
+  if ("error" in schedule) {
+    return apiError(`eventApiErrors.purchaseItems.${schedule.error}`, 400);
+  }
+
   const item = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(eventPurchaseItems)
-      .values({ eventId, name, amount, sortOrder, hidden, groupId, seatCount, description, minFlagged })
+      .values({
+        eventId,
+        name,
+        amount,
+        sortOrder,
+        hidden,
+        groupId,
+        seatCount,
+        description,
+        minFlagged,
+        ...schedule.value,
+      })
       .returning();
     if (!created) return null;
     if (prices.length > 0) {

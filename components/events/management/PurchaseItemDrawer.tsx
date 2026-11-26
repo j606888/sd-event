@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MAX_MIN_FLAGGED } from "@/lib/attendee-flag";
+import {
+  fromTaipeiDateTimeLocal,
+  taipeiDateInput,
+  taipeiTimeInput,
+} from "@/lib/format-event-date";
 import type {
   PurchaseItemDraft,
   PriceTierDraft,
@@ -21,6 +26,10 @@ type PurchaseItemDrawerProps = {
   groups: PurchaseItemGroupDraft[];
   /** 活動的參加者勾選項目名稱（如「參加伸展台比賽」）；空 = 未設定，不顯示「至少勾選幾位」 */
   attendeeFlagLabel?: string;
+  /** 團隊場地清單（票券可選自己的場地） */
+  locations?: { id: number; name: string }[];
+  /** 活動本身的場地（票券沒選場地時沿用） */
+  eventLocationId?: number | null;
   /** 新增模式的預設所屬區塊 key（`id-<id>` / `draft-<index>`；由區塊卡的「＋新增票券」帶入） */
   defaultGroupKey?: string;
   /** 有值＝編輯既有項目（帶入原值）；無值＝新增 */
@@ -37,6 +46,8 @@ export function PurchaseItemDrawer({
   priceTiers,
   groups,
   attendeeFlagLabel,
+  locations = [],
+  eventLocationId = null,
   defaultGroupKey,
   editingItem,
   onSuccess,
@@ -97,6 +108,26 @@ export function PurchaseItemDrawer({
   const [minFlagged, setMinFlagged] = useState(
     String(editingItem?.item.minFlagged ?? 0)
   );
+  // 上課時間與場地（選填）：沒填沿用活動的時間／場地
+  const [sessionDate, setSessionDate] = useState(taipeiDateInput(editingItem?.item.startAt));
+  const [sessionStart, setSessionStart] = useState(taipeiTimeInput(editingItem?.item.startAt));
+  const [sessionEnd, setSessionEnd] = useState(taipeiTimeInput(editingItem?.item.endAt));
+  const [sessionLocation, setSessionLocation] = useState(
+    editingItem?.item.locationId != null ? String(editingItem.item.locationId) : ""
+  );
+  // 「沿用上一張票」：編輯時取前一張，新增時取最後一張，且要有設時間或場地
+  const previousScheduled = (() => {
+    const before = editingItem ? currentItems.slice(0, editingItem.index) : currentItems;
+    return [...before].reverse().find((i) => i.startAt != null || i.locationId != null) ?? null;
+  })();
+  const copyPreviousSchedule = () => {
+    if (!previousScheduled) return;
+    setSessionDate(taipeiDateInput(previousScheduled.startAt));
+    setSessionStart(taipeiTimeInput(previousScheduled.startAt));
+    setSessionEnd(taipeiTimeInput(previousScheduled.endAt));
+    setSessionLocation(previousScheduled.locationId != null ? String(previousScheduled.locationId) : "");
+  };
+  const eventLocationName = locations.find((l) => l.id === eventLocationId)?.name ?? null;
   const flagLabel = attendeeFlagLabel?.trim() ?? "";
   // 活動未設勾選項目時隱藏此欄；但既有設定 > 0 仍顯示，讓主辦可以清掉
   const showMinFlagged = flagLabel !== "" || (editingItem?.item.minFlagged ?? 0) > 0;
@@ -242,6 +273,27 @@ export function PurchaseItemDrawer({
       setError(t("drawer.invalidMinFlagged", { max: MAX_MIN_FLAGGED }));
       return;
     }
+    const anyTime = [sessionDate, sessionStart, sessionEnd].some((v) => v.trim() !== "");
+    let startAt: string | null = null;
+    let endAt: string | null = null;
+    if (anyTime) {
+      if (!sessionDate || !sessionStart || !sessionEnd) {
+        setError(t("drawer.scheduleIncomplete"));
+        return;
+      }
+      startAt = fromTaipeiDateTimeLocal(`${sessionDate}T${sessionStart}`);
+      endAt = fromTaipeiDateTimeLocal(`${sessionDate}T${sessionEnd}`);
+      if (!startAt || !endAt) {
+        setError(t("drawer.scheduleIncomplete"));
+        return;
+      }
+      if (new Date(endAt) <= new Date(startAt)) {
+        setError(t("drawer.scheduleEndBeforeStart"));
+        return;
+      }
+    }
+    const locationId = sessionLocation ? Number(sessionLocation) : null;
+    const schedule = { startAt, endAt, locationId };
     const prices = buildPrices();
     const group = resolveGroup();
 
@@ -260,6 +312,7 @@ export function PurchaseItemDrawer({
         seatCount: seatCountNum,
         minFlagged: minFlaggedNum,
         description: trimmedDescription,
+        ...schedule,
         prices,
       };
       // 已儲存項目（edit-event 模式）：先打 PATCH 再回傳
@@ -282,6 +335,7 @@ export function PurchaseItemDrawer({
                 seatCount: seatCountNum,
                 minFlagged: minFlaggedNum,
                 description: trimmedDescription,
+                ...schedule,
                 prices: apiPrices,
               }),
             }
@@ -323,6 +377,7 @@ export function PurchaseItemDrawer({
             seatCount: seatCountNum,
             minFlagged: minFlaggedNum,
             description: trimmedDescription,
+            ...schedule,
             prices: apiPrices,
           }),
         });
@@ -341,6 +396,7 @@ export function PurchaseItemDrawer({
           seatCount: seatCountNum,
           minFlagged: minFlaggedNum,
           description: trimmedDescription,
+          ...schedule,
           prices,
         });
         setName("");
@@ -365,6 +421,7 @@ export function PurchaseItemDrawer({
         seatCount: seatCountNum,
         minFlagged: minFlaggedNum,
         description: trimmedDescription,
+        ...schedule,
         prices,
       });
       setName("");
@@ -443,6 +500,94 @@ export function PurchaseItemDrawer({
           className="w-full min-w-0 resize-none rounded-md border-0 bg-field px-3 py-2 text-base shadow-xs outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-brand/30 md:text-sm"
         />
         <p className="text-xs text-gray-500">{t("drawer.descriptionHint")}</p>
+      </div>
+      <div role="group" aria-labelledby="item-schedule-label" className="flex flex-col gap-3 rounded-lg border border-gray-200 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span id="item-schedule-label" className="text-sm font-medium">{t("drawer.scheduleLabel")}</span>
+          {previousScheduled && (
+            <button
+              type="button"
+              onClick={copyPreviousSchedule}
+              className="rounded text-xs font-medium text-brand-strong underline-offset-2 hover:underline"
+            >
+              {t("drawer.scheduleCopyPrevious", { name: previousScheduled.name })}
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+          <div className="flex min-w-0 flex-col gap-1">
+            <Label htmlFor="item-session-date" className="text-xs text-gray-500">
+              {t("drawer.scheduleDate")}
+            </Label>
+            <Input
+              id="item-session-date"
+              type="date"
+              value={sessionDate}
+              onChange={(e) => setSessionDate(e.target.value)}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <Label htmlFor="item-session-start" className="text-xs text-gray-500">
+              {t("drawer.scheduleStart")}
+            </Label>
+            <Input
+              id="item-session-start"
+              type="time"
+              value={sessionStart}
+              onChange={(e) => setSessionStart(e.target.value)}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <Label htmlFor="item-session-end" className="text-xs text-gray-500">
+              {t("drawer.scheduleEnd")}
+            </Label>
+            <Input
+              id="item-session-end"
+              type="time"
+              value={sessionEnd}
+              onChange={(e) => setSessionEnd(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="item-session-location" className="text-xs text-gray-500">
+            {t("drawer.scheduleLocation")}
+          </Label>
+          <select
+            id="item-session-location"
+            className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
+            value={sessionLocation}
+            onChange={(e) => setSessionLocation(e.target.value)}
+          >
+            <option value="">
+              {eventLocationName
+                ? t("drawer.scheduleLocationEvent", { name: eventLocationName })
+                : t("drawer.scheduleLocationNone")}
+            </option>
+            {locations.map((loc) => (
+              <option key={loc.id} value={String(loc.id)}>
+                {loc.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-gray-500">{t("drawer.scheduleHint")}</p>
+          {(sessionDate || sessionStart || sessionEnd || sessionLocation) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSessionDate("");
+                setSessionStart("");
+                setSessionEnd("");
+                setSessionLocation("");
+              }}
+              className="shrink-0 rounded text-xs text-gray-500 underline-offset-2 hover:underline"
+            >
+              {t("drawer.scheduleClear")}
+            </button>
+          )}
+        </div>
       </div>
       {showMinFlagged && (
         <div className="flex flex-col gap-2">

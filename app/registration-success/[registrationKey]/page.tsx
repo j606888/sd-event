@@ -53,6 +53,7 @@ export default function RegistrationSuccessPageRoute() {
             startAt: data.event.startAt,
             endAt: data.event.endAt,
             location: data.event.location,
+            scheduleItems: data.scheduleItems ?? [],
             organizer: data.event.organizer,
             purchaseItems: data.purchaseItem
               ? [

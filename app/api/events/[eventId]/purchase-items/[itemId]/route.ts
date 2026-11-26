@@ -11,6 +11,8 @@ import { requireAuth } from "@/lib/api-auth";
 import { requireEventAdmin } from "@/lib/event-access";
 import { MAX_MIN_FLAGGED, parseMinFlagged } from "@/lib/attendee-flag";
 import { apiError } from "@/lib/api-error";
+import { parseItemScheduleInput, type ItemScheduleInput } from "@/lib/item-schedule";
+import { teamLocationIds } from "@/lib/item-schedule-data";
 import { and, eq, sql } from "drizzle-orm";
 
 /** 計算某購買項目目前綁定的「未隱藏」報名數（新模式 + 舊單選模式合計） */
@@ -111,7 +113,18 @@ export async function PATCH(request: Request, { params }: Params) {
     description?: string | null;
     minFlagged?: number;
     updatedAt: Date;
-  } = { updatedAt: new Date() };
+  } & ItemScheduleInput = { updatedAt: new Date() };
+
+  if ("startAt" in body || "endAt" in body || "locationId" in body) {
+    const schedule = parseItemScheduleInput(
+      body,
+      "locationId" in body ? await teamLocationIds(access.event.teamId) : new Set()
+    );
+    if ("error" in schedule) {
+      return apiError(`eventApiErrors.purchaseItems.${schedule.error}`, 400);
+    }
+    Object.assign(updates, schedule.value);
+  }
 
   if ("groupId" in body) {
     updates.groupId =

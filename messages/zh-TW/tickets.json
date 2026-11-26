@@ -181,6 +181,18 @@
     "baseEarly": "「{tier}」是最後一個販售時段，會作為這張票的基準價；之後的時段報名頁會顯示「已截止」，也不會顯示「省多少」。",
     "amountLabel": "金額 *",
     "amountLabelBundle": "金額（{count} 人整組價）*",
-    "amountPlaceholder": "輸入金額"
+    "amountPlaceholder": "輸入金額",
+    "scheduleLabel": "上課時間與場地（選填）",
+    "scheduleDate": "日期",
+    "scheduleStart": "開始",
+    "scheduleEnd": "結束",
+    "scheduleLocation": "場地",
+    "scheduleLocationEvent": "沿用活動場地（{name}）",
+    "scheduleLocationNone": "沿用活動場地",
+    "scheduleHint": "不同堂課在不同日期或場地時填寫；沒填就沿用活動的時間與場地。新場地請到「基本資料」的地點新增。",
+    "scheduleCopyPrevious": "沿用「{name}」的時間與場地",
+    "scheduleClear": "清除",
+    "scheduleIncomplete": "上課時間請填完日期、開始與結束時間",
+    "scheduleEndBeforeStart": "結束時間要晚於開始時間"
   }
 }

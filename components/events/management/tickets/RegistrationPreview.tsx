@@ -103,6 +103,14 @@ export function RegistrationPreview({ form }: { form: UseEventFormReturn }) {
         : undefined,
       seatCount: purchaseItems[itemIndex].seatCount ?? 1,
       description: purchaseItems[itemIndex].description ?? null,
+      startAt: purchaseItems[itemIndex].startAt ?? null,
+      endAt: purchaseItems[itemIndex].endAt ?? null,
+      // 預覽只需要場地名稱；地址／地圖連結在公開頁才有
+      location: (() => {
+        const id = purchaseItems[itemIndex].locationId;
+        const loc = id != null ? form.locations.find((l) => l.id === id) : undefined;
+        return loc ? { id: loc.id, name: loc.name, address: null, googleMapUrl: null } : null;
+      })(),
       saleStatus: sale.status,
       opensTierName: sale.status === "upcoming" ? sale.opensTierName : null,
     };
