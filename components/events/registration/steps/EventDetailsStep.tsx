@@ -18,6 +18,7 @@ import { Clock, MapPin, Disc3 } from "lucide-react";
 import { siInstagram, siFacebook } from "simple-icons";
 import { isRenderableImageSrc } from "@/lib/utils";
 import { PublicLanguageBar } from "@/components/layout/PublicLanguageBar";
+import { useRevealErrors } from "@/hooks/use-reveal-errors";
 
 type EventDetailsStepProps = {
   event: PublicEventData;
@@ -37,6 +38,16 @@ export function EventDetailsStep({
   const t = useTranslations("publicEvent.details");
   const locale = useLocale();
   const saleStatusLabel = useSaleStatusLabel();
+  // 按鈕隨時可按：沒勾同意就提示並捲到勾選框，而不是讓按鈕按不下去
+  const { containerRef, showErrors, reveal } = useRevealErrors();
+  const agreeError = showErrors && !canProceed;
+  const handleNext = () => {
+    if (!canProceed) {
+      reveal();
+      return;
+    }
+    onNext();
+  };
   const hasCover = isRenderableImageSrc(event.coverUrl);
   // 票券各自設了時間／場地（如週日台南、週一別的教室）時，多一段「課程時間與地點」
   const showSchedule = hasItemSchedule(event.purchaseItems);
@@ -312,20 +323,32 @@ export function EventDetailsStep({
           )}
 
           {event.noticeItems.length > 0 && (
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => onAgreedToTermsChange(e.target.checked)}
-                className="mt-0.5 w-4 h-4 text-brand-strong border-gray-300 rounded focus:ring-brand"
-              />
-              <span className="text-[15px] text-gray-700">{t("agreeToNotices")}</span>
-            </label>
+            <div ref={containerRef} className="space-y-1">
+              <label
+                data-invalid={agreeError || undefined}
+                className={`flex items-start gap-2 cursor-pointer rounded-lg ${
+                  agreeError ? "-m-2 p-2 ring-2 ring-red-400" : ""
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => onAgreedToTermsChange(e.target.checked)}
+                  aria-invalid={agreeError || undefined}
+                  className="mt-0.5 w-4 h-4 text-brand-strong border-gray-300 rounded focus:ring-brand"
+                />
+                <span className="text-[15px] text-gray-700">{t("agreeToNotices")}</span>
+              </label>
+              {agreeError && (
+                <p role="alert" className="pt-2 text-sm text-red-500">
+                  {t("agreeRequired")}
+                </p>
+              )}
+            </div>
           )}
 
           <Button
-            onClick={onNext}
-            disabled={!canProceed}
+            onClick={handleNext}
             className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
           >
             {t("register")}

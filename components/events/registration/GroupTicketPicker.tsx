@@ -66,6 +66,10 @@ type GroupTicketPickerProps = {
   selectedPlanIds: number[];
   onSelectedByGroupChange: (next: Record<number, number[]>) => void;
   onSelectedPlanChange: (planId: number | null, planIds: number[]) => void;
+  /** 要標示「尚未選取」的區塊（報名者按下一步卻漏選時）；未傳 = 不標示 */
+  invalidGroupIds?: number[];
+  /** 標示「完全沒選任何票券」 */
+  planInvalid?: boolean;
 };
 
 /**
@@ -84,6 +88,8 @@ export function GroupTicketPicker({
   selectedPlanIds,
   onSelectedByGroupChange,
   onSelectedPlanChange,
+  invalidGroupIds,
+  planInvalid = false,
 }: GroupTicketPickerProps) {
   const t = useTranslations("publicEvent.ticketPicker");
   const saleStatusLabel = useSaleStatusLabel();
@@ -143,6 +149,12 @@ export function GroupTicketPicker({
     // 群組模式：依區塊規則渲染（single=radio、multiple=checkbox）
     return (
       <>
+        {/* 區塊各自都滿足規則（如全是選填）卻一張票都沒選時，在票券區最上方提示 */}
+        {planInvalid && !invalidGroupIds?.length && (
+          <p role="alert" data-invalid className="text-sm text-red-500">
+            {t("selectionRequired")}
+          </p>
+        )}
         {groups.map((group) => {
           const lockingGroup = getLockingGroup(group);
           const locked = lockingGroup != null;
@@ -158,9 +170,11 @@ export function GroupTicketPicker({
             }
             onSelectedByGroupChange(next);
           };
+          const invalid = invalidGroupIds?.includes(group.id) ?? false;
           return (
             <div
               key={group.id}
+              data-invalid={invalid || undefined}
               className={`space-y-3 ${locked ? "opacity-50" : ""}`}
             >
               <h2 className="font-semibold text-gray-900">
@@ -284,6 +298,11 @@ export function GroupTicketPicker({
                   </label>
                 )}
               </div>
+              {invalid && (
+                <p role="alert" className="text-sm text-red-500">
+                  {t("selectionRequired")}
+                </p>
+              )}
             </div>
           );
         })}
@@ -292,7 +311,7 @@ export function GroupTicketPicker({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-invalid={planInvalid || undefined}>
       <h2 className="font-semibold text-gray-900">{t("chooseTicket")}</h2>
       <div className="space-y-2">
         {purchaseItems.map((item) => {
@@ -340,6 +359,11 @@ export function GroupTicketPicker({
           );
         })}
       </div>
+      {planInvalid && (
+        <p role="alert" className="text-sm text-red-500">
+          {t("selectionRequired")}
+        </p>
+      )}
     </div>
   );
 }

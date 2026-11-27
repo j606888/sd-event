@@ -13,8 +13,20 @@ import type { FlaggedShortfall } from "@/lib/attendee-flag";
 import type { EventPurchaseItem, PublicEventData } from "@/types/event";
 import type { FormData, Participant } from "../event-application-types";
 import { GroupTicketPicker } from "../GroupTicketPicker";
+import type { ApplicationFormErrors } from "@/hooks/use-event-application-form";
+import { useRevealErrors } from "@/hooks/use-reveal-errors";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
+
+const INVALID_INPUT_CLASS = "ring-2 ring-red-400 focus:ring-red-400";
+
+function FieldError({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="mt-1 text-sm text-red-500">
+      {children}
+    </p>
+  );
+}
 
 type ApplicationFormStepProps = {
   event: PublicEventData;
@@ -35,6 +47,8 @@ type ApplicationFormStepProps = {
   flagShortfall: FlaggedShortfall | null;
   onToggleParticipantFlag: (id: string, flagged: boolean) => void;
   canProceed: boolean;
+  /** 各欄位缺漏狀態；按下一步後才顯示 */
+  formErrors: ApplicationFormErrors;
   onBack: () => void;
   onNext: () => void;
   couponsSupported: boolean;
@@ -60,6 +74,7 @@ export function ApplicationFormStep({
   flagShortfall,
   onToggleParticipantFlag,
   canProceed,
+  formErrors,
   onBack,
   onNext,
   couponsSupported,
@@ -75,6 +90,20 @@ export function ApplicationFormStep({
     role === "Not sure" ? t("roleNotSure") : role;
   const seatError = seatMismatch ? t("seatCountMismatch", seatMismatch) : null;
   const flagError = flagShortfall ? t("flaggedShortfall", flagShortfall) : null;
+
+  // 按鈕隨時可按：有缺漏就標紅字並捲到第一個缺漏處，沒缺漏才往下一步
+  const { containerRef, showErrors, reveal } = useRevealErrors();
+  const handleNext = () => {
+    if (!canProceed) {
+      reveal();
+      return;
+    }
+    onNext();
+  };
+  const nameError = showErrors && formErrors.contactName;
+  const phoneError = showErrors && formErrors.contactPhone;
+  const emailError = showErrors ? formErrors.contactEmail : null;
+  const totalError = showErrors && formErrors.totalAmount;
 
   return (
     <div className="min-h-screen bg-paper p-4 sm:py-10">
@@ -92,7 +121,7 @@ export function ApplicationFormStep({
           </h1>
         </div>
 
-        <div className="px-4 py-6 space-y-6">
+        <div ref={containerRef} className="px-4 py-6 space-y-6">
 
           <div className="space-y-4">
             <h2 className="font-semibold text-gray-900">{t("contactHeading")}</h2>
@@ -104,8 +133,11 @@ export function ApplicationFormStep({
                   placeholder={t("contactNamePlaceholder")}
                   value={formData.contactName}
                   onChange={(e) => onFormFieldChange("contactName", e.target.value)}
-                  className="mt-1"
+                  aria-invalid={nameError || undefined}
+                  data-invalid={nameError || undefined}
+                  className={`mt-1 ${nameError ? INVALID_INPUT_CLASS : ""}`}
                 />
+                {nameError && <FieldError>{t("contactNameRequired")}</FieldError>}
               </div>
               <div>
                 <Label htmlFor="contactPhone">{t("phoneLabel")}</Label>
@@ -114,8 +146,11 @@ export function ApplicationFormStep({
                   placeholder={t("phonePlaceholder")}
                   value={formData.contactPhone}
                   onChange={(e) => onFormFieldChange("contactPhone", e.target.value)}
-                  className="mt-1"
+                  aria-invalid={phoneError || undefined}
+                  data-invalid={phoneError || undefined}
+                  className={`mt-1 ${phoneError ? INVALID_INPUT_CLASS : ""}`}
                 />
+                {phoneError && <FieldError>{t("phoneRequired")}</FieldError>}
               </div>
               <div>
                 <Label htmlFor="contactEmail">{t("emailLabel")}</Label>
@@ -125,8 +160,15 @@ export function ApplicationFormStep({
                   placeholder={t("emailPlaceholder")}
                   value={formData.contactEmail}
                   onChange={(e) => onFormFieldChange("contactEmail", e.target.value)}
-                  className="mt-1"
+                  aria-invalid={emailError != null || undefined}
+                  data-invalid={emailError != null || undefined}
+                  className={`mt-1 ${emailError ? INVALID_INPUT_CLASS : ""}`}
                 />
+                {emailError && (
+                  <FieldError>
+                    {t(emailError === "invalid" ? "emailInvalid" : "emailRequired")}
+                  </FieldError>
+                )}
               </div>
             </div>
           </div>
@@ -146,6 +188,8 @@ export function ApplicationFormStep({
               onFormFieldChange("selectedPlanId", planId);
               onFormFieldChange("selectedPlanIds", planIds);
             }}
+            invalidGroupIds={showErrors ? formErrors.groupIds : undefined}
+            planInvalid={showErrors && formErrors.plan}
           />
 
 
@@ -174,7 +218,10 @@ export function ApplicationFormStep({
               </div>
             )}
             <div className="space-y-4">
-              {formData.participants.map((participant, index) => (
+              {formData.participants.map((participant, index) => {
+                const attendeeNameError =
+                  showErrors && formErrors.participantIds.includes(participant.id);
+                return (
                 <div
                   key={participant.id}
                   className="border border-gray-200 rounded-lg p-4 space-y-3"
@@ -200,8 +247,13 @@ export function ApplicationFormStep({
                       onChange={(e) =>
                         onUpdateParticipant(participant.id, "name", e.target.value)
                       }
-                      className="mt-1"
+                      aria-invalid={attendeeNameError || undefined}
+                      data-invalid={attendeeNameError || undefined}
+                      className={`mt-1 ${attendeeNameError ? INVALID_INPUT_CLASS : ""}`}
                     />
+                    {attendeeNameError && (
+                      <FieldError>{t("attendeeNameRequired")}</FieldError>
+                    )}
                   </div>
                   <div>
                     <Label>{t("roleLabel")}</Label>
@@ -248,7 +300,8 @@ export function ApplicationFormStep({
                     </label>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
             {requiredParticipants == null && (
               <Button
@@ -260,9 +313,18 @@ export function ApplicationFormStep({
                 <span>{t("addAttendee")}</span>
               </Button>
             )}
-            {seatError && <p className="text-sm text-red-500">{seatError}</p>}
+            {seatError && (
+              <p data-invalid={showErrors || undefined} className="text-sm text-red-500">
+                {seatError}
+              </p>
+            )}
             {!seatError && flagError && (
-              <p className="text-sm text-amber-600">{flagError}</p>
+              <p
+                data-invalid={showErrors || undefined}
+                className={`text-sm ${showErrors ? "text-red-500" : "text-amber-600"}`}
+              >
+                {flagError}
+              </p>
             )}
           </div>
 
@@ -281,8 +343,11 @@ export function ApplicationFormStep({
                 value={formData.totalAmount}
                 onChange={(e) => onFormFieldChange("totalAmount", e.target.value)}
                 disabled={event.autoCalcAmount || event.groups.length > 0}
-                className="mt-1"
+                aria-invalid={totalError || undefined}
+                data-invalid={totalError || undefined}
+                className={`mt-1 ${totalError ? INVALID_INPUT_CLASS : ""}`}
               />
+              {totalError && <FieldError>{t("totalRequired")}</FieldError>}
             </div>
 
             {couponsSupported && (
@@ -358,8 +423,8 @@ export function ApplicationFormStep({
           </div>
 
           <Button
-            onClick={onNext}
-            disabled={!canProceed || applyingCoupon}
+            onClick={handleNext}
+            disabled={applyingCoupon}
             className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
           >
             {applyingCoupon ? t("checkingCoupon") : t("toPayment")}
