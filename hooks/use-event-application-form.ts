@@ -26,6 +26,23 @@ import {
   requiredFlaggedCount,
 } from "@/lib/attendee-flag";
 
+// 與伺服器（registrations route）相同的 email 格式檢查，避免打錯信箱收不到確認信
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** 第 2 步各欄位的缺漏狀態（true / 非 null / 非空陣列 = 有缺漏） */
+export type ApplicationFormErrors = {
+  contactName: boolean;
+  contactPhone: boolean;
+  contactEmail: "required" | "invalid" | null;
+  /** 未滿足選取規則的票券區塊（群組模式） */
+  groupIds: number[];
+  /** 完全沒選任何票券 */
+  plan: boolean;
+  /** 尚未填稱呼的參加者 */
+  participantIds: string[];
+  totalAmount: boolean;
+};
+
 export type EventApplicationFormState = {
   step: 1 | 2 | 3;
   formData: FormData;
@@ -282,7 +299,7 @@ export function useEventApplicationForm(event: PublicEventData) {
 
   const canProceedToStep2 = event.noticeItems.length === 0 || agreedToTerms;
   // 群組模式：逐群組驗證 required / selectionMode
-  const groupsSatisfied = event.groups.every((g) => {
+  const isGroupSatisfied = (g: EventPurchaseItemGroup) => {
     if (isGroupLocked(g)) return true;
     // 組合價附贈的票也算這個區塊有選
     const gifted = pricedLines
@@ -293,21 +310,37 @@ export function useEventApplicationForm(event: PublicEventData) {
       return g.selectionMode === "single" ? sel.length === 1 : sel.length >= 1;
     }
     return g.selectionMode === "single" ? sel.length <= 1 : true;
-  });
-  const hasSelectedPlan = useGroups
-    ? groupsSatisfied
-    : event.allowMultiplePurchase
-      ? formData.selectedPlanIds.length > 0
-      : formData.selectedPlanId !== null;
+  };
+  const contactEmail = formData.contactEmail.trim();
+  // 第 2 步的缺漏清單：按鈕隨時可按，按下時由報名表元件依此標示缺漏處並捲過去。
+  // 只回傳結構化資訊，文字由元件翻譯（切換語言時會跟著變）
+  const formErrors: ApplicationFormErrors = {
+    contactName: formData.contactName.trim() === "",
+    contactPhone: formData.contactPhone.trim() === "",
+    contactEmail:
+      contactEmail === ""
+        ? "required"
+        : EMAIL_PATTERN.test(contactEmail)
+          ? null
+          : "invalid",
+    groupIds: event.groups.filter((g) => !isGroupSatisfied(g)).map((g) => g.id),
+    // 區塊全是選填時也至少要選一項（伺服器不接受沒有任何票券的報名）
+    plan: chosenItems.length === 0,
+    participantIds: formData.participants
+      .filter((p) => p.name.trim() === "")
+      .map((p) => p.id),
+    totalAmount: formData.totalAmount.trim() === "",
+  };
   const canProceedToStep3 =
-    hasSelectedPlan &&
     seatMismatch == null &&
     flagShortfall == null &&
-    formData.contactName.trim() !== "" &&
-    formData.contactPhone.trim() !== "" &&
-    formData.contactEmail.trim() !== "" &&
-    formData.participants.every((p) => p.name.trim() !== "") &&
-    formData.totalAmount.trim() !== "";
+    !formErrors.contactName &&
+    !formErrors.contactPhone &&
+    formErrors.contactEmail == null &&
+    formErrors.groupIds.length === 0 &&
+    !formErrors.plan &&
+    formErrors.participantIds.length === 0 &&
+    !formErrors.totalAmount;
 
   const submitRegistration = useCallback(async () => {
     if (!formData.paymentMethod) return;
@@ -393,6 +426,7 @@ export function useEventApplicationForm(event: PublicEventData) {
     toggleParticipantFlag,
     canProceedToStep2,
     canProceedToStep3,
+    formErrors,
     submitRegistration,
     couponsSupported,
     applyingCoupon,

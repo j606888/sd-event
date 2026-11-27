@@ -43,6 +43,7 @@ export function EventApplicationForm({ event }: EventApplicationFormProps) {
         flagShortfall={form.flagShortfall}
         onToggleParticipantFlag={form.toggleParticipantFlag}
         canProceed={form.canProceedToStep3}
+        formErrors={form.formErrors}
         onBack={() => form.setStep(1)}
         onNext={form.proceedToPayment}
         couponsSupported={form.couponsSupported}

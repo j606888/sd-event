@@ -9,6 +9,7 @@ import type { PublicEventData } from "@/types/event";
 import type { EventPurchaseItem } from "@/types/event";
 import type { FormData } from "../event-application-types";
 import { LinePayeeCard } from "../LinePayeeCard";
+import { useRevealErrors } from "@/hooks/use-reveal-errors";
 
 const PAYMENT_METHODS = ["Line Pay", "Bank Transfer", "Other"] as const;
 
@@ -66,6 +67,17 @@ export function PaymentStep({
   const paymentMethods = PAYMENT_METHODS.filter(
     (method) => method !== "Line Pay" || event.linePayee
   );
+
+  // 按鈕隨時可按：沒選付款方式就提示並捲到付款方式區塊
+  const { containerRef, showErrors, reveal } = useRevealErrors();
+  const methodError = showErrors && !formData.paymentMethod;
+  const handleSubmit = () => {
+    if (!formData.paymentMethod) {
+      reveal();
+      return;
+    }
+    onSubmit();
+  };
 
   return (
     <div className="min-h-screen bg-paper p-4 sm:py-10">
@@ -169,14 +181,19 @@ export function PaymentStep({
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div
+            ref={containerRef}
+            className="space-y-3"
+          >
             <h2 className="font-semibold text-gray-900">{t("methodHeading")}</h2>
             <p className="text-sm text-gray-600">{t("payRightAway")}</p>
-            <div className="space-y-2">
+            <div className="space-y-2" data-invalid={methodError || undefined}>
               {paymentMethods.map((method) => (
                 <label
                   key={method}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50"
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
+                    methodError ? "border-red-400" : "border-gray-200"
+                  }`}
                 >
                   <input
                     type="radio"
@@ -191,6 +208,11 @@ export function PaymentStep({
                 </label>
               ))}
             </div>
+            {methodError && (
+              <p role="alert" className="text-sm text-red-500">
+                {t("methodRequired")}
+              </p>
+            )}
           </div>
 
           {/* 匯款帳號只在選擇銀行轉帳時顯示，避免與其他付款方式混淆 */}
@@ -236,8 +258,8 @@ export function PaymentStep({
           )}
 
           <Button
-            onClick={onSubmit}
-            disabled={!formData.paymentMethod || submitting}
+            onClick={handleSubmit}
+            disabled={submitting}
             className="w-full bg-brand text-ink hover:bg-brand-hover h-12 text-base font-medium"
           >
             {submitting ? tCommon("processing") : t("submit")}
