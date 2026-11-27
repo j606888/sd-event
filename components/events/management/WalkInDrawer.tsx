@@ -22,7 +22,7 @@ import {
 import { findFlaggedShortfall, normalizeFlagLabel } from "@/lib/attendee-flag";
 import { isItemOnSale } from "@/lib/pricing";
 import { isComboGroup, priceGroupSelection } from "@/lib/combo-pricing";
-import { ComboLadder } from "@/components/events/registration/ComboLadder";
+import { ComboLadder, ComboSinglePrice } from "@/components/events/registration/ComboLadder";
 
 const ROLES = ["Leader", "Follower", "Not sure"] as const;
 
@@ -322,7 +322,7 @@ export function WalkInDrawer({
                           <WalkInItemName item={item} />
                           <span className="text-sm text-gray-600">
                             {isComboGroup(group)
-                              ? null
+                              ? <ComboSinglePrice group={group} giftName={giftName} compact />
                               : seatCountOf(item) > 1
                               ? t("walkIn.priceForSeats", {
                                   amount: String(item.amount),

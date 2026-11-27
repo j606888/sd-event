@@ -7,7 +7,7 @@ import type { EventPurchaseItem, EventPurchaseItemGroup } from "@/types/event";
 import { seatCountOf } from "@/lib/seat-count";
 import { isItemOnSale } from "@/lib/pricing";
 import { isComboGroup, priceGroupSelection } from "@/lib/combo-pricing";
-import { ComboHint, ComboLadder } from "./ComboLadder";
+import { ComboHint, ComboLadder, ComboSinglePrice } from "./ComboLadder";
 import { ItemSessionLine } from "./ItemSchedule";
 
 /** 票券名稱下方的資訊：套票人數提示、票券說明、目前時段 */
@@ -242,7 +242,9 @@ export function GroupTicketPicker({
                           <span className="shrink-0 text-sm font-medium text-butter-ink">
                             {t("giftFree")}
                           </span>
-                        ) : isComboGroup(group) ? null : (
+                        ) : isComboGroup(group) ? (
+                          <ComboSinglePrice group={group} giftName={giftName} />
+                        ) : (
                           <TicketPriceLine
                             variant="picker"
                             amount={item.amount}
@@ -256,7 +258,8 @@ export function GroupTicketPicker({
                     </label>
                   );
                 })}
-                {isComboGroup(group) && !locked && (
+                {/* 只有一列的組合價（單張票）價格與附贈已在票券列上，不需要提示框 */}
+                {isComboGroup(group) && !locked && (group.combos?.length ?? 0) > 1 && (
                   <ComboHint group={group} count={selected.length} giftName={giftName} />
                 )}
                 {/* 選填 + 擇一群組：提供「不需要」選項以清除選取 */}
