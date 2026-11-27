@@ -50,6 +50,8 @@
     "comboNextTitled": "Add 1 more to get “{title}” for just +${amount}",
     "comboNextGift": ", including “{gift}”",
     "comboIncludesGift": "Includes “{gift}”",
+    "comboAllIncludeGift": "All include “{gift}”",
+    "comboGiftTag": "Incl. {gift}",
     "giftIncluded": "Included in “{title}”",
     "giftIncludedUntitled": "Included in your combo",
     "giftFree": "Included",

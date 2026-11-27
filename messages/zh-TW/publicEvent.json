@@ -50,6 +50,8 @@
     "comboNextTitled": "再加 1 項就是「{title}」，只要 +${amount}",
     "comboNextGift": "，還含「{gift}」",
     "comboIncludesGift": "已含「{gift}」",
+    "comboAllIncludeGift": "皆含「{gift}」",
+    "comboGiftTag": "含 {gift}",
     "giftIncluded": "已含於「{title}」",
     "giftIncludedUntitled": "組合價已含",
     "giftFree": "已含",

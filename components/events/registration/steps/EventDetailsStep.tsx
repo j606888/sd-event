@@ -10,7 +10,7 @@ import { getEventDateLabel, getEventTimeRange, formatTierDeadline } from "@/lib/
 import { TicketPriceLine, useSaleStatusLabel } from "../TicketPriceLine";
 import { isItemOnSale } from "@/lib/pricing";
 import { isComboGroup } from "@/lib/combo-pricing";
-import { ComboLadder } from "../ComboLadder";
+import { ComboLadder, ComboSinglePrice } from "../ComboLadder";
 import { ItemSchedule, ItemSessionLine } from "../ItemSchedule";
 import { distinctVenues, hasItemSchedule } from "@/lib/item-schedule";
 import type { EventPurchaseItem, EventPurchaseItemGroup, PublicEventData } from "@/types/event";
@@ -228,7 +228,12 @@ export function EventDetailsStep({
                             )}
                           </div>
                           {section.comboGroup ? (
-                            <span aria-hidden />
+                            <ComboSinglePrice
+                              group={section.comboGroup}
+                              giftName={(id) =>
+                                event.purchaseItems.find((i) => i.id === id)?.name ?? null
+                              }
+                            />
                           ) : (
                             <TicketPriceLine
                               variant="intro"

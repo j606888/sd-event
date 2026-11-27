@@ -28,39 +28,79 @@ export function ComboLadder({
   const t = useTranslations("publicEvent.ticketPicker");
   const labelOf = useComboLabel();
   const rows = comboLadder(group);
-  if (rows.length === 0) return null;
-  const giftRows = rows.filter((r) => r.giftItemId != null && giftName(r.giftItemId));
+  // 只有一列：不畫階梯（價格改由票券列右側顯示，見 ComboSinglePrice）
+  if (rows.length <= 1) return null;
+  const giftIds = rows.map((r) => (r.giftItemId != null ? giftName(r.giftItemId) : null));
+  const allSameGift = giftIds[0] != null && giftIds.every((g) => g === giftIds[0]);
+  const giftRows = allSameGift ? [] : rows.filter((r) => r.giftItemId != null && giftName(r.giftItemId));
 
   return (
-    <div className="space-y-1.5">
-      <ul
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${Math.min(rows.length, 4)}, minmax(0, 1fr))` }}
-      >
-        {rows.map((row) => {
+    <div className="space-y-0.5">
+      <ul className="flex flex-wrap items-center gap-x-1.5 text-sm text-gray-600 tabular-nums">
+        {rows.map((row, i) => {
           const active = activeCount === row.count;
           return (
             <li
               key={row.count}
               aria-current={active ? "true" : undefined}
-              className={`flex flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 py-2 text-center ${
-                active ? "bg-brand-strong text-white" : "bg-gray-100 text-ink"
-              }`}
+              className="flex items-center gap-1.5"
             >
-              <span className="text-xs leading-tight">{labelOf(row)}</span>
-              <span className="text-[15px] font-bold">
-                {t("comboPrice", { amount: String(row.amount) })}
+              {i > 0 && <span aria-hidden>・</span>}
+              <span className={active ? "font-bold text-ink underline underline-offset-2" : undefined}>
+                {labelOf(row)} {t("comboPrice", { amount: String(row.amount) })}
               </span>
             </li>
           );
         })}
       </ul>
+      {allSameGift && (
+        <p className="text-xs text-gray-500">{t("comboAllIncludeGift", { gift: giftIds[0]! })}</p>
+      )}
       {giftRows.map((row) => (
         <p key={row.count} className="text-xs text-gray-500">
           {labelOf(row)}・{t("comboIncludesGift", { gift: giftName(row.giftItemId!)! })}
         </p>
       ))}
     </div>
+  );
+}
+
+/**
+ * 組合價區塊只有一列（單張票）時，價格直接放在票券列右側，旁邊小標附贈票。
+ * 非單列時回傳 null（由 ComboLadder 負責）。
+ */
+export function ComboSinglePrice({
+  group,
+  giftName,
+  compact = false,
+}: {
+  group: Pick<EventPurchaseItemGroup, "id" | "comboPricing" | "combos">;
+  giftName: (itemId: number) => string | null;
+  /** 現場報名抽屜等密集版面：價格用內文字級；預設與 TicketPriceLine 的現價同級 */
+  compact?: boolean;
+}) {
+  const t = useTranslations("publicEvent.ticketPicker");
+  const rows = comboLadder(group);
+  if (rows.length !== 1) return null;
+  const row = rows[0];
+  const gift = row.giftItemId != null ? giftName(row.giftItemId) : null;
+  return (
+    <span className="flex shrink-0 flex-col items-end gap-0.5">
+      <span
+        className={
+          compact
+            ? "text-sm text-gray-600 tabular-nums"
+            : "font-display text-[18px] font-semibold leading-tight text-ink tabular-nums"
+        }
+      >
+        {t("comboPrice", { amount: String(row.amount) })}
+      </span>
+      {gift && (
+        <span className="rounded bg-butter-soft px-1.5 py-0.5 text-xs font-medium text-butter-ink">
+          {t("comboGiftTag", { gift })}
+        </span>
+      )}
+    </span>
   );
 }
 
